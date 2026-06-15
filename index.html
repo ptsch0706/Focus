@@ -123,7 +123,10 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 @keyframes bdIn{from{opacity:0}to{opacity:1}}
 .modal{background:var(--bg-raised);border-radius:var(--radius-lg) var(--radius-lg) 0 0;border:1px solid var(--line);border-bottom:none;width:100%;max-height:92vh;overflow-y:auto;padding:0 0 calc(var(--safe-bot) + 24px);animation:shUp .3s cubic-bezier(.32,.72,0,1);}
 @keyframes shUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-handle{width:36px;height:4px;background:var(--ink-mute);border-radius:2px;margin:12px auto 0;opacity:.4;}
+.modal-handle{width:36px;height:4px;background:var(--ink-mute);border-radius:2px;margin:0 auto;opacity:.4;transition:opacity .15s;cursor:grab;}
+.modal-handle:active{opacity:.8;cursor:grabbing;}
+.modal-handle-zone{padding:14px 0 4px;display:flex;justify-content:center;touch-action:none;-webkit-user-select:none;user-select:none;}
+.modal.dragging{transition:none;}
 .modal-header{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);}
 .modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;}
 .modal-body{padding:16px 20px;}
@@ -407,6 +410,108 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .changelog-item{font-size:13px;color:var(--ink-soft);display:flex;align-items:baseline;gap:6px;}
 .changelog-item::before{content:'·';color:var(--ink-mute);flex-shrink:0;}
 
+
+/* RICH TEXT EDITOR */
+.note-rich-body{
+  width:100%;background:none;border:none;color:var(--ink);
+  font-family:'Inter',sans-serif;font-size:15px;line-height:1.7;
+  outline:none;min-height:60vh;padding:0;
+  -webkit-user-select:text;user-select:text;
+  word-wrap:break-word;
+}
+.note-rich-body[contenteditable=true]:empty:before{
+  content:attr(data-placeholder);color:var(--ink-mute);pointer-events:none;
+}
+.note-rich-body h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--ink);margin:16px 0 8px;letter-spacing:-.02em;}
+.note-rich-body h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--ink);margin:14px 0 6px;}
+.note-rich-body h3{font-size:15px;font-weight:600;color:var(--ink);margin:12px 0 4px;}
+.note-rich-body strong{color:var(--ink);font-weight:700;}
+.note-rich-body em{color:var(--ink);font-style:italic;}
+.note-rich-body u{text-decoration:underline;}
+.note-rich-body ul,.note-rich-body ol{padding-left:24px;margin:8px 0;}
+.note-rich-body li{margin:4px 0;}
+.note-rich-body blockquote{border-left:3px solid var(--note);padding-left:12px;color:var(--ink-soft);margin:8px 0;}
+.note-rich-body code{background:var(--bg-raised);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-family:monospace;font-size:13px;color:var(--cyan);}
+
+/* Sticky toolbar above keyboard */
+.note-sticky-bar{
+  position:sticky;
+  bottom:0;
+  background:var(--bg);
+  border-top:1px solid var(--line);
+  z-index:10;
+}
+.note-style-dropdown{
+  position:relative;display:inline-block;
+}
+.note-style-menu{
+  position:absolute;bottom:100%;left:0;
+  background:var(--bg-raised);border:1px solid var(--line);
+  border-radius:var(--radius);padding:6px;margin-bottom:6px;
+  display:none;flex-direction:column;gap:2px;min-width:140px;
+  box-shadow:var(--shadow-lg);z-index:20;
+}
+.note-style-menu.open{display:flex;}
+.note-style-menu button{
+  background:none;border:none;color:var(--ink);
+  font-family:'Inter',sans-serif;padding:8px 12px;
+  border-radius:6px;cursor:pointer;text-align:left;font-size:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.note-style-menu button:active{background:var(--bg-elev);}
+.note-style-menu button .preview-h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;}
+.note-style-menu button .preview-h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;}
+.note-style-menu button .preview-h3{font-size:14px;font-weight:600;}
+
+/* Body editor takes most of screen, full-tap target */
+.note-editor-area{
+  min-height:60vh;padding:16px;cursor:text;
+}
+
+/* Linked-notes display on other modules */
+.linked-notes-section{
+  margin-top:16px;padding-top:12px;border-top:1px solid var(--line);
+}
+.linked-notes-label{
+  font-size:11px;font-weight:600;color:var(--ink-mute);
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;
+}
+.linked-note-pill{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:var(--note-soft);border:1px solid var(--note);
+  border-radius:var(--radius-sm);font-size:13px;color:var(--note);
+  margin-bottom:6px;cursor:pointer;transition:all .15s;
+}
+.linked-note-pill:active{background:var(--bg-raised);}
+.linked-note-pill svg{width:14px;height:14px;stroke-width:2;flex-shrink:0;}
+.linked-note-pill-text{flex:1;color:var(--ink);}
+
+/* STREAK COLOR DOTS */
+.streak-color-dot{width:40px;height:40px;border-radius:50%;flex-shrink:0;border:3px solid var(--bg);box-shadow:0 0 0 2px currentColor;}
+.streak-color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.color-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:all .15s;}
+.color-swatch.selected{border-color:var(--ink);transform:scale(1.1);}
+
+/* COLLAPSIBLE STREAK CARDS */
+.streak-card{cursor:pointer;}
+.streak-card.expanded{cursor:default;}
+.streak-card .streak-expand-area{display:none;}
+.streak-card.expanded .streak-expand-area{display:block;}
+.streak-collapse-indicator{font-size:11px;color:var(--ink-mute);padding:0 16px 12px;display:flex;align-items:center;gap:4px;}
+.streak-collapse-indicator svg{width:12px;height:12px;stroke-width:2;transition:transform .2s;}
+.streak-card.expanded .streak-collapse-indicator svg{transform:rotate(180deg);}
+
+/* RECURRENCE DETAILS UI */
+.recur-detail-row{display:none;margin-top:10px;padding:12px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);}
+.recur-detail-row.show{display:block;}
+.recur-interval-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.recur-interval-row label{font-size:13px;color:var(--ink-soft);}
+.recur-interval-row input{width:60px;background:var(--bg-raised);border:1px solid var(--line);border-radius:6px;padding:6px 10px;color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;text-align:center;outline:none;}
+.recur-dow-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.recur-dow-pill{padding:6px 10px;border-radius:20px;border:1.5px solid var(--line);background:none;color:var(--ink-soft);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;}
+.recur-dow-pill.selected{border-color:var(--cyan);background:var(--cyan-soft);color:var(--cyan);}
+.recur-summary{font-size:12px;color:var(--ink-mute);margin-top:6px;font-style:italic;}
+
 </style>
 </head>
 <body>
@@ -525,7 +630,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 <!-- MODULE PICKER -->
 <div class="modal-backdrop" id="modal-picker">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title">What would you like to add?</div><button class="btn-icon" onclick="closeModal('modal-picker')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="mod-picker">
       <div class="mod-tile" onclick="closeModal('modal-picker');openTodoModal()"><div class="mod-icon" style="background:var(--todo-soft);color:var(--todo)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="mod-name">To-Do</div><div class="mod-desc">Task with a due date</div></div>
@@ -539,7 +644,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 <!-- TODO MODAL -->
 <div class="modal-backdrop" id="modal-todo">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title" id="todo-modal-title">New To-Do</div><button class="btn-icon" onclick="closeModal('modal-todo')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <input type="hidden" id="todo-eid">
@@ -551,12 +656,29 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
         <button class="pill" data-val="med" onclick="setPill('priority',this)">🟡 Medium</button>
         <button class="pill sel" data-val="low" onclick="setPill('priority',this)">Low</button>
       </div></div>
-      <div class="field"><label class="field-label">Repeat</label><div class="pill-row" id="pr-recur">
-        <button class="pill sel" data-val="none" onclick="setPill('recur',this)">None</button>
-        <button class="pill" data-val="daily" onclick="setPill('recur',this)">Daily</button>
-        <button class="pill" data-val="weekly" onclick="setPill('recur',this)">Weekly</button>
-        <button class="pill" data-val="monthly" onclick="setPill('recur',this)">Monthly</button>
-      </div></div>
+      <div class="field"><label class="field-label">Repeat</label>
+        <div class="pill-row" id="pr-recur">
+          <button class="pill sel" data-val="none" onclick="setRecur('todo','none')">None</button>
+          <button class="pill" data-val="daily" onclick="setRecur('todo','daily')">Daily</button>
+          <button class="pill" data-val="weekly" onclick="setRecur('todo','weekly')">Weekly</button>
+          <button class="pill" data-val="monthly" onclick="setRecur('todo','monthly')">Monthly</button>
+          <button class="pill" data-val="yearly" onclick="setRecur('todo','yearly')">Yearly</button>
+        </div>
+        <div class="recur-detail-row" id="recur-detail-todo">
+          <div class="recur-interval-row">
+            <label>Every</label>
+            <input type="number" id="recur-interval-todo" value="1" min="1" max="99">
+            <label id="recur-interval-unit-todo">week(s)</label>
+          </div>
+          <div id="recur-dow-row-todo" style="display:none">
+            <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day(s) of week</label>
+            <div class="recur-dow-pills" id="recur-dow-pills-todo"></div>
+          </div>
+          <div id="recur-dom-row-todo" style="display:none;font-size:13px;color:var(--ink-soft)">On day <span id="recur-dom-label-todo">1</span> of the month</div>
+          <div id="recur-ym-row-todo" style="display:none;font-size:13px;color:var(--ink-soft)">On <span id="recur-ym-label-todo">Jan 1</span> each year</div>
+          <div class="recur-summary" id="recur-summary-todo"></div>
+        </div>
+      </div>
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn btn-ghost btn-sm" id="todo-del-btn" onclick="deleteTodo()" style="display:none;color:var(--pri-high)">Delete</button>
         <button class="btn btn-primary btn-block" onclick="saveTodo()">Save To-Do</button>
@@ -567,7 +689,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 <!-- LIST MODAL -->
 <div class="modal-backdrop" id="modal-list">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title" id="list-modal-title">New List</div><button class="btn-icon" onclick="closeModal('modal-list')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <input type="hidden" id="list-eid">
@@ -587,7 +709,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 <!-- LIST MENU MODAL -->
 <div class="modal-backdrop" id="modal-list-menu">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title" id="list-menu-title">List Options</div><button class="btn-icon" onclick="closeModal('modal-list-menu')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body" id="list-menu-body"></div>
   </div>
@@ -595,20 +717,36 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 <!-- REMINDER MODAL -->
 <div class="modal-backdrop" id="modal-reminder">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title" id="rem-modal-title">New Reminder</div><button class="btn-icon" onclick="closeModal('modal-reminder')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <input type="hidden" id="rem-eid">
       <div class="field"><label class="field-label">Title</label><input type="text" id="rem-title" placeholder="What do you want to remember?" autocomplete="off"></div>
       <div class="field"><label class="field-label">Notes</label><textarea id="rem-notes" placeholder="Optional detail..."></textarea></div>
       <div class="field-row"><div class="field"><label class="field-label">Date</label><input type="date" id="rem-date"></div><div class="field"><label class="field-label">Time</label><input type="time" id="rem-time"></div></div>
-      <div class="field"><label class="field-label">Repeat</label><div class="pill-row" id="pr-rrecur">
-        <button class="pill sel" data-val="none" onclick="setPill('rrecur',this)">None</button>
-        <button class="pill" data-val="daily" onclick="setPill('rrecur',this)">Daily</button>
-        <button class="pill" data-val="weekly" onclick="setPill('rrecur',this)">Weekly</button>
-        <button class="pill" data-val="monthly" onclick="setPill('rrecur',this)">Monthly</button>
-        <button class="pill" data-val="yearly" onclick="setPill('rrecur',this)">Yearly</button>
-      </div></div>
+      <div class="field"><label class="field-label">Repeat</label>
+        <div class="pill-row" id="pr-rrecur">
+          <button class="pill sel" data-val="none" onclick="setRecur('rem','none')">None</button>
+          <button class="pill" data-val="daily" onclick="setRecur('rem','daily')">Daily</button>
+          <button class="pill" data-val="weekly" onclick="setRecur('rem','weekly')">Weekly</button>
+          <button class="pill" data-val="monthly" onclick="setRecur('rem','monthly')">Monthly</button>
+          <button class="pill" data-val="yearly" onclick="setRecur('rem','yearly')">Yearly</button>
+        </div>
+        <div class="recur-detail-row" id="recur-detail-rem">
+          <div class="recur-interval-row">
+            <label>Every</label>
+            <input type="number" id="recur-interval-rem" value="1" min="1" max="99">
+            <label id="recur-interval-unit-rem">week(s)</label>
+          </div>
+          <div id="recur-dow-row-rem" style="display:none">
+            <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day(s) of week</label>
+            <div class="recur-dow-pills" id="recur-dow-pills-rem"></div>
+          </div>
+          <div id="recur-dom-row-rem" style="display:none;font-size:13px;color:var(--ink-soft)">On day <span id="recur-dom-label-rem">1</span> of the month</div>
+          <div id="recur-ym-row-rem" style="display:none;font-size:13px;color:var(--ink-soft)">On <span id="recur-ym-label-rem">Jan 1</span> each year</div>
+          <div class="recur-summary" id="recur-summary-rem"></div>
+        </div>
+      </div>
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn btn-ghost btn-sm" id="rem-del-btn" onclick="deleteReminder()" style="display:none;color:var(--pri-high)">Delete</button>
         <button class="btn btn-block btn-violet" onclick="saveReminder()">Save Reminder</button>
@@ -619,7 +757,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 <!-- SETTINGS MODAL -->
 <div class="modal-backdrop" id="modal-settings">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title" id="sett-title">Settings</div><button class="btn-icon" onclick="closeModal('modal-settings')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body" id="sett-body"></div>
   </div>
@@ -721,6 +859,16 @@ function openTodoModal(id=null){
   document.getElementById('todo-del-btn').style.display=t?'':'none';
   resetPills('priority',t?t.priority||'low':'low');
   resetPills('recur',t?t.recur||'none':'none');
+  // Show any linked notes
+  const linkedHTML = id ? renderLinkedNotes('todo', id) : '';
+  const existing = document.getElementById('todo-linked-notes');
+  if (existing) existing.remove();
+  if (linkedHTML) {
+    const div = document.createElement('div');
+    div.id = 'todo-linked-notes';
+    div.innerHTML = linkedHTML;
+    document.querySelector('#modal-todo .modal-body').appendChild(div);
+  }
   openModal('modal-todo');setTimeout(()=>document.getElementById('todo-title').focus(),350);
 }
 function saveTodo(){
@@ -730,8 +878,9 @@ function saveTodo(){
   const date=document.getElementById('todo-date').value||td();
   const time=document.getElementById('todo-time').value||'';
   const notes=document.getElementById('todo-notes').value.trim();
-  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1)S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:P.recur};toast('Updated','ok');}
-  else{S.todos.push({id:gid(),title,date,time,notes,priority:P.priority,recur:P.recur,completed:false,createdAt:Date.now()});toast('To-Do added','ok');}
+  const recurVal = getCurrentRecur('todo');
+  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1)S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal};toast('Updated','ok');}
+  else{S.todos.push({id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,createdAt:Date.now()});toast('To-Do added','ok');}
   save();closeModal('modal-todo');renderTodos();renderDash();tabs();
 }
 function checkTodo(id){
@@ -850,7 +999,7 @@ function renderListDet(){
       if(co)h+=`<div>`+chk.map(i=>liHTML(i,l.type)).join('')+`</div>`;
     }else if(chk.length)h+=chk.map(i=>liHTML(i,l.type)).join('');
   }
-  document.getElementById('det-items').innerHTML=h;
+  document.getElementById('det-items').innerHTML=h + renderLinkedNotes('list', listId);
 }
 function liHTML(item,type){
   const isC=type==='checklist';
@@ -900,6 +1049,15 @@ function openReminderModal(id=null){
   document.getElementById('rem-time').value=r?r.time||'':'';
   document.getElementById('rem-del-btn').style.display=r?'':'none';
   resetPills('rrecur',r?r.recur||'none':'none');
+  const linkedHTML = id ? renderLinkedNotes('reminder', id) : '';
+  const existing = document.getElementById('rem-linked-notes');
+  if (existing) existing.remove();
+  if (linkedHTML) {
+    const div = document.createElement('div');
+    div.id = 'rem-linked-notes';
+    div.innerHTML = linkedHTML;
+    document.querySelector('#modal-reminder .modal-body').appendChild(div);
+  }
   openModal('modal-reminder');setTimeout(()=>document.getElementById('rem-title').focus(),350);
 }
 function saveReminder(){
@@ -908,8 +1066,9 @@ function saveReminder(){
   const date=document.getElementById('rem-date').value||td();
   const time=document.getElementById('rem-time').value||'';
   const notes=document.getElementById('rem-notes').value.trim();
-  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1)S.reminders[i]={...S.reminders[i],title,date,time,notes,recur:P.rrecur};toast('Updated','ok');}
-  else{S.reminders.push({id:gid(),title,date,time,notes,recur:P.rrecur,completed:false,createdAt:Date.now()});toast('Reminder added','ok');}
+  const recurVal = getCurrentRecur('rem');
+  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1)S.reminders[i]={...S.reminders[i],title,date,time,notes,recur:recurVal};toast('Updated','ok');}
+  else{S.reminders.push({id:gid(),title,date,time,notes,recur:recurVal,completed:false,createdAt:Date.now()});toast('Reminder added','ok');}
   save();closeModal('modal-reminder');renderRem();renderDash();tabs();
 }
 function checkRem(id){
@@ -955,7 +1114,7 @@ function rHTML(r){
   <div class="todo-meta">
     ${r.time?`<span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtT(r.time)}</span>`:''}
     ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':t2?'<span class="t-tag rem" style="background:var(--cyan-soft);color:var(--cyan)">Today</span>':''}
-    ${r.recur&&r.recur!=='none'?`<span class="t-tag rem">↻ ${r.recur}</span>`:''}
+    ${r.recur&&r.recur!=='none'?`<span class="t-tag rem">↻ ${describeRecur(r.recur)}</span>`:''}
   </div>
   ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>`;
 }
@@ -1021,12 +1180,12 @@ function renderDash(){
   if(typeof getStreakChain==='function'&&S.streaks&&S.streaks.length&&h>=20){
     const ar=S.streaks.filter(s=>isScheduledToday(s)&&!isLoggedToday(s));
     if(ar.length)out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>'
-      +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft)">'+esc(s.emoji)+' '+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
+      +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:'+(s.color||'#f43f5e')+'"></span>'+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
   } else if(h>=20){
     out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">Tap the Streaks tab to set up your habits.</div></div>';
   }
   if(S.notes){const pn=S.notes.find(n=>n.pinned);if(pn){
-    const pv=pn.body.replace(/[#*`>]+/g,'').trim().substring(0,80);
+    const pv=stripHTML(pn.body).substring(0,80);
     out+='<div class="section-label">&#128204; Pinned Note</div><div class="note-card" onclick="switchView(\'notes\');openNoteDetail(\''+(pn.id)+'\')" style="margin-bottom:10px"><div class="note-card-title">'+(pn.title?esc(pn.title):'Untitled')+'</div>'+(pv?'<div class="note-card-preview">'+esc(pv)+'</div>':'')+'</div>';}}
   document.getElementById('dash-content').innerHTML=out;
 }
@@ -1197,11 +1356,12 @@ function openNoteDetail(id=null) {
   }
   const note = S.notes.find(n=>n.id===noteId);
   document.getElementById('note-title-inp').value = note ? note.title : '';
-  document.getElementById('note-body-inp').value = note ? note.body : '';
-  noteMode = 'edit';
-  document.getElementById('note-preview').style.display = 'none';
-  document.getElementById('note-body-inp').style.display = '';
-  document.getElementById('note-preview-toggle').classList.remove('active-mode');
+  // Migrate plain text or markdown body to HTML if needed
+  let bodyHTML = note ? (note.body || '') : '';
+  if (bodyHTML && !bodyHTML.includes('<')) {
+    bodyHTML = migrateMarkdownToHTML(bodyHTML);
+  }
+  document.getElementById('note-body-inp').innerHTML = bodyHTML;
   updateNotePin(note);
   updateNoteMeta(note);
   updateNoteLinkChips(note);
@@ -1213,14 +1373,70 @@ function openNoteDetail(id=null) {
   }, 350);
 }
 
+function focusNoteBody(event) {
+  if (event.target.closest('input, textarea, [contenteditable], button, .note-link-row, .note-toolbar')) return;
+  document.getElementById('note-body-inp').focus();
+  // Move cursor to end
+  const el = document.getElementById('note-body-inp');
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function migrateMarkdownToHTML(md) {
+  if (!md) return '';
+  let html = md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/[*][*]([^*]+)[*][*]/g, '<strong>$1</strong>')
+    .replace(/[*]([^*]+)[*]/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  // Convert remaining double newlines to paragraph breaks
+  html = html.split(/\n\n+/).map(p => p.includes('<') ? p : '<p>'+p.replace(/\n/g,'<br>')+'</p>').join('');
+  return html;
+}
+
+function richCmd(cmd) {
+  document.execCommand(cmd, false, null);
+  document.getElementById('note-body-inp').focus();
+  noteChanged();
+}
+
+function setBlockStyle(tag) {
+  document.execCommand('formatBlock', false, tag);
+  document.getElementById('note-style-menu').classList.remove('open');
+  document.getElementById('note-body-inp').focus();
+  noteChanged();
+}
+
+function toggleStyleMenu(event) {
+  event.stopPropagation();
+  document.getElementById('note-style-menu').classList.toggle('open');
+}
+
+// Close style menu when clicking elsewhere
+document.addEventListener('click', e => {
+  if (!e.target.closest('.note-style-dropdown')) {
+    const m = document.getElementById('note-style-menu');
+    if (m) m.classList.remove('open');
+  }
+});
+
 function closeNoteDetail() {
   const note = S.notes.find(n=>n.id===noteId);
   if (note) {
     note.title = document.getElementById('note-title-inp').value.trim();
-    note.body = document.getElementById('note-body-inp').value;
+    note.body = document.getElementById('note-body-inp').innerHTML;
     note.updatedAt = Date.now();
-    // Remove if completely empty
-    if (!note.title && !note.body) {
+    const plainText = note.body.replace(/<[^>]*>/g, '').trim();
+    if (!note.title && !plainText) {
       S.notes = S.notes.filter(n=>n.id!==noteId);
     }
     save();
@@ -1235,11 +1451,9 @@ function noteChanged() {
   const note = S.notes.find(n=>n.id===noteId);
   if (!note) return;
   note.title = document.getElementById('note-title-inp').value.trim();
-  note.body = document.getElementById('note-body-inp').value;
+  note.body = document.getElementById('note-body-inp').innerHTML;
   note.updatedAt = Date.now();
   updateNoteMeta(note);
-  if (noteMode === 'preview') renderNotePreview();
-  // Auto-save debounced
   clearTimeout(noteChanged._t);
   noteChanged._t = setTimeout(save, 800);
 }
@@ -1266,35 +1480,14 @@ function toggleNotePin() {
   toast(note.pinned ? 'Pinned to Dashboard' : 'Unpinned', 'ok');
 }
 
-function toggleNoteMode() {
-  noteMode = noteMode === 'edit' ? 'preview' : 'edit';
-  const isPreview = noteMode === 'preview';
-  document.getElementById('note-preview').style.display = isPreview ? '' : 'none';
-  document.getElementById('note-body-inp').style.display = isPreview ? 'none' : '';
-  document.getElementById('note-preview-toggle').classList.toggle('active-mode', isPreview);
-  if (isPreview) renderNotePreview();
-}
 
-function renderNotePreview() {
-  const body = document.getElementById('note-body-inp').value;
-  document.getElementById('note-preview').innerHTML = parseMarkdown(body);
-}
 
-function parseMarkdown(md) {
-  let html = esc(md)
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^---$/gm, '<hr>')
-    .replace(/[*][*](.+?)[*][*]/g,'<strong>$1</strong>')
-    .replace(/[*]([^*]+)[*]/g,'<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>');
-  return html;
+
+
+function stripHTML(html) {
+  if (!html) return '';
+  // Strip tags and decode common entities for preview text
+  return html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
 }
 
 function insertMD(before, after) {
@@ -1412,7 +1605,7 @@ function renderNotes() {
   // Pinned first
   const sorted = [...notes.filter(n=>n.pinned), ...notes.filter(n=>!n.pinned)];
   el.innerHTML = sorted.map(note => {
-    const preview = note.body.replace(/[#*`>-]+/g,'').trim().substring(0,100);
+    const preview = stripHTML(note.body).substring(0,100);
     const d = new Date(note.updatedAt||note.createdAt);
     const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     let linkBadge = '';
@@ -1433,22 +1626,57 @@ function renderNotes() {
   }).join('');
 }
 
+
+// ── BIDIRECTIONAL LINKING HELPERS ──
+function getLinkedNotes(type, id) {
+  if (!S.notes) return [];
+  return S.notes.filter(n => n.linkedTo && n.linkedTo.type === type && n.linkedTo.id === id);
+}
+
+function renderLinkedNotes(type, id) {
+  const notes = getLinkedNotes(type, id);
+  if (!notes.length) return '';
+  return '<div class="linked-notes-section">'
+    + '<div class="linked-notes-label">' + (notes.length === 1 ? 'Linked Note' : notes.length + ' Linked Notes') + '</div>'
+    + notes.map(n => '<div class="linked-note-pill" onclick="event.stopPropagation();jumpToNote(\''+n.id+'\')">'
+      + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+      + '<span class="linked-note-pill-text">' + (n.title ? esc(n.title) : esc(stripHTML(n.body).substring(0,40)) || 'Untitled') + '</span>'
+      + '</div>').join('')
+    + '</div>';
+}
+
+function jumpToNote(noteIdToOpen) {
+  // Close any open modals/details first
+  document.querySelectorAll('.modal-backdrop.show').forEach(m => m.classList.remove('show'));
+  document.getElementById('list-detail-view').classList.remove('show');
+  document.body.style.overflow = '';
+  switchView('notes');
+  setTimeout(() => openNoteDetail(noteIdToOpen), 200);
+}
+
 // ── STREAKS ──
 const P2 = {sfreq:'daily'};
 let streakPressTimer = null, streakDays = [];
+
+let selectedStreakColor = '#f43f5e';
+
+function selectStreakColor(color, el) {
+  selectedStreakColor = color;
+  document.querySelectorAll('#streak-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s === el));
+}
 
 function openStreakModal(id=null) {
   const s = id ? S.streaks.find(s=>s.id===id) : null;
   document.getElementById('streak-modal-title').textContent = s ? 'Edit Streak' : 'New Streak';
   document.getElementById('streak-eid').value = id||'';
   document.getElementById('streak-name').value = s ? s.name : '';
-  document.getElementById('streak-emoji').value = s ? s.emoji||'🎯' : '';
+  selectedStreakColor = s ? (s.color || '#f43f5e') : '#f43f5e';
+  document.querySelectorAll('#streak-color-picker .color-swatch').forEach(sw => sw.classList.toggle('selected', sw.dataset.color === selectedStreakColor));
   document.getElementById('streak-del-btn').style.display = s ? '' : 'none';
   P2.sfreq = s ? s.freq||'daily' : 'daily';
-  streakDays = s ? (s.days||[]) : [];
+  streakDays = s ? (s.days||[0,1,2,3,4,5,6]) : [0,1,2,3,4,5,6];
   resetPills('sfreq', P2.sfreq);
   updateStreakDaysField();
-  // Set day pills
   document.querySelectorAll('#streak-days-wrap .pill').forEach(p=>{
     p.classList.toggle('sel', streakDays.includes(parseInt(p.dataset.day)));
   });
@@ -1473,15 +1701,15 @@ function saveStreak() {
   const name = document.getElementById('streak-name').value.trim();
   if (!name) { toast('Please add a name','err'); return; }
   const id = document.getElementById('streak-eid').value;
-  const emoji = document.getElementById('streak-emoji').value.trim() || '🎯';
+  const color = selectedStreakColor;
   const freq = P2.sfreq;
   const days = freq==='custom' ? streakDays : freq==='mon-fri' ? [1,2,3,4,5] : [0,1,2,3,4,5,6];
   if (id) {
     const i = S.streaks.findIndex(s=>s.id===id);
-    if (i!==-1) S.streaks[i] = {...S.streaks[i],name,emoji,freq,days};
+    if (i!==-1) S.streaks[i] = {...S.streaks[i],name,color,freq,days};
     toast('Streak updated','ok');
   } else {
-    S.streaks.push({id:gid(),name,emoji,freq,days,logs:[],createdAt:Date.now()});
+    S.streaks.push({id:gid(),name,color,freq,days,logs:[],_expanded:false,createdAt:Date.now()});
     toast('Streak created','ok');
   }
   save(); closeModal('modal-streak'); renderStreaks();
@@ -1556,13 +1784,22 @@ function logStreak(id) {
   save(); renderStreaks(); renderDash();
 }
 
+function toggleStreakExpand(id, event) {
+  if (event && event.target.closest('button')) return; // Don't toggle when clicking a button inside the card
+  const s = S.streaks.find(s=>s.id===id);
+  if (!s) return;
+  s._expanded = !s._expanded;
+  save();
+  renderStreaks();
+}
+
 function renderStreaks() {
   const el = document.getElementById('streak-list');
   if (!el) return;
   const now = new Date(), hour = now.getHours();
   document.getElementById('streak-sub').textContent = S.streaks.length + ' habit' + (S.streaks.length!==1?'s':'');
   if (!S.streaks.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon" style="background:var(--streak-soft);border-color:var(--streak);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="empty-title">No streaks yet</div><div class="empty-sub">Tap + to create your first habit and start your chain.</div></div>`;
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon" style="background:var(--streak-soft);border-color:var(--streak);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="empty-title">No streaks yet</div><div class="empty-sub">Tap + to create your first habit and start your chain.</div></div>';
     return;
   }
   el.innerHTML = S.streaks.map(s => {
@@ -1587,38 +1824,48 @@ function renderStreaks() {
       dots.push(`<div class="${cls}" title="${ds}"></div>`);
     }
     const freqLabel = s.freq==='daily'?'Daily':s.freq==='mon-fri'?'Mon–Fri':'Custom';
-    return `<div class="streak-card ${atRisk?'at-risk':''}" id="sc-${s.id}">
-      <div class="streak-top">
-        <div class="streak-emoji">${esc(s.emoji||'🎯')}</div>
-        <div class="streak-info">
-          <div class="streak-name">${esc(s.name)}</div>
-          <div class="streak-chain-wrap">
-            <div class="streak-chain">${chain}</div>
-            <span class="streak-chain-lbl">day${chain!==1?'s':''}</span>
-            ${chain>=7?'<span style="margin-left:6px">🔥</span>':''}
-          </div>
-        </div>
-        <div class="streak-actions">
-          ${inGrace ? `<span class="streak-grace-badge">Grace</span>` : ''}
-          <span class="streak-freq-badge">${freqLabel}</span>
-          <button class="btn-icon btn-xs" onclick="openStreakModal('${s.id}')" style="color:var(--ink-mute)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-      <div class="streak-progress"><div class="streak-progress-fill" style="width:${Math.min(100,chain/7*100)}%"></div></div>
-      <div class="dot-grid">${dots.join('')}</div>
-      <div style="padding:0 16px 14px;display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:12px;color:var(--ink-mute)">${scheduled?(logged?'Logged today':'Not yet logged today'):'Rest day'}</div>
-        <button class="streak-log-btn ${logged?'logged':''}" id="slb-${s.id}"
-          onpointerdown="startStreakPress('${s.id}',this)"
-          onpointerup="cancelStreakPress()"
-          onpointerleave="cancelStreakPress()"
-          oncontextmenu="return false">
-          ${logged
+    const color = s.color || '#f43f5e';
+    const expanded = !!s._expanded;
+    const linkedNotesHTML = renderLinkedNotes('streak', s.id);
+    return '<div class="streak-card ' + (atRisk?'at-risk ':'') + (expanded?'expanded':'') + '" id="sc-' + s.id + '" onclick="toggleStreakExpand(\''+s.id+'\',event)" style="border-left:3px solid '+color+'">'
+      + '<div class="streak-top">'
+        + '<div class="streak-color-dot" style="background:'+color+';color:'+color+'"></div>'
+        + '<div class="streak-info">'
+          + '<div class="streak-name">' + esc(s.name) + '</div>'
+          + '<div class="streak-chain-wrap">'
+            + '<div class="streak-chain" style="color:'+color+'">' + chain + '</div>'
+            + '<span class="streak-chain-lbl">day' + (chain!==1?'s':'') + '</span>'
+            + (chain>=7?'<span style="margin-left:6px">🔥</span>':'')
+          + '</div>'
+        + '</div>'
+        + '<div class="streak-actions">'
+          + (inGrace ? '<span class="streak-grace-badge">Grace</span>' : '')
+          + '<span class="streak-freq-badge">' + freqLabel + '</span>'
+          + '<button class="btn-icon btn-xs" onclick="event.stopPropagation();openStreakModal(\''+s.id+'\')" style="color:var(--ink-mute)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>'
+        + '</div>'
+      + '</div>'
+      + '<div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,chain/7*100)+'%;background:'+color+'"></div></div>'
+      + '<div class="streak-expand-area">'
+        + '<div class="dot-grid">' + dots.map(d => d.replace('background:var(--streak)', 'background:'+color)).join('') + '</div>'
+      + '</div>'
+      + '<div style="padding:0 16px 14px;display:flex;align-items:center;justify-content:space-between">'
+        + '<div style="font-size:12px;color:var(--ink-mute)">' + (scheduled?(logged?'Logged today':'Not yet logged today'):'Rest day') + '</div>'
+        + '<button class="streak-log-btn ' + (logged?'logged':'') + '" id="slb-' + s.id + '" style="border-color:'+color+';' + (logged?'background:'+color:'') + '"'
+          + ' onpointerdown="event.stopPropagation();startStreakPress(\''+s.id+'\',this)"'
+          + ' onpointerup="cancelStreakPress()"'
+          + ' onpointerleave="cancelStreakPress()"'
+          + ' oncontextmenu="return false">'
+          + (logged
             ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>'
-            : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'}
-        </button>
-      </div>
-    </div>`;
+            : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color:'+color+'"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>')
+        + '</button>'
+      + '</div>'
+      + '<div class="streak-collapse-indicator">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>'
+        + (expanded ? 'Tap to collapse' : 'Tap to see history')
+      + '</div>'
+      + (linkedNotesHTML ? '<div style="padding:0 16px 12px">' + linkedNotesHTML + '</div>' : '')
+    + '</div>';
   }).join('');
 }
 
@@ -1669,6 +1916,20 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.01.00',
+    date: 'Jun 15, 2026',
+    type: 'medium',
+    items: [
+      'Notes: rich text editing (real bold/italic/underline, bullet & numbered lists, headers in a Style dropdown)',
+      'Notes: tap anywhere in a note to start typing, toolbar sticks above keyboard',
+      'Bidirectional linking: linked notes now appear on the To-Do, List, Reminder, or Streak they\'re linked to',
+      'Modals: swipe down on the grab bar to dismiss',
+      'Reminders & To-Dos: specific recurrence (e.g. every 2 weeks on Mon & Wed, or yearly on Mar 15)',
+      'Streaks: replaced emoji icon with a colored circle indicator',
+      'Streaks: cards now collapsed by default — tap to expand and see the history grid'
+    ]
+  },
   {
     version: '0.00.04',
     date: 'Jun 15, 2026',
@@ -1737,6 +1998,262 @@ function openChangelog() {
     +'<button class="btn btn-ghost btn-block btn-sm" style="margin-top:16px" onclick="renderSett()">&#8592; Back</button>';
 }
 
+
+// ── RECURRENCE PICKER (v0.01.00) ──
+// recur shape: {freq:'daily|weekly|monthly|yearly', interval:N, daysOfWeek:[0-6], dayOfMonth:N, month:N, day:N}
+// Backward-compatible: old string values 'daily','weekly','monthly','yearly' still work as freq with interval=1
+
+const DOW_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const recurState = { todo: null, rem: null };
+
+function normalizeRecur(recur, baseDate) {
+  if (!recur || recur === 'none') return null;
+  if (typeof recur === 'string') {
+    const [y, m, d] = (baseDate || todayStr()).split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    return {
+      freq: recur,
+      interval: 1,
+      daysOfWeek: recur === 'weekly' ? [dt.getDay()] : null,
+      dayOfMonth: recur === 'monthly' ? d : null,
+      month: recur === 'yearly' ? m : null,
+      day: recur === 'yearly' ? d : null,
+    };
+  }
+  return recur;
+}
+
+function setRecur(scope, freq) {
+  // scope is 'todo' or 'rem'
+  const dateInput = document.getElementById(scope === 'todo' ? 'todo-date' : 'rem-date');
+  const baseDateStr = dateInput.value || todayStr();
+  const [y,m,d] = baseDateStr.split('-').map(Number);
+  const baseDate = new Date(y, m-1, d);
+
+  // Set pill UI
+  const pillRow = document.getElementById(scope === 'todo' ? 'pr-recur' : 'pr-rrecur');
+  pillRow.querySelectorAll('.pill').forEach(p => p.classList.toggle('sel', p.dataset.val === freq));
+
+  if (freq === 'none') {
+    recurState[scope] = null;
+    document.getElementById('recur-detail-' + scope).classList.remove('show');
+    return;
+  }
+
+  // Initialize/update recurState
+  let r = recurState[scope] && recurState[scope].freq === freq ? recurState[scope] : null;
+  if (!r) {
+    r = {
+      freq,
+      interval: 1,
+      daysOfWeek: freq === 'weekly' ? [baseDate.getDay()] : null,
+      dayOfMonth: freq === 'monthly' ? d : null,
+      month: freq === 'yearly' ? m : null,
+      day: freq === 'yearly' ? d : null,
+    };
+  }
+  recurState[scope] = r;
+
+  // Show detail row
+  const det = document.getElementById('recur-detail-' + scope);
+  det.classList.add('show');
+
+  // Update interval unit
+  const unitLabel = { daily: 'day(s)', weekly: 'week(s)', monthly: 'month(s)', yearly: 'year(s)' }[freq];
+  document.getElementById('recur-interval-unit-' + scope).textContent = unitLabel;
+  document.getElementById('recur-interval-' + scope).value = r.interval;
+
+  // Show/hide rows for each freq
+  document.getElementById('recur-dow-row-' + scope).style.display = freq === 'weekly' ? '' : 'none';
+  document.getElementById('recur-dom-row-' + scope).style.display = freq === 'monthly' ? '' : 'none';
+  document.getElementById('recur-ym-row-' + scope).style.display = freq === 'yearly' ? '' : 'none';
+
+  // Weekly: build day-of-week pills
+  if (freq === 'weekly') {
+    const wrap = document.getElementById('recur-dow-pills-' + scope);
+    wrap.innerHTML = DOW_NAMES.map((n, i) =>
+      '<button class="recur-dow-pill' + (r.daysOfWeek && r.daysOfWeek.includes(i) ? ' selected' : '') +
+      '" data-dow="' + i + '" onclick="toggleRecurDow(\'' + scope + '\',' + i + ',this)">' + n + '</button>'
+    ).join('');
+  }
+
+  // Monthly: show day of month
+  if (freq === 'monthly') {
+    document.getElementById('recur-dom-label-' + scope).textContent = r.dayOfMonth;
+  }
+
+  // Yearly: show month/day
+  if (freq === 'yearly') {
+    document.getElementById('recur-ym-label-' + scope).textContent = MONTH_NAMES[r.month - 1] + ' ' + r.day;
+  }
+
+  updateRecurSummary(scope);
+
+  // Wire interval input
+  const intInput = document.getElementById('recur-interval-' + scope);
+  intInput.oninput = () => {
+    const v = Math.max(1, Math.min(99, parseInt(intInput.value) || 1));
+    intInput.value = v;
+    recurState[scope].interval = v;
+    updateRecurSummary(scope);
+  };
+}
+
+function toggleRecurDow(scope, dow, btn) {
+  const r = recurState[scope];
+  if (!r) return;
+  if (!r.daysOfWeek) r.daysOfWeek = [];
+  if (r.daysOfWeek.includes(dow)) r.daysOfWeek = r.daysOfWeek.filter(d => d !== dow);
+  else r.daysOfWeek.push(dow);
+  btn.classList.toggle('selected');
+  updateRecurSummary(scope);
+}
+
+function updateRecurSummary(scope) {
+  const r = recurState[scope];
+  if (!r) { document.getElementById('recur-summary-' + scope).textContent = ''; return; }
+  let summary = 'Every ';
+  if (r.interval > 1) summary += r.interval + ' ';
+  if (r.freq === 'daily') summary += r.interval === 1 ? 'day' : 'days';
+  else if (r.freq === 'weekly') {
+    summary += r.interval === 1 ? 'week' : 'weeks';
+    if (r.daysOfWeek && r.daysOfWeek.length) {
+      const dayNames = r.daysOfWeek.sort().map(d => DOW_NAMES[d]).join(', ');
+      summary += ' on ' + dayNames;
+    }
+  } else if (r.freq === 'monthly') {
+    summary += r.interval === 1 ? 'month' : 'months';
+    summary += ' on day ' + r.dayOfMonth;
+  } else if (r.freq === 'yearly') {
+    summary += r.interval === 1 ? 'year' : 'years';
+    summary += ' on ' + MONTH_NAMES[r.month - 1] + ' ' + r.day;
+  }
+  document.getElementById('recur-summary-' + scope).textContent = summary;
+}
+
+function getCurrentRecur(scope) {
+  return recurState[scope] || null;
+}
+
+function describeRecur(recur) {
+  // Returns short string like "Weekly on Mon, Wed" or "Every 2 weeks on Mon"
+  if (!recur) return '';
+  if (typeof recur === 'string') {
+    if (recur === 'none') return '';
+    return recur.charAt(0).toUpperCase() + recur.slice(1);
+  }
+  let s = '';
+  if (recur.interval > 1) s += 'Every ' + recur.interval + ' ';
+  else s += '';
+  if (recur.freq === 'daily') s += recur.interval > 1 ? 'days' : 'Daily';
+  else if (recur.freq === 'weekly') {
+    s += recur.interval > 1 ? 'weeks' : 'Weekly';
+    if (recur.daysOfWeek && recur.daysOfWeek.length && recur.daysOfWeek.length < 7) {
+      s += ' (' + recur.daysOfWeek.sort().map(d => DOW_NAMES[d]).join(',') + ')';
+    }
+  } else if (recur.freq === 'monthly') {
+    s += recur.interval > 1 ? 'months' : 'Monthly';
+  } else if (recur.freq === 'yearly') {
+    s += recur.interval > 1 ? 'years' : 'Yearly';
+  }
+  return s;
+}
+
+// Override nextDate to handle the new recur object format
+function nextDate(ds, recur) {
+  if (!ds || !recur || recur === 'none') return null;
+  // Backward compat: string recur
+  if (typeof recur === 'string') {
+    const [y, m, d] = ds.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    if (recur === 'daily') dt.setDate(dt.getDate() + 1);
+    else if (recur === 'weekly') dt.setDate(dt.getDate() + 7);
+    else if (recur === 'monthly') dt.setMonth(dt.getMonth() + 1);
+    else if (recur === 'yearly') dt.setFullYear(dt.getFullYear() + 1);
+    return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  }
+  // Object recur
+  const [y, m, d] = ds.split('-').map(Number);
+  let dt = new Date(y, m-1, d);
+  const interval = recur.interval || 1;
+  if (recur.freq === 'daily') {
+    dt.setDate(dt.getDate() + interval);
+  } else if (recur.freq === 'weekly') {
+    if (recur.daysOfWeek && recur.daysOfWeek.length) {
+      // Find next day of week from the selected set
+      const sorted = [...recur.daysOfWeek].sort();
+      const currentDow = dt.getDay();
+      let nextDow = sorted.find(d => d > currentDow);
+      if (nextDow !== undefined) {
+        dt.setDate(dt.getDate() + (nextDow - currentDow));
+      } else {
+        // Wrap to first day of next interval week
+        const daysToAdd = (7 * interval) - currentDow + sorted[0];
+        dt.setDate(dt.getDate() + daysToAdd);
+      }
+    } else {
+      dt.setDate(dt.getDate() + (7 * interval));
+    }
+  } else if (recur.freq === 'monthly') {
+    dt.setMonth(dt.getMonth() + interval);
+    if (recur.dayOfMonth) dt.setDate(recur.dayOfMonth);
+  } else if (recur.freq === 'yearly') {
+    dt.setFullYear(dt.getFullYear() + interval);
+    if (recur.month && recur.day) {
+      dt = new Date(dt.getFullYear(), recur.month - 1, recur.day);
+    }
+  }
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+}
+
+
+// ── SWIPE-TO-DISMISS MODALS ──
+function attachSwipeDismiss(modalId) {
+  const backdrop = document.getElementById(modalId);
+  if (!backdrop) return;
+  const modal = backdrop.querySelector('.modal');
+  const zone = backdrop.querySelector('.modal-handle-zone');
+  if (!modal || !zone) return;
+  let startY = 0, currentY = 0, dragging = false;
+
+  zone.addEventListener('pointerdown', e => {
+    dragging = true;
+    startY = e.clientY;
+    currentY = 0;
+    modal.classList.add('dragging');
+    zone.setPointerCapture(e.pointerId);
+  });
+
+  zone.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    currentY = Math.max(0, e.clientY - startY);
+    modal.style.transform = 'translateY(' + currentY + 'px)';
+  });
+
+  const release = e => {
+    if (!dragging) return;
+    dragging = false;
+    modal.classList.remove('dragging');
+    if (currentY > 100) {
+      modal.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        closeModal(modalId);
+        modal.style.transform = '';
+      }, 200);
+    } else {
+      modal.style.transform = '';
+    }
+  };
+  zone.addEventListener('pointerup', release);
+  zone.addEventListener('pointercancel', release);
+}
+
+// Attach to all modals when DOM ready
+function initSwipeDismiss() {
+  ['modal-picker','modal-todo','modal-list','modal-list-menu','modal-reminder','modal-settings','modal-note-link','modal-streak'].forEach(attachSwipeDismiss);
+}
+
 </script>
 
 <!-- NOTE DETAIL VIEW -->
@@ -1746,36 +2263,42 @@ function openChangelog() {
     <div class="detail-title-wrap"><div class="detail-sub" id="note-det-meta"></div></div>
     <div style="display:flex;gap:4px">
       <button class="btn-icon" id="note-pin-btn" onclick="toggleNotePin()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"/></svg></button>
-      <button class="btn-icon" id="note-mode-btn" onclick="toggleNoteMode()"><svg id="note-mode-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       <button class="btn-icon" onclick="deleteNoteFromDet()" style="color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
     </div>
   </div>
-  <div class="note-editor-body" id="note-editor-body">
-    <input class="note-title-input" id="note-title-inp" placeholder="Note title…" autocomplete="off" oninput="noteChanged()">
-    <textarea class="note-body-input" id="note-body-inp" placeholder="Start writing… supports **bold**, *italic*, ## headers, - bullets, > blockquotes" oninput="noteChanged()"></textarea>
-    <div class="note-preview" id="note-preview" style="display:none"></div>
+  <div class="detail-body" id="note-editor-body" onclick="focusNoteBody(event)">
+    <div style="padding:16px">
+      <input class="note-title-input" id="note-title-inp" placeholder="Note title…" autocomplete="off" oninput="noteChanged()">
+      <div class="note-rich-body" id="note-body-inp" contenteditable="true" data-placeholder="Start writing…" oninput="noteChanged()"></div>
+    </div>
   </div>
   <div class="note-link-row" id="note-link-row">
     <span style="font-size:12px;color:var(--ink-mute);flex-shrink:0">Link to:</span>
     <div id="note-link-chips" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none"></div>
     <button class="btn-icon btn-xs" onclick="openNoteLinkPicker()" style="flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
   </div>
-  <div class="note-toolbar">
-    <button class="note-tb-btn" id="note-preview-toggle" onclick="toggleNoteMode()">Preview</button>
-    <button class="note-tb-btn" onclick="insertMD('**','**')"><b>B</b></button>
-    <button class="note-tb-btn" onclick="insertMD('*','*')"><i>I</i></button>
-    <button class="note-tb-btn" onclick="insertMDLine('## ')">H2</button>
-    <button class="note-tb-btn" onclick="insertMDLine('### ')">H3</button>
-    <button class="note-tb-btn" onclick="insertMDLine('- ')">• List</button>
-    <button class="note-tb-btn" onclick="insertMDLine('> ')">Quote</button>
-    <button class="note-tb-btn" onclick="insertMD('`','`')">Code</button>
-    <button class="note-tb-btn" onclick="insertMDLine('---')">HR</button>
+  <div class="note-toolbar note-sticky-bar">
+    <div class="note-style-dropdown">
+      <button class="note-tb-btn" onclick="toggleStyleMenu(event)">Style ▾</button>
+      <div class="note-style-menu" id="note-style-menu">
+        <button onclick="setBlockStyle('p')">Normal text</button>
+        <button onclick="setBlockStyle('h1')"><span class="preview-h1">Heading 1</span></button>
+        <button onclick="setBlockStyle('h2')"><span class="preview-h2">Heading 2</span></button>
+        <button onclick="setBlockStyle('h3')"><span class="preview-h3">Heading 3</span></button>
+        <button onclick="setBlockStyle('blockquote')">❝ Quote</button>
+      </div>
+    </div>
+    <button class="note-tb-btn" onclick="richCmd('bold')"><b>B</b></button>
+    <button class="note-tb-btn" onclick="richCmd('italic')"><i>I</i></button>
+    <button class="note-tb-btn" onclick="richCmd('underline')"><u>U</u></button>
+    <button class="note-tb-btn" onclick="richCmd('insertUnorderedList')">• List</button>
+    <button class="note-tb-btn" onclick="richCmd('insertOrderedList')">1. List</button>
   </div>
 </div>
 
 <!-- NOTE LINK PICKER MODAL -->
 <div class="modal-backdrop" id="modal-note-link">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title">Link to an item</div><button class="btn-icon" onclick="closeModal('modal-note-link')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body" id="note-link-picker-body"></div>
   </div>
@@ -1783,12 +2306,21 @@ function openChangelog() {
 
 <!-- STREAK CREATE/EDIT MODAL -->
 <div class="modal-backdrop" id="modal-streak">
-  <div class="modal"><div class="modal-handle"></div>
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title" id="streak-modal-title">New Streak</div><button class="btn-icon" onclick="closeModal('modal-streak')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body">
       <input type="hidden" id="streak-eid">
       <div class="field"><label class="field-label">Habit Name</label><input type="text" id="streak-name" placeholder="e.g. Exercise, Read, Meditate…" autocomplete="off"></div>
-      <div class="field"><label class="field-label">Emoji Icon</label><input type="text" id="streak-emoji" placeholder="🏃" maxlength="2" style="font-size:28px;text-align:center"></div>
+      <div class="field"><label class="field-label">Color</label>
+        <div class="streak-color-picker" id="streak-color-picker">
+          <div class="color-swatch" data-color="#f43f5e" style="background:#f43f5e" onclick="selectStreakColor('#f43f5e',this)"></div>
+          <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4" onclick="selectStreakColor('#06b6d4',this)"></div>
+          <div class="color-swatch" data-color="#10b981" style="background:#10b981" onclick="selectStreakColor('#10b981',this)"></div>
+          <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" onclick="selectStreakColor('#f59e0b',this)"></div>
+          <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectStreakColor('#8b5cf6',this)"></div>
+          <div class="color-swatch" data-color="#ec4899" style="background:#ec4899" onclick="selectStreakColor('#ec4899',this)"></div>
+        </div>
+      </div>
       <div class="field"><label class="field-label">Frequency</label><div class="pill-row" id="pr-sfreq">
         <button class="pill sel" data-val="daily" onclick="setPill('sfreq',this)">Daily</button>
         <button class="pill" data-val="mon-fri" onclick="setPill('sfreq',this)">Mon–Fri</button>
