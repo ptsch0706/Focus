@@ -435,12 +435,20 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 /* Sticky toolbar above keyboard */
 .note-sticky-bar{
-  position:sticky;
+  position:fixed;
+  left:0;
+  right:0;
   bottom:0;
   background:var(--bg);
   border-top:1px solid var(--line);
-  z-index:10;
+  z-index:200;
+  padding-bottom:var(--safe-bot);
+  transform:translateY(0);
+  transition:transform .2s ease-out;
 }
+.note-sticky-bar.hidden{transform:translateY(100%);}
+/* When keyboard is up, position above it via visualViewport */
+.note-sticky-bar.kb-open{padding-bottom:0;}
 .note-style-dropdown{
   position:relative;display:inline-block;
 }
@@ -467,6 +475,8 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .note-editor-area{
   min-height:60vh;padding:16px;cursor:text;
 }
+#note-detail-view .detail-body{padding-bottom:120px;}
+#note-detail-view .note-link-row{margin-bottom:60px;}
 
 /* Linked-notes display on other modules */
 .linked-notes-section{
@@ -493,11 +503,11 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .color-swatch.selected{border-color:var(--ink);transform:scale(1.1);}
 
 /* COLLAPSIBLE STREAK CARDS */
-.streak-card{cursor:pointer;}
+.streak-card{cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
 .streak-card.expanded{cursor:default;}
 .streak-card .streak-expand-area{display:none;}
 .streak-card.expanded .streak-expand-area{display:block;}
-.streak-collapse-indicator{font-size:11px;color:var(--ink-mute);padding:0 16px 12px;display:flex;align-items:center;gap:4px;}
+.streak-collapse-indicator{font-size:11px;color:var(--ink-mute);padding:8px 16px 14px;display:flex;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--line-soft);margin-top:4px;}
 .streak-collapse-indicator svg{width:12px;height:12px;stroke-width:2;transition:transform .2s;}
 .streak-card.expanded .streak-collapse-indicator svg{transform:rotate(180deg);}
 
@@ -1367,6 +1377,7 @@ function openNoteDetail(id=null) {
   updateNoteLinkChips(note);
   document.getElementById('note-detail-view').classList.add('show');
   document.body.style.overflow = 'hidden';
+  showNoteToolbar();
   setTimeout(()=>{
     if (!note || !note.title) document.getElementById('note-title-inp').focus();
     else document.getElementById('note-body-inp').focus();
@@ -1443,6 +1454,7 @@ function closeNoteDetail() {
   }
   document.getElementById('note-detail-view').classList.remove('show');
   document.body.style.overflow = '';
+  hideNoteToolbar();
   noteId = null;
   renderNotes();
 }
@@ -1518,6 +1530,7 @@ function deleteNoteFromDet() {
   save();
   document.getElementById('note-detail-view').classList.remove('show');
   document.body.style.overflow = '';
+  hideNoteToolbar();
   noteId = null;
   renderNotes();
   toast('Note deleted');
@@ -1785,7 +1798,8 @@ function logStreak(id) {
 }
 
 function toggleStreakExpand(id, event) {
-  if (event && event.target.closest('button')) return; // Don't toggle when clicking a button inside the card
+  // Don't toggle when clicking any interactive element inside the card
+  if (event && event.target.closest('button, .streak-log-btn, .btn-icon')) return;
   const s = S.streaks.find(s=>s.id===id);
   if (!s) return;
   s._expanded = !s._expanded;
@@ -1916,6 +1930,17 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.01.01',
+    date: 'Jun 15, 2026',
+    type: 'minor',
+    items: [
+      'Notes: text formatting toolbar now sits properly above the keyboard (uses visualViewport API)',
+      'Notes: toolbar respects iPhone bottom safe area when keyboard is closed',
+      'Streaks: log button (+/✓) now actually works — fixed event propagation bug',
+      'Streaks: collapsed cards no longer have the log button overlapping the collapse indicator'
+    ]
+  },
   {
     version: '0.01.00',
     date: 'Jun 15, 2026',
@@ -2252,6 +2277,59 @@ function attachSwipeDismiss(modalId) {
 // Attach to all modals when DOM ready
 function initSwipeDismiss() {
   ['modal-picker','modal-todo','modal-list','modal-list-menu','modal-reminder','modal-settings','modal-note-link','modal-streak'].forEach(attachSwipeDismiss);
+}
+
+
+// ── KEYBOARD-AWARE NOTE TOOLBAR ──
+function setupNoteToolbarKeyboard() {
+  const toolbar = document.querySelector('.note-sticky-bar');
+  if (!toolbar) return;
+  // Hide toolbar by default; only show when note detail is open
+  if (!document.getElementById('note-detail-view').classList.contains('show')) {
+    toolbar.classList.add('hidden');
+  }
+  // Use visualViewport API to track keyboard
+  if (window.visualViewport) {
+    const updateToolbarPosition = () => {
+      const vv = window.visualViewport;
+      const noteOpen = document.getElementById('note-detail-view').classList.contains('show');
+      if (!noteOpen) {
+        toolbar.classList.add('hidden');
+        return;
+      }
+      toolbar.classList.remove('hidden');
+      // window.innerHeight - vv.height = keyboard height (approx)
+      const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+      if (keyboardHeight > 80) {
+        // Keyboard is up — anchor toolbar just above it
+        toolbar.style.bottom = keyboardHeight + 'px';
+        toolbar.classList.add('kb-open');
+      } else {
+        // Keyboard down — sit at bottom with safe-area padding
+        toolbar.style.bottom = '0px';
+        toolbar.classList.remove('kb-open');
+      }
+    };
+    window.visualViewport.addEventListener('resize', updateToolbarPosition);
+    window.visualViewport.addEventListener('scroll', updateToolbarPosition);
+    // Call once
+    updateToolbarPosition();
+    // Stash on window so we can call it after open/close
+    window._updateToolbarPosition = updateToolbarPosition;
+  }
+}
+
+function showNoteToolbar() {
+  const toolbar = document.querySelector('.note-sticky-bar');
+  if (toolbar) {
+    toolbar.classList.remove('hidden');
+    if (window._updateToolbarPosition) window._updateToolbarPosition();
+  }
+}
+
+function hideNoteToolbar() {
+  const toolbar = document.querySelector('.note-sticky-bar');
+  if (toolbar) toolbar.classList.add('hidden');
 }
 
 </script>
