@@ -631,7 +631,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],syncCode:'',graceWindowHour:9,theme:'dark',_v:4};
 let S=loadState(),db=null,unsub=null,view='home';
 applyTheme(S.theme||'dark');
-let tf='all',lf='all',rf='upcoming',doneOpen=false,listId=null;
+let tf='all',lf='all',rf='upcoming',noteFilter='all',doneOpen=false,listId=null;
 const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
 
 function loadState(){
@@ -1184,7 +1184,7 @@ if(S.theme==='system')applySystemTheme();
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
 
 // ── NOTES ──
-let noteId = null, noteMode = 'edit', noteFilter = 'all';
+let noteId = null, noteMode = 'edit';
 
 function openNoteDetail(id=null) {
   noteId = id;
@@ -1292,11 +1292,8 @@ function parseMarkdown(md) {
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-    .replace(/
-
-/g, '<br><br>')
-    .replace(/
-/g, '<br>');
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
   return html;
 }
 
@@ -1672,6 +1669,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.00.04',
+    date: 'Jun 15, 2026',
+    type: 'minor',
+    items: [
+      'Fixed JS syntax error in markdown parser regex',
+      'Fixed temporal dead zone crash on app initialization',
+      'App now fully interactive again across all 5 modules'
+    ]
+  },
   {
     version: '0.00.03',
     date: 'Jun 15, 2026',
