@@ -1,0 +1,24 @@
+{
+  "name": "Focus",
+  "short_name": "Focus",
+  "description": "Your personal planning assistant",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#080d1a",
+  "theme_color": "#080d1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "Focusicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "Focusicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
