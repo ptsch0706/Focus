@@ -1856,6 +1856,7 @@ function renderStreaks() {
           + (inGrace ? '<span class="streak-grace-badge">Grace</span>' : '')
           + '<span class="streak-freq-badge">' + freqLabel + '</span>'
           + '<button class="btn-icon btn-xs" onclick="event.stopPropagation();openStreakModal(\''+s.id+'\')" style="color:var(--ink-mute)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>'
+          + '<span style="color:var(--ink-mute);transition:transform .2s;display:inline-flex;transform:rotate('+(expanded?'180':'0')+'deg)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2.5"><polyline points="6 9 12 15 18 9"/></svg></span>'
         + '</div>'
       + '</div>'
       + '<div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,chain/7*100)+'%;background:'+color+'"></div></div>'
@@ -1865,37 +1866,21 @@ function renderStreaks() {
       + '<div style="padding:0 16px 14px;display:flex;align-items:center;justify-content:space-between">'
         + '<div style="font-size:12px;color:var(--ink-mute)">' + (scheduled?(logged?'Logged today':'Not yet logged today'):'Rest day') + '</div>'
         + '<button class="streak-log-btn ' + (logged?'logged':'') + '" id="slb-' + s.id + '" style="border-color:'+color+';' + (logged?'background:'+color:'') + '"'
-          + ' onpointerdown="event.stopPropagation();startStreakPress(\''+s.id+'\',this)"'
-          + ' onpointerup="cancelStreakPress()"'
-          + ' onpointerleave="cancelStreakPress()"'
+          + ' onclick="event.stopPropagation();logStreak(\''+s.id+'\')"'
           + ' oncontextmenu="return false">'
           + (logged
             ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>'
             : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color:'+color+'"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>')
         + '</button>'
       + '</div>'
-      + '<div class="streak-collapse-indicator">'
-        + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>'
-        + (expanded ? 'Tap to collapse' : 'Tap to see history')
-      + '</div>'
+
       + (linkedNotesHTML ? '<div style="padding:0 16px 12px">' + linkedNotesHTML + '</div>' : '')
     + '</div>';
   }).join('');
 }
 
-function startStreakPress(id, btn) {
-  // Visual feedback
-  btn.style.transform = 'scale(0.92)';
-  streakPressTimer = setTimeout(() => {
-    btn.style.transform = '';
-    logStreak(id);
-  }, 500); // 500ms long-press
-}
-
-function cancelStreakPress() {
-  if (streakPressTimer) { clearTimeout(streakPressTimer); streakPressTimer = null; }
-  document.querySelectorAll('.streak-log-btn').forEach(b=>b.style.transform='');
-}
+function startStreakPress(id, btn) { /* deprecated — tap-to-log used now */ }
+function cancelStreakPress() { /* deprecated */ }
 
 // ── DASHBOARD UPDATES for Notes + Streaks ──
 
@@ -1930,6 +1915,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.01.02',
+    date: 'Jun 15, 2026',
+    type: 'minor',
+    items: [
+      'Notes: toolbar moved out of the slide-up panel so position:fixed actually anchors to viewport (now reliably appears above keyboard)',
+      'Streaks: tap the +/✓ button to log — removed the 500ms long-press requirement so it works on first tap',
+      'Streaks: removed the bottom collapse indicator that was overlapping the log button; replaced with a small chevron next to the edit menu'
+    ]
+  },
   {
     version: '0.01.01',
     date: 'Jun 15, 2026',
@@ -2282,45 +2277,41 @@ function initSwipeDismiss() {
 
 // ── KEYBOARD-AWARE NOTE TOOLBAR ──
 function setupNoteToolbarKeyboard() {
-  const toolbar = document.querySelector('.note-sticky-bar');
+  const toolbar = document.getElementById('note-toolbar-fixed');
   if (!toolbar) return;
-  // Hide toolbar by default; only show when note detail is open
-  if (!document.getElementById('note-detail-view').classList.contains('show')) {
-    toolbar.classList.add('hidden');
-  }
-  // Use visualViewport API to track keyboard
-  if (window.visualViewport) {
-    const updateToolbarPosition = () => {
+  function updatePos() {
+    const noteOpen = document.getElementById('note-detail-view').classList.contains('show');
+    if (!noteOpen) { toolbar.classList.add('hidden'); return; }
+    toolbar.classList.remove('hidden');
+    if (window.visualViewport) {
       const vv = window.visualViewport;
-      const noteOpen = document.getElementById('note-detail-view').classList.contains('show');
-      if (!noteOpen) {
-        toolbar.classList.add('hidden');
-        return;
-      }
-      toolbar.classList.remove('hidden');
-      // window.innerHeight - vv.height = keyboard height (approx)
-      const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
-      if (keyboardHeight > 80) {
-        // Keyboard is up — anchor toolbar just above it
-        toolbar.style.bottom = keyboardHeight + 'px';
+      const kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      if (kbH > 80) {
+        toolbar.style.bottom = kbH + 'px';
         toolbar.classList.add('kb-open');
       } else {
-        // Keyboard down — sit at bottom with safe-area padding
         toolbar.style.bottom = '0px';
         toolbar.classList.remove('kb-open');
       }
-    };
-    window.visualViewport.addEventListener('resize', updateToolbarPosition);
-    window.visualViewport.addEventListener('scroll', updateToolbarPosition);
-    // Call once
-    updateToolbarPosition();
-    // Stash on window so we can call it after open/close
-    window._updateToolbarPosition = updateToolbarPosition;
+    }
   }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updatePos);
+    window.visualViewport.addEventListener('scroll', updatePos);
+  }
+  // Also call on focus/blur of contenteditable
+  document.addEventListener('focusin', e => {
+    if (e.target.closest('#note-detail-view')) setTimeout(updatePos, 100);
+  });
+  document.addEventListener('focusout', e => {
+    if (e.target.closest('#note-detail-view')) setTimeout(updatePos, 100);
+  });
+  window._updateToolbarPosition = updatePos;
+  updatePos();
 }
 
 function showNoteToolbar() {
-  const toolbar = document.querySelector('.note-sticky-bar');
+  const toolbar = document.getElementById('note-toolbar-fixed');
   if (toolbar) {
     toolbar.classList.remove('hidden');
     if (window._updateToolbarPosition) window._updateToolbarPosition();
@@ -2328,7 +2319,7 @@ function showNoteToolbar() {
 }
 
 function hideNoteToolbar() {
-  const toolbar = document.querySelector('.note-sticky-bar');
+  const toolbar = document.getElementById('note-toolbar-fixed');
   if (toolbar) toolbar.classList.add('hidden');
 }
 
@@ -2355,23 +2346,25 @@ function hideNoteToolbar() {
     <div id="note-link-chips" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none"></div>
     <button class="btn-icon btn-xs" onclick="openNoteLinkPicker()" style="flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
   </div>
-  <div class="note-toolbar note-sticky-bar">
-    <div class="note-style-dropdown">
-      <button class="note-tb-btn" onclick="toggleStyleMenu(event)">Style ▾</button>
-      <div class="note-style-menu" id="note-style-menu">
-        <button onclick="setBlockStyle('p')">Normal text</button>
-        <button onclick="setBlockStyle('h1')"><span class="preview-h1">Heading 1</span></button>
-        <button onclick="setBlockStyle('h2')"><span class="preview-h2">Heading 2</span></button>
-        <button onclick="setBlockStyle('h3')"><span class="preview-h3">Heading 3</span></button>
-        <button onclick="setBlockStyle('blockquote')">❝ Quote</button>
-      </div>
+</div>
+
+<!-- NOTE TOOLBAR — moved outside detail-view so position:fixed works against viewport -->
+<div class="note-toolbar note-sticky-bar hidden" id="note-toolbar-fixed">
+  <div class="note-style-dropdown">
+    <button class="note-tb-btn" onclick="toggleStyleMenu(event)">Style ▾</button>
+    <div class="note-style-menu" id="note-style-menu">
+      <button onclick="setBlockStyle('p')">Normal text</button>
+      <button onclick="setBlockStyle('h1')"><span class="preview-h1">Heading 1</span></button>
+      <button onclick="setBlockStyle('h2')"><span class="preview-h2">Heading 2</span></button>
+      <button onclick="setBlockStyle('h3')"><span class="preview-h3">Heading 3</span></button>
+      <button onclick="setBlockStyle('blockquote')">❝ Quote</button>
     </div>
-    <button class="note-tb-btn" onclick="richCmd('bold')"><b>B</b></button>
-    <button class="note-tb-btn" onclick="richCmd('italic')"><i>I</i></button>
-    <button class="note-tb-btn" onclick="richCmd('underline')"><u>U</u></button>
-    <button class="note-tb-btn" onclick="richCmd('insertUnorderedList')">• List</button>
-    <button class="note-tb-btn" onclick="richCmd('insertOrderedList')">1. List</button>
   </div>
+  <button class="note-tb-btn" onclick="richCmd('bold')"><b>B</b></button>
+  <button class="note-tb-btn" onclick="richCmd('italic')"><i>I</i></button>
+  <button class="note-tb-btn" onclick="richCmd('underline')"><u>U</u></button>
+  <button class="note-tb-btn" onclick="richCmd('insertUnorderedList')">• List</button>
+  <button class="note-tb-btn" onclick="richCmd('insertOrderedList')">1. List</button>
 </div>
 
 <!-- NOTE LINK PICKER MODAL -->
