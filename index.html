@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#080d1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<title>Focus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+  window.__firebase = { initializeApp, getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, deleteDoc, writeBatch };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+<style>
+:root {
+  --bg:          #080d1a;
+  --bg-elev:     #0f1628;
+  --bg-raised:   #161d32;
+  --bg-hover:    #1a2238;
+  --ink:         #e8edf8;
+  --ink-soft:    #8892aa;
+  --ink-mute:    #3d4560;
+  --line:        #1a2240;
+  --line-soft:   #111830;
+  --cyan:        #06b6d4;
+  --cyan-dim:    #0891b2;
+  --cyan-soft:   #06b6d410;
+  --cyan-glow:   0 0 20px #06b6d430;
+
+  /* Module accents */
+  --todo:        #06b6d4;
+  --todo-soft:   #06b6d415;
+  --list:        #f59e0b;
+  --list-soft:   #f59e0b15;
+  --reminder:    #8b5cf6;
+  --reminder-soft:#8b5cf615;
+  --note:        #10b981;
+  --note-soft:   #10b98115;
+  --streak:      #f43f5e;
+  --streak-soft: #f43f5e15;
+
+  /* Priority */
+  --pri-high:    #f43f5e;
+  --pri-high-soft:#f43f5e20;
+  --pri-med:     #f59e0b;
+  --pri-med-soft: #f59e0b20;
+
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg:   0 12px 40px rgba(0,0,0,0.6);
+  --radius-sm:   8px;
+  --radius:      14px;
+  --radius-lg:   20px;
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bot:    env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+body {
+  padding: calc(var(--safe-top) + 0px) 0 calc(var(--safe-bot) + 80px);
+  -webkit-font-smoothing: antialiased;
+}
+
+.display { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+
+/* ── SCROLLABLE CONTENT ── */
+.view { display: none; padding: 0 16px; max-width: 100%; overflow-x: hidden; }
+.view.active { display: block; animation: viewIn 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .view.active { animation: none; } }
+
+/* ── BOTTOM NAV ── */
+nav.tabs {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(8, 13, 26, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  padding: 6px 0 calc(var(--safe-bot) + 4px);
+  z-index: 100;
+  transform: translateZ(0);
+  will-change: transform;
+  contain: layout style;
+}
+nav.tabs::after {
+  content: '';
+  position: absolute; left: 0; right: 0; top: 100%;
+  height: 200px;
+  background: var(--bg);
+  pointer-events: none;
+}
+nav.tabs button {
+  background: none; border: none; padding: 5px 2px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: var(--ink-mute); font-size: 10px; font-family: 'Inter', sans-serif;
+  font-weight: 500; cursor: pointer; transition: color 0.15s; min-width: 0;
+}
+nav.tabs button.active { color: var(--cyan); }
+nav.tabs button svg { width: 22px; height: 22px; stroke-width: 1.7; }
+nav.tabs button .tab-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--streak); opacity: 0;
+  transition: opacity 0.2s;
+  position: absolute; top: 2px;
+}
+nav.tabs button.has-alert .tab-dot { opacity: 1; }
+
+/* ── HEADER ── */
+.page-header {
+  padding: calc(var(--safe-top) + 16px) 16px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.page-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800; font-size: 28px; letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.page-subtitle {
+  font-size: 13px; color: var(--ink-soft); font-weight: 500;
+  margin-top: 1px;
+}
+.header-btn {
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: 50%; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft); cursor: pointer; transition: all 0.15s;
+}
+.header-btn:active { transform: scale(0.93); background: var(--bg-raised); }
+.header-btn svg { width: 18px; height: 18px; stroke-width: 2; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 11px; font-weight: 600; color: var(--ink-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin: 20px 0 8px; padding: 0 2px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px;
+  box-shadow: var(--shadow-sm); margin-bottom: 10px;
+}
+.card-sm { padding: 12px 14px; }
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500;
+  padding: 12px 18px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--bg-elev);
+  color: var(--ink); cursor: pointer; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--cyan); color: #000; border-color: var(--cyan); font-weight: 600; }
+.btn-primary:active { background: var(--cyan-dim); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--ink-soft); }
+.btn-danger { background: var(--pri-high-soft); color: var(--pri-high); border-color: var(--pri-high); }
+.btn-block { width: 100%; }
+.btn svg { width: 18px; height: 18px; stroke-width: 2; }
+.btn-sm { padding: 8px 14px; font-size: 13px; gap: 6px; }
+.btn-sm svg { width: 14px; height: 14px; }
+.btn-xs { padding: 5px 10px; font-size: 12px; gap: 4px; border-radius: var(--radius-sm); }
+.btn-xs svg { width: 12px; height: 12px; }
+.btn-icon {
+  background: none; border: none; color: var(--ink-soft);
+  cursor: pointer; padding: 6px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.btn-icon:active { background: var(--bg-raised); color: var(--ink); }
+.btn-icon svg { width: 18px; height: 18px; stroke-width: 1.8; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed;
+  bottom: calc(var(--safe-bot) + 90px);
+  right: 20px;
+  width: 56px; height: 56px;
+  background: var(--cyan);
+  border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 90;
+  box-shadow: 0 4px 20px #06b6d450;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fab:active { transform: scale(0.92); }
+.fab svg { width: 26px; height: 26px; stroke-width: 2.5; color: #000; }
+
+/* ── MODAL ── */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  z-index: 200; display: none; align-items: flex-end;
+}
+.modal-backdrop.show { display: flex; animation: backdropIn 0.2s ease; }
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--bg-raised); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border: 1px solid var(--line); border-bottom: none;
+  width: 100%; max-height: 92vh; overflow-y: auto;
+  padding: 0 0 calc(var(--safe-bot) + 24px);
+  animation: sheetUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle {
+  width: 36px; height: 4px; background: var(--ink-mute);
+  border-radius: 2px; margin: 12px auto 0; opacity: 0.4;
+}
+.modal-header {
+  padding: 16px 20px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+.modal-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700; font-size: 18px; letter-spacing: -0.02em;
+}
+.modal-body { padding: 16px 20px; }
+
+/* ── FORM ELEMENTS ── */
+.field { margin-bottom: 16px; }
+.field-label {
+  font-size: 12px; font-weight: 600; color: var(--ink-soft);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 6px; display: block;
+}
+.field input, .field textarea, .field select {
+  width: 100%; background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 11px 14px;
+  color: var(--ink); font-family: 'Inter', sans-serif; font-size: 15px;
+  outline: none; transition: border-color 0.15s;
+  -webkit-appearance: none; appearance: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--cyan);
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--ink-mute); }
+.field textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238892aa' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Priority selector */
+.priority-pills { display: flex; gap: 8px; }
+.priority-pill {
+  flex: 1; padding: 8px 4px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line); background: none;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--ink-soft); cursor: pointer; text-align: center;
+  transition: all 0.15s;
+}
+.priority-pill[data-val="high"].selected { border-color: var(--pri-high); background: var(--pri-high-soft); color: var(--pri-high); }
+.priority-pill[data-val="med"].selected { border-color: var(--pri-med); background: var(--pri-med-soft); color: var(--pri-med); }
+.priority-pill[data-val="low"].selected { border-color: var(--cyan); background: var(--cyan-soft); color: var(--cyan); }
+
+/* Recurrence pills */
+.recur-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.recur-pill {
+  padding: 7px 14px; border-radius: 20px;
+  border: 1.5px solid var(--line); background: none;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--ink-soft); cursor: pointer; transition: all 0.15s;
+}
+.recur-pill.selected { border-color: var(--cyan); background: var(--cyan-soft); color: var(--cyan); }
+
+/* Toggle */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--line-soft);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label { font-size: 15px; color: var(--ink); }
+.toggle-sub { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+.toggle {
+  width: 44px; height: 26px; background: var(--ink-mute);
+  border-radius: 13px; position: relative; cursor: pointer;
+  transition: background 0.2s; border: none; flex-shrink: 0;
+}
+.toggle.on { background: var(--cyan); }
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; background: white;
+  border-radius: 50%; transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.toggle.on::after { transform: translateX(18px); }
+
+/* ── TODO ITEM ── */
+.todo-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; background: var(--bg-elev);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  margin-bottom: 8px; transition: all 0.15s; cursor: pointer;
+  position: relative; overflow: hidden;
+}
+.todo-item::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px;
+  background: transparent; transition: background 0.15s;
+}
+.todo-item.pri-high::before { background: var(--pri-high); }
+.todo-item.pri-med::before { background: var(--pri-med); }
+.todo-item.pri-low::before { background: var(--cyan); }
+.todo-item.completed { opacity: 0.45; }
+.todo-item:active { background: var(--bg-raised); }
+
+.todo-check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--ink-mute); background: none;
+  cursor: pointer; flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; position: relative;
+}
+.todo-check.checked {
+  background: var(--cyan); border-color: var(--cyan);
+}
+.todo-check.checked::after {
+  content: '';
+  width: 6px; height: 10px;
+  border: 2px solid #000; border-top: none; border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+  display: block;
+}
+.todo-check.pri-high { border-color: var(--pri-high); }
+.todo-check.pri-med { border-color: var(--pri-med); }
+
+.todo-body { flex: 1; min-width: 0; }
+.todo-title {
+  font-size: 15px; font-weight: 500; color: var(--ink);
+  line-height: 1.4; word-break: break-word;
+}
+.todo-item.completed .todo-title {
+  text-decoration: line-through; color: var(--ink-soft);
+}
+.todo-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 4px; flex-wrap: wrap;
+}
+.todo-date {
+  font-size: 12px; color: var(--ink-soft);
+  display: flex; align-items: center; gap: 3px;
+}
+.todo-date svg { width: 11px; height: 11px; stroke-width: 2; }
+.todo-date.overdue { color: var(--pri-high); }
+.todo-tag {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 20px; text-transform: uppercase;
+}
+.todo-tag.recur { background: var(--cyan-soft); color: var(--cyan); }
+.todo-tag.high { background: var(--pri-high-soft); color: var(--pri-high); }
+.todo-tag.med { background: var(--pri-med-soft); color: var(--pri-med); }
+.todo-notes {
+  font-size: 13px; color: var(--ink-soft); margin-top: 4px;
+  line-height: 1.4; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+.todo-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+/* ── TODO GROUP HEADER ── */
+.group-header {
+  display: flex; align-items: center; gap: 8px;
+  margin: 16px 0 8px; padding: 0 2px;
+}
+.group-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-mute);
+}
+.group-count {
+  font-size: 11px; font-weight: 600; color: var(--ink-mute);
+  background: var(--bg-raised); border: 1px solid var(--line);
+  border-radius: 20px; padding: 1px 7px;
+}
+.group-header.overdue .group-title { color: var(--pri-high); }
+.group-header.overdue .group-count { color: var(--pri-high); border-color: var(--pri-high-soft); background: var(--pri-high-soft); }
+
+/* ── SWIPE ROW (touch hint) ── */
+.todo-item { touch-action: pan-y; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center; padding: 48px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.empty-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--bg-elev); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-mute);
+}
+.empty-icon svg { width: 24px; height: 24px; stroke-width: 1.5; }
+.empty-title { font-size: 17px; font-weight: 600; color: var(--ink-soft); }
+.empty-sub { font-size: 14px; color: var(--ink-mute); line-height: 1.5; }
+
+/* ── DASHBOARD ── */
+.dash-greeting {
+  padding: calc(var(--safe-top) + 20px) 16px 16px;
+}
+.dash-date {
+  font-size: 12px; font-weight: 600; color: var(--cyan);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px;
+}
+.dash-hello {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800; font-size: 26px; letter-spacing: -0.03em; color: var(--ink);
+}
+.dash-hello .accent { color: var(--cyan); }
+
+/* Alert card (high-priority overdue) */
+.alert-card {
+  background: var(--pri-high-soft); border: 1.5px solid var(--pri-high);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+  animation: pulseAlert 2.5s ease-in-out infinite;
+}
+@keyframes pulseAlert {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.1); }
+}
+.alert-card-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--pri-high); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 5px;
+}
+.alert-card-label svg { width: 12px; height: 12px; stroke-width: 2.5; }
+
+/* Today summary ring */
+.dash-ring-wrap {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+}
+.dash-ring { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+.dash-ring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+.dash-ring-bg { fill: none; stroke: var(--line); stroke-width: 5; }
+.dash-ring-fill { fill: none; stroke: var(--cyan); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.dash-ring-label {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.dash-ring-pct { font-size: 14px; font-weight: 700; color: var(--ink); font-family: 'Plus Jakarta Sans', sans-serif; }
+.dash-ring-sub { font-size: 9px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.05em; }
+.dash-ring-info { flex: 1; }
+.dash-ring-stat { font-size: 22px; font-weight: 800; color: var(--ink); font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em; }
+.dash-ring-desc { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+.dash-ring-breakdown { font-size: 12px; color: var(--ink-mute); margin-top: 6px; }
+
+/* Dash section item */
+.dash-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 0; border-bottom: 1px solid var(--line-soft);
+  cursor: pointer; transition: opacity 0.15s;
+}
+.dash-item:last-child { border-bottom: none; }
+.dash-item:active { opacity: 0.7; }
+.dash-item-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dash-item-text { flex: 1; font-size: 14px; color: var(--ink); min-width: 0; }
+.dash-item-sub { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+.dash-item-time { font-size: 12px; color: var(--ink-soft); flex-shrink: 0; }
+.dash-item-text.overdue { color: var(--pri-high); }
+
+/* Streak nudge card */
+.streak-nudge {
+  background: var(--streak-soft); border: 1.5px solid #f43f5e40;
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+}
+.streak-nudge-title {
+  font-size: 13px; font-weight: 600; color: var(--streak);
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+.streak-nudge-title svg { width: 14px; height: 14px; stroke-width: 2.5; }
+.streak-list { display: flex; flex-direction: column; gap: 4px; }
+.streak-nudge-item { font-size: 13px; color: var(--ink-soft); }
+
+/* Weekly summary card */
+.weekly-card {
+  background: linear-gradient(135deg, var(--bg-elev) 0%, #0d1530 100%);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 10px;
+}
+.weekly-card-title {
+  font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.weekly-card-title svg { width: 14px; height: 14px; stroke-width: 2; color: var(--cyan); }
+.weekly-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.weekly-stat { text-align: center; }
+.weekly-stat-num { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; color: var(--ink); }
+.weekly-stat-label { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+
+/* ── TOAST ── */
+.toast-wrap {
+  position: fixed; bottom: calc(var(--safe-bot) + 90px); left: 50%;
+  transform: translateX(-50%); z-index: 300; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.toast {
+  background: var(--bg-raised); border: 1px solid var(--line);
+  border-radius: 20px; padding: 10px 18px;
+  font-size: 13px; font-weight: 500; color: var(--ink);
+  box-shadow: var(--shadow-lg); white-space: nowrap;
+  animation: toastIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: auto;
+}
+.toast.success { border-color: var(--cyan); color: var(--cyan); }
+.toast.error { border-color: var(--pri-high); color: var(--pri-high); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* ── MODULE PICKER ── */
+.module-picker {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; padding: 16px 20px 8px;
+}
+.module-tile {
+  background: var(--bg-elev); border: 1.5px solid var(--line);
+  border-radius: var(--radius); padding: 18px 16px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.module-tile:active { transform: scale(0.97); }
+.module-tile-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.module-tile-icon svg { width: 20px; height: 20px; stroke-width: 1.8; }
+.module-tile-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+.module-tile-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.3; }
+.module-tile[data-module="todo"] { border-color: #06b6d420; }
+.module-tile[data-module="todo"]:active { border-color: var(--cyan); }
+.module-tile[data-module="todo"] .module-tile-icon { background: var(--todo-soft); color: var(--todo); }
+.module-tile[data-module="list"] .module-tile-icon { background: var(--list-soft); color: var(--list); }
+.module-tile[data-module="reminder"] .module-tile-icon { background: var(--reminder-soft); color: var(--reminder); }
+.module-tile[data-module="note"] .module-tile-icon { background: var(--note-soft); color: var(--note); }
+.module-tile[data-module="streak"] .module-tile-icon { background: var(--streak-soft); color: var(--streak); }
+
+/* ── SETTINGS ── */
+.settings-group {
+  background: var(--bg-elev); border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 16px;
+}
+.settings-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer; transition: background 0.12s;
+  background: none; border-left: none; border-right: none; border-top: none;
+  width: 100%; text-align: left; font-family: 'Inter', sans-serif;
+  color: var(--ink);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row:active { background: var(--bg-raised); }
+.settings-row-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.settings-row-icon svg { width: 16px; height: 16px; stroke-width: 2; }
+.settings-row-text { flex: 1; }
+.settings-row-label { font-size: 15px; font-weight: 500; }
+.settings-row-sub { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+.settings-row-value { font-size: 14px; color: var(--ink-soft); }
+.settings-row-chevron { color: var(--ink-mute); }
+.settings-row-chevron svg { width: 16px; height: 16px; stroke-width: 2; }
+
+/* Sync code display */
+.sync-code {
+  font-family: 'Plus Jakarta Sans', monospace;
+  font-size: 32px; font-weight: 800; letter-spacing: 0.15em;
+  color: var(--cyan); text-align: center; padding: 16px 0 8px;
+}
+.sync-code-sub { font-size: 13px; color: var(--ink-mute); text-align: center; margin-bottom: 16px; }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 12px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+  border: 1.5px solid var(--line); background: none;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--ink-soft); cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
+.filter-chip.active { border-color: var(--cyan); background: var(--cyan-soft); color: var(--cyan); }
+
+/* ── COMPLETED SECTION ── */
+.completed-toggle {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 2px; cursor: pointer; color: var(--ink-soft);
+  font-size: 13px; font-weight: 500; margin-top: 8px;
+}
+.completed-toggle svg { width: 16px; height: 16px; stroke-width: 2; transition: transform 0.2s; }
+.completed-toggle.open svg { transform: rotate(90deg); }
+.completed-list { overflow: hidden; }
+
+/* ── MISC ── */
+.divider { height: 1px; background: var(--line); margin: 16px 0; }
+.text-mute { color: var(--ink-mute); }
+.text-soft { color: var(--ink-soft); }
+.text-cyan { color: var(--cyan); }
+.text-danger { color: var(--pri-high); }
+.fw-600 { font-weight: 600; }
+
+/* Coming soon placeholder */
+.coming-soon {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 24px; text-align: center; gap: 12px;
+}
+.coming-soon-icon {
+  width: 72px; height: 72px; border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+.coming-soon-icon svg { width: 32px; height: 32px; stroke-width: 1.5; }
+.coming-soon-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 700; color: var(--ink); }
+.coming-soon-sub { font-size: 14px; color: var(--ink-soft); line-height: 1.5; max-width: 260px; }
+.phase-badge {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--line); color: var(--ink-mute);
+}
+</style>
+</head>
+<body>
+
+<!-- ── VIEWS ── -->
+
+<!-- DASHBOARD -->
+<div id="view-home" class="view active">
+  <div class="dash-greeting">
+    <div class="dash-date" id="dash-date"></div>
+    <div class="dash-hello" id="dash-hello"></div>
+  </div>
+  <div style="padding: 0 16px;" id="dash-content"></div>
+</div>
+
+<!-- TODOS -->
+<div id="view-todos" class="view">
+  <div class="page-header">
+    <div>
+      <div class="page-title display">To-Dos</div>
+      <div class="page-subtitle" id="todo-subtitle"></div>
+    </div>
+    <button class="header-btn" onclick="openTodoModal()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div style="padding: 0 16px;">
+    <div class="filter-bar" id="todo-filter-bar">
+      <button class="filter-chip active" data-filter="all" onclick="setTodoFilter('all', this)">All</button>
+      <button class="filter-chip" data-filter="today" onclick="setTodoFilter('today', this)">Today</button>
+      <button class="filter-chip" data-filter="upcoming" onclick="setTodoFilter('upcoming', this)">Upcoming</button>
+      <button class="filter-chip" data-filter="high" onclick="setTodoFilter('high', this)">🔴 High</button>
+      <button class="filter-chip" data-filter="overdue" onclick="setTodoFilter('overdue', this)">Overdue</button>
+    </div>
+    <div id="todo-list"></div>
+  </div>
+</div>
+
+<!-- LISTS (Phase 2) -->
+<div id="view-lists" class="view">
+  <div class="page-header">
+    <div><div class="page-title display">Lists</div></div>
+  </div>
+  <div style="padding:0 16px;">
+    <div class="coming-soon">
+      <div class="coming-soon-icon" style="background:var(--list-soft);color:var(--list);">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </div>
+      <div class="coming-soon-title">Lists</div>
+      <div class="coming-soon-sub">Grocery lists, packing lists, idea lists — coming in Phase 2.</div>
+      <div class="phase-badge">Phase 2</div>
+    </div>
+  </div>
+</div>
+
+<!-- REMINDERS (Phase 2) -->
+<div id="view-reminders" class="view">
+  <div class="page-header">
+    <div><div class="page-title display">Reminders</div></div>
+  </div>
+  <div style="padding:0 16px;">
+    <div class="coming-soon">
+      <div class="coming-soon-icon" style="background:var(--reminder-soft);color:var(--reminder);">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div class="coming-soon-title">Reminders</div>
+      <div class="coming-soon-sub">Time-based awareness alerts — not tasks, just reminders — coming in Phase 2.</div>
+      <div class="phase-badge">Phase 2</div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTES (Phase 3) -->
+<div id="view-notes" class="view">
+  <div class="page-header">
+    <div><div class="page-title display">Notes</div></div>
+  </div>
+  <div style="padding:0 16px;">
+    <div class="coming-soon">
+      <div class="coming-soon-icon" style="background:var(--note-soft);color:var(--note);">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <div class="coming-soon-title">Notes</div>
+      <div class="coming-soon-sub">Markdown notes with links to other items — coming in Phase 3.</div>
+      <div class="phase-badge">Phase 3</div>
+    </div>
+  </div>
+</div>
+
+<!-- STREAKS (Phase 3) -->
+<div id="view-streaks" class="view">
+  <div class="page-header">
+    <div><div class="page-title display">Streaks</div></div>
+  </div>
+  <div style="padding:0 16px;">
+    <div class="coming-soon">
+      <div class="coming-soon-icon" style="background:var(--streak-soft);color:var(--streak);">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <div class="coming-soon-title">Streaks</div>
+      <div class="coming-soon-sub">Habit tracking with chain counters and dot grids — coming in Phase 3.</div>
+      <div class="phase-badge">Phase 3</div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="view-settings" class="view" style="display:none;">
+  <div class="page-header" style="margin-bottom:12px;">
+    <div><div class="page-title display">Settings</div></div>
+  </div>
+  <div style="padding:0 16px;" id="settings-content"></div>
+</div>
+
+<!-- ── BOTTOM NAV ── -->
+<nav class="tabs" id="main-nav">
+  <button class="active" onclick="switchView('home')" id="tab-home">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Home</span>
+  </button>
+  <button onclick="switchView('todos')" id="tab-todos">
+    <div class="tab-dot"></div>
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span>To-Dos</span>
+  </button>
+  <button onclick="switchView('lists')" id="tab-lists">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <span>Lists</span>
+  </button>
+  <button onclick="switchView('reminders')" id="tab-reminders">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span>Reminders</span>
+  </button>
+  <button onclick="switchView('notes')" id="tab-notes">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <span>Notes</span>
+  </button>
+  <button onclick="switchView('streaks')" id="tab-streaks">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    <span>Streaks</span>
+  </button>
+</nav>
+
+<!-- ── FAB ── -->
+<button class="fab" id="fab-btn" onclick="openModulePicker()">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- ── TOAST CONTAINER ── -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- ── MODULE PICKER MODAL ── -->
+<div class="modal-backdrop" id="modal-picker">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">What would you like to add?</div>
+      <button class="btn-icon" onclick="closeModal('modal-picker')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="module-picker">
+      <div class="module-tile" data-module="todo" onclick="closeModal('modal-picker'); openTodoModal();">
+        <div class="module-tile-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="module-tile-name">To-Do</div>
+        <div class="module-tile-desc">Task with a due date</div>
+      </div>
+      <div class="module-tile" data-module="list" onclick="closeModal('modal-picker'); toast('Lists coming in Phase 2', 'info');">
+        <div class="module-tile-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+        <div class="module-tile-name">List</div>
+        <div class="module-tile-desc">Grocery, packing, ideas</div>
+      </div>
+      <div class="module-tile" data-module="reminder" onclick="closeModal('modal-picker'); toast('Reminders coming in Phase 2', 'info');">
+        <div class="module-tile-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="module-tile-name">Reminder</div>
+        <div class="module-tile-desc">Time-based awareness</div>
+      </div>
+      <div class="module-tile" data-module="note" onclick="closeModal('modal-picker'); toast('Notes coming in Phase 3', 'info');">
+        <div class="module-tile-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div class="module-tile-name">Note</div>
+        <div class="module-tile-desc">Markdown freeform text</div>
+      </div>
+      <div class="module-tile" data-module="streak" onclick="closeModal('modal-picker'); toast('Streaks coming in Phase 3', 'info');" style="grid-column: 1 / -1;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="module-tile-icon" style="flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div>
+            <div class="module-tile-name">Streak</div>
+            <div class="module-tile-desc">Habit with chain tracking</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TODO CREATE/EDIT MODAL ── -->
+<div class="modal-backdrop" id="modal-todo">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="todo-modal-title">New To-Do</div>
+      <button class="btn-icon" onclick="closeModal('modal-todo')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="todo-edit-id">
+      <div class="field">
+        <label class="field-label">Title</label>
+        <input type="text" id="todo-title-input" placeholder="What needs to be done?" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="field-label">Notes</label>
+        <textarea id="todo-notes-input" placeholder="Optional notes..."></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Due Date</label>
+          <input type="date" id="todo-date-input">
+        </div>
+        <div class="field">
+          <label class="field-label">Time (optional)</label>
+          <input type="time" id="todo-time-input">
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Priority</label>
+        <div class="priority-pills">
+          <button class="priority-pill" data-val="high" onclick="selectPriority('high')">🔴 High</button>
+          <button class="priority-pill" data-val="med" onclick="selectPriority('med')">🟡 Medium</button>
+          <button class="priority-pill selected" data-val="low" onclick="selectPriority('low')">Low</button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Repeat</label>
+        <div class="recur-pills">
+          <button class="recur-pill selected" data-val="none" onclick="selectRecur('none')">None</button>
+          <button class="recur-pill" data-val="daily" onclick="selectRecur('daily')">Daily</button>
+          <button class="recur-pill" data-val="weekly" onclick="selectRecur('weekly')">Weekly</button>
+          <button class="recur-pill" data-val="monthly" onclick="selectRecur('monthly')">Monthly</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn btn-ghost btn-sm" id="todo-delete-btn" onclick="deleteTodoFromModal()" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Delete
+        </button>
+        <button class="btn btn-primary btn-block" onclick="saveTodo()">Save To-Do</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SETTINGS SUB-VIEWS ── -->
+<div class="modal-backdrop" id="modal-settings">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="settings-modal-title">Settings</div>
+      <button class="btn-icon" onclick="closeModal('modal-settings')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="settings-modal-body"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+const DEFAULT_STATE = {
+  todos: [],
+  syncCode: '',
+  graceWindowHour: 9, // late log grace window (9am next day)
+  _v: 1
+};
+
+let state = loadState();
+let firestoreDb = null;
+let syncUnsub = null;
+let currentTodoPriority = 'low';
+let currentTodoRecur = 'none';
+let todoFilter = 'all';
+let completedOpen = false;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('focus_state');
+    if (raw) return { ...DEFAULT_STATE, ...JSON.parse(raw) };
+  } catch(e) {}
+  return { ...DEFAULT_STATE };
+}
+
+function saveState() {
+  try { localStorage.setItem('focus_state', JSON.stringify(state)); } catch(e) {}
+  if (firestoreDb && state.syncCode) pushToFirestore();
+}
+
+// ─────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────
+const VIEWS = ['home','todos','lists','reminders','notes','streaks'];
+let currentView = 'home';
+
+function switchView(name) {
+  VIEWS.forEach(v => {
+    const el = document.getElementById('view-' + v);
+    const tab = document.getElementById('tab-' + v);
+    if (el) el.classList.toggle('active', v === name);
+    if (tab) tab.classList.toggle('active', v === name);
+  });
+  currentView = name;
+  if (name === 'home') renderDashboard();
+  if (name === 'todos') renderTodos();
+  if (name === 'settings') renderSettings();
+  // Hide FAB on settings
+  document.getElementById('fab-btn').style.display = name === 'settings' ? 'none' : '';
+}
+
+// Settings is a modal overlay, not a view tab
+function openSettings() {
+  renderSettingsModal();
+  openModal('modal-settings');
+}
+
+// ─────────────────────────────────────────────
+// MODAL HELPERS
+// ─────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+  document.body.style.overflow = '';
+}
+// Close on backdrop tap
+document.querySelectorAll('.modal-backdrop').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
+function toast(msg, type = '') {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+// ─────────────────────────────────────────────
+// DATE HELPERS
+// ─────────────────────────────────────────────
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((date - today) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff === -1) return 'Yesterday';
+  if (diff < 0) return `${Math.abs(diff)}d overdue`;
+  if (diff < 7) return date.toLocaleDateString('en-US',{weekday:'long'});
+  return date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  return dateStr < todayStr();
+}
+
+function isToday(dateStr) { return dateStr === todayStr(); }
+
+function nextRecurDate(dateStr, recur) {
+  if (!dateStr || recur === 'none') return null;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  if (recur === 'daily') date.setDate(date.getDate() + 1);
+  else if (recur === 'weekly') date.setDate(date.getDate() + 7);
+  else if (recur === 'monthly') date.setMonth(date.getMonth() + 1);
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function greetingText() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+// ─────────────────────────────────────────────
+// TODO CRUD
+// ─────────────────────────────────────────────
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function openTodoModal(id = null) {
+  const todo = id ? state.todos.find(t => t.id === id) : null;
+  document.getElementById('todo-modal-title').textContent = todo ? 'Edit To-Do' : 'New To-Do';
+  document.getElementById('todo-edit-id').value = id || '';
+  document.getElementById('todo-title-input').value = todo ? todo.title : '';
+  document.getElementById('todo-notes-input').value = todo ? (todo.notes || '') : '';
+  document.getElementById('todo-date-input').value = todo ? (todo.date || todayStr()) : todayStr();
+  document.getElementById('todo-time-input').value = todo ? (todo.time || '') : '';
+  document.getElementById('todo-delete-btn').style.display = todo ? '' : 'none';
+
+  currentTodoPriority = todo ? (todo.priority || 'low') : 'low';
+  currentTodoRecur = todo ? (todo.recur || 'none') : 'none';
+  document.querySelectorAll('.priority-pill').forEach(p => {
+    p.classList.toggle('selected', p.dataset.val === currentTodoPriority);
+  });
+  document.querySelectorAll('.recur-pill').forEach(p => {
+    p.classList.toggle('selected', p.dataset.val === currentTodoRecur);
+  });
+  openModal('modal-todo');
+  setTimeout(() => document.getElementById('todo-title-input').focus(), 350);
+}
+
+function selectPriority(val) {
+  currentTodoPriority = val;
+  document.querySelectorAll('.priority-pill').forEach(p => p.classList.toggle('selected', p.dataset.val === val));
+}
+
+function selectRecur(val) {
+  currentTodoRecur = val;
+  document.querySelectorAll('.recur-pill').forEach(p => p.classList.toggle('selected', p.dataset.val === val));
+}
+
+function saveTodo() {
+  const title = document.getElementById('todo-title-input').value.trim();
+  if (!title) { toast('Please add a title', 'error'); return; }
+
+  const id = document.getElementById('todo-edit-id').value;
+  const date = document.getElementById('todo-date-input').value || todayStr();
+  const time = document.getElementById('todo-time-input').value || '';
+  const notes = document.getElementById('todo-notes-input').value.trim();
+
+  if (id) {
+    const idx = state.todos.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      state.todos[idx] = { ...state.todos[idx], title, date, time, notes, priority: currentTodoPriority, recur: currentTodoRecur };
+      toast('To-Do updated', 'success');
+    }
+  } else {
+    state.todos.push({ id: genId(), title, date, time, notes, priority: currentTodoPriority, recur: currentTodoRecur, completed: false, createdAt: Date.now() });
+    toast('To-Do added', 'success');
+  }
+
+  saveState();
+  closeModal('modal-todo');
+  renderTodos();
+  renderDashboard();
+  updateTabAlerts();
+}
+
+function completeTodo(id) {
+  const todo = state.todos.find(t => t.id === id);
+  if (!todo) return;
+
+  if (!todo.completed) {
+    todo.completed = true;
+    todo.completedAt = Date.now();
+    // Handle recurrence
+    if (todo.recur && todo.recur !== 'none') {
+      const nextDate = nextRecurDate(todo.date, todo.recur);
+      state.todos.push({
+        id: genId(),
+        title: todo.title,
+        date: nextDate,
+        time: todo.time || '',
+        notes: todo.notes || '',
+        priority: todo.priority,
+        recur: todo.recur,
+        completed: false,
+        createdAt: Date.now()
+      });
+      toast('Recurring — next added', 'success');
+    } else {
+      toast('Done! ✓', 'success');
+    }
+  } else {
+    todo.completed = false;
+    todo.completedAt = null;
+    toast('Marked incomplete');
+  }
+
+  saveState();
+  renderTodos();
+  renderDashboard();
+  updateTabAlerts();
+}
+
+function deleteTodoFromModal() {
+  const id = document.getElementById('todo-edit-id').value;
+  if (!id) return;
+  if (!confirm('Delete this to-do?')) return;
+  state.todos = state.todos.filter(t => t.id !== id);
+  saveState();
+  closeModal('modal-todo');
+  renderTodos();
+  renderDashboard();
+  updateTabAlerts();
+  toast('Deleted');
+}
+
+function setTodoFilter(f, btn) {
+  todoFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderTodos();
+}
+
+// ─────────────────────────────────────────────
+// RENDER TODOS
+// ─────────────────────────────────────────────
+function renderTodos() {
+  const active = state.todos.filter(t => !t.completed && !t._deleted);
+  const completed = state.todos.filter(t => t.completed && !t._deleted);
+  const today = todayStr();
+
+  // Filter
+  let filtered = active;
+  if (todoFilter === 'today') filtered = active.filter(t => t.date === today);
+  else if (todoFilter === 'upcoming') filtered = active.filter(t => t.date > today);
+  else if (todoFilter === 'overdue') filtered = active.filter(t => t.date < today);
+  else if (todoFilter === 'high') filtered = active.filter(t => t.priority === 'high');
+
+  // Sort: overdue first, then by date, then by priority
+  const priOrder = { high: 0, med: 1, low: 2 };
+  filtered.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (priOrder[a.priority] || 2) - (priOrder[b.priority] || 2);
+  });
+
+  // Group
+  const overdue = filtered.filter(t => t.date < today);
+  const todayItems = filtered.filter(t => t.date === today);
+  const upcoming = filtered.filter(t => t.date > today);
+
+  const el = document.getElementById('todo-list');
+  let html = '';
+
+  if (filtered.length === 0 && completed.length === 0) {
+    html = `<div class="empty-state">
+      <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div class="empty-title">No to-dos yet</div>
+      <div class="empty-sub">Tap + to add your first task.</div>
+    </div>`;
+  } else {
+    if (overdue.length) {
+      html += `<div class="group-header overdue"><span class="group-title">Overdue</span><span class="group-count">${overdue.length}</span></div>`;
+      html += overdue.map(t => todoItemHTML(t)).join('');
+    }
+    if (todoFilter === 'all' || todoFilter === 'today') {
+      if (todayItems.length) {
+        html += `<div class="group-header"><span class="group-title">Today</span><span class="group-count">${todayItems.length}</span></div>`;
+        html += todayItems.map(t => todoItemHTML(t)).join('');
+      }
+    }
+    if (todoFilter === 'all' || todoFilter === 'upcoming') {
+      if (upcoming.length) {
+        html += `<div class="group-header"><span class="group-title">Upcoming</span><span class="group-count">${upcoming.length}</span></div>`;
+        html += upcoming.map(t => todoItemHTML(t)).join('');
+      }
+    }
+    if (filtered.length === 0 && todoFilter !== 'all') {
+      html += `<div class="empty-state">
+        <div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 11 12 14 22 4"/></svg></div>
+        <div class="empty-title">Nothing here</div>
+        <div class="empty-sub">No to-dos in this filter.</div>
+      </div>`;
+    }
+  }
+
+  // Completed section
+  if (completed.length) {
+    html += `<div class="completed-toggle ${completedOpen ? 'open' : ''}" onclick="toggleCompleted()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+      Completed (${completed.length})
+    </div>
+    <div class="completed-list" style="${completedOpen ? '' : 'display:none;'}" id="completed-list">
+      ${completed.sort((a,b) => (b.completedAt||0)-(a.completedAt||0)).map(t => todoItemHTML(t)).join('')}
+    </div>`;
+  }
+
+  el.innerHTML = html;
+
+  // Subtitle
+  const openCount = active.length;
+  const overdueCount = active.filter(t => t.date < today).length;
+  let sub = `${openCount} open`;
+  if (overdueCount) sub += ` · ${overdueCount} overdue`;
+  document.getElementById('todo-subtitle').textContent = sub;
+}
+
+function toggleCompleted() {
+  completedOpen = !completedOpen;
+  const toggle = document.querySelector('.completed-toggle');
+  const list = document.getElementById('completed-list');
+  if (toggle) toggle.classList.toggle('open', completedOpen);
+  if (list) list.style.display = completedOpen ? '' : 'none';
+}
+
+function todoItemHTML(todo) {
+  const overdue = !todo.completed && isOverdue(todo.date);
+  const priClass = todo.priority === 'high' ? 'pri-high' : todo.priority === 'med' ? 'pri-med' : 'pri-low';
+  const checkClass = todo.completed ? 'checked' : (todo.priority === 'high' ? 'pri-high' : todo.priority === 'med' ? 'pri-med' : '');
+
+  const dateLbl = formatDate(todo.date);
+  const timeLbl = todo.time ? ` · ${formatTime(todo.time)}` : '';
+
+  return `<div class="todo-item ${todo.completed ? 'completed' : ''} ${priClass}" onclick="openTodoModal('${todo.id}')">
+    <button class="todo-check ${checkClass}" onclick="event.stopPropagation(); completeTodo('${todo.id}')"></button>
+    <div class="todo-body">
+      <div class="todo-title">${escHtml(todo.title)}</div>
+      <div class="todo-meta">
+        <span class="todo-date ${overdue ? 'overdue' : ''}">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          ${escHtml(dateLbl)}${timeLbl}
+        </span>
+        ${todo.recur && todo.recur !== 'none' ? `<span class="todo-tag recur">↻ ${todo.recur}</span>` : ''}
+        ${todo.priority === 'high' ? `<span class="todo-tag high">High</span>` : ''}
+        ${todo.priority === 'med' ? `<span class="todo-tag med">Med</span>` : ''}
+      </div>
+      ${todo.notes ? `<div class="todo-notes">${escHtml(todo.notes)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  return `${h % 12 || 12}:${String(m).padStart(2,'0')}${ampm}`;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+// RENDER DASHBOARD
+// ─────────────────────────────────────────────
+function renderDashboard() {
+  // Date + greeting
+  const now = new Date();
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('dash-date').textContent =
+    `${dayNames[now.getDay()]}, ${monthNames[now.getMonth()]} ${now.getDate()}`;
+  document.getElementById('dash-hello').innerHTML =
+    `${greetingText()}, <span class="accent">Phil.</span>`;
+
+  const today = todayStr();
+  const hour = now.getHours();
+  const activeTodos = state.todos.filter(t => !t.completed && !t._deleted);
+  const todayTodos = activeTodos.filter(t => t.date === today);
+  const overdueTodos = activeTodos.filter(t => t.date < today);
+  const highOverdue = overdueTodos.filter(t => t.priority === 'high');
+
+  // Today's completed
+  const completedToday = state.todos.filter(t => t.completed && t.completedAt && new Date(t.completedAt).toDateString() === now.toDateString());
+  const totalToday = todayTodos.length + completedToday.length;
+  const pct = totalToday > 0 ? Math.round((completedToday.length / totalToday) * 100) : 0;
+
+  let html = '';
+
+  // ── HIGH PRIORITY OVERDUE ALERT ──
+  if (highOverdue.length) {
+    html += `<div class="alert-card">
+      <div class="alert-card-label">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Needs attention
+      </div>
+      ${highOverdue.map(t => `
+        <div class="dash-item" onclick="switchView('todos'); openTodoModal('${t.id}')">
+          <div class="dash-item-dot" style="background:var(--pri-high);"></div>
+          <div class="dash-item-text overdue">${escHtml(t.title)}</div>
+          <div class="dash-item-time" style="color:var(--pri-high);">${escHtml(formatDate(t.date))}</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  // ── TODAY RING ──
+  const circumference = 2 * Math.PI * 28;
+  const offset = circumference - (pct / 100) * circumference;
+  html += `<div class="dash-ring-wrap">
+    <div class="dash-ring">
+      <svg viewBox="0 0 64 64">
+        <circle class="dash-ring-bg" cx="32" cy="32" r="28"/>
+        <circle class="dash-ring-fill" cx="32" cy="32" r="28"
+          stroke-dasharray="${circumference.toFixed(1)}"
+          stroke-dashoffset="${offset.toFixed(1)}"/>
+      </svg>
+      <div class="dash-ring-label">
+        <div class="dash-ring-pct">${pct}%</div>
+        <div class="dash-ring-sub">done</div>
+      </div>
+    </div>
+    <div class="dash-ring-info">
+      <div class="dash-ring-stat">${todayTodos.length + overdueTodos.length}</div>
+      <div class="dash-ring-desc">tasks need attention</div>
+      <div class="dash-ring-breakdown">${completedToday.length} completed today · ${overdueTodos.length} overdue</div>
+    </div>
+  </div>`;
+
+  // ── TODAY'S TODOS ──
+  if (todayTodos.length || overdueTodos.length) {
+    const showItems = [...overdueTodos, ...todayTodos].slice(0, 5);
+    html += `<div class="section-label">Today</div>
+    <div class="card" style="padding:4px 16px;">
+      ${showItems.map(t => `
+        <div class="dash-item" onclick="switchView('todos'); openTodoModal('${t.id}')">
+          <div class="dash-item-dot" style="background:${t.priority==='high'?'var(--pri-high)':t.priority==='med'?'var(--pri-med)':'var(--cyan)'};"></div>
+          <div>
+            <div class="dash-item-text ${isOverdue(t.date)?'overdue':''}">${escHtml(t.title)}</div>
+            ${t.time ? `<div class="dash-item-sub">${formatTime(t.time)}</div>` : ''}
+          </div>
+          <div class="dash-item-time">${escHtml(formatDate(t.date))}</div>
+        </div>`).join('')}
+      ${(todayTodos.length + overdueTodos.length) > 5 ? `
+        <div class="dash-item" onclick="switchView('todos')">
+          <div class="dash-item-dot" style="background:var(--ink-mute);"></div>
+          <div class="dash-item-text text-soft">+${(todayTodos.length + overdueTodos.length) - 5} more</div>
+        </div>` : ''}
+    </div>`;
+  } else if (hour >= 6) {
+    html += `<div class="section-label">Today</div>
+    <div class="card" style="text-align:center;padding:20px;color:var(--ink-soft);font-size:14px;">
+      ✓ All clear for today
+    </div>`;
+  }
+
+  // ── STREAK NUDGE (after 8pm, placeholder for Phase 3) ──
+  if (hour >= 20) {
+    html += `<div class="streak-nudge">
+      <div class="streak-nudge-title">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Log your streaks
+      </div>
+      <div class="streak-nudge-item" style="color:var(--ink-mute);font-size:13px;">Streak tracking arrives in Phase 3. Set up your habits then.</div>
+    </div>`;
+  }
+
+  // ── WEEKLY SUMMARY (Sunday evening) ──
+  const isSunday = now.getDay() === 0;
+  if (isSunday && hour >= 17) {
+    const weekCompleted = state.todos.filter(t => {
+      if (!t.completed || !t.completedAt) return false;
+      const d = new Date(t.completedAt);
+      const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+      return d >= weekAgo;
+    });
+    html += `<div class="weekly-card">
+      <div class="weekly-card-title">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        This week
+      </div>
+      <div class="weekly-stats">
+        <div class="weekly-stat">
+          <div class="weekly-stat-num">${weekCompleted.length}</div>
+          <div class="weekly-stat-label">Tasks done</div>
+        </div>
+        <div class="weekly-stat">
+          <div class="weekly-stat-num">—</div>
+          <div class="weekly-stat-label">Streaks kept</div>
+        </div>
+        <div class="weekly-stat">
+          <div class="weekly-stat-num">—</div>
+          <div class="weekly-stat-label">Notes added</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── UPCOMING (next 3 days) ──
+  const upcoming = activeTodos.filter(t => t.date > today).sort((a,b)=>a.date<b.date?-1:1).slice(0,4);
+  if (upcoming.length) {
+    html += `<div class="section-label">Coming up</div>
+    <div class="card" style="padding:4px 16px;">
+      ${upcoming.map(t => `
+        <div class="dash-item" onclick="switchView('todos'); openTodoModal('${t.id}')">
+          <div class="dash-item-dot" style="background:var(--ink-mute);"></div>
+          <div class="dash-item-text">${escHtml(t.title)}</div>
+          <div class="dash-item-time">${escHtml(formatDate(t.date))}</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  if (!html) {
+    html = `<div class="empty-state" style="padding-top:60px;">
+      <div class="empty-icon" style="width:72px;height:72px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:32px;height:32px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div class="empty-title">Welcome to Focus</div>
+      <div class="empty-sub">Tap + to add your first to-do and get organized.</div>
+    </div>`;
+  }
+
+  document.getElementById('dash-content').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
+// TAB ALERTS
+// ─────────────────────────────────────────────
+function updateTabAlerts() {
+  const today = todayStr();
+  const overdueOrToday = state.todos.filter(t => !t.completed && (t.date <= today));
+  document.getElementById('tab-todos').classList.toggle('has-alert', overdueOrToday.length > 0);
+}
+
+// ─────────────────────────────────────────────
+// SETTINGS
+// ─────────────────────────────────────────────
+function renderSettings() {
+  // Settings is now always via modal, but keep this for direct access
+  renderSettingsModal();
+  openModal('modal-settings');
+}
+
+function renderSettingsModal() {
+  document.getElementById('settings-modal-title').textContent = 'Settings';
+  document.getElementById('settings-modal-body').innerHTML = `
+    <div class="section-label">Sync</div>
+    <div class="settings-group">
+      <button class="settings-row" onclick="openSyncSettings()">
+        <div class="settings-row-icon" style="background:var(--cyan-soft);color:var(--cyan);">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </div>
+        <div class="settings-row-text">
+          <div class="settings-row-label">Sync Code</div>
+          <div class="settings-row-sub">${state.syncCode ? 'Connected: ' + state.syncCode : 'Not connected'}</div>
+        </div>
+        <div class="settings-row-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+    </div>
+
+    <div class="section-label">Streaks</div>
+    <div class="settings-group">
+      <button class="settings-row" onclick="openGraceSettings()">
+        <div class="settings-row-icon" style="background:var(--streak-soft);color:var(--streak);">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="settings-row-text">
+          <div class="settings-row-label">Late Log Grace Window</div>
+          <div class="settings-row-sub">Log yesterday's streak before ${state.graceWindowHour}:00 AM</div>
+        </div>
+        <div class="settings-row-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+    </div>
+
+    <div class="section-label">Firebase Config</div>
+    <div class="settings-group">
+      <button class="settings-row" onclick="openFirebaseSettings()">
+        <div class="settings-row-icon" style="background:#f59e0b20;color:#f59e0b;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <div class="settings-row-text">
+          <div class="settings-row-label">Firebase</div>
+          <div class="settings-row-sub">${isFirebaseConfigured() ? 'Configured' : 'Not configured — tap to set up'}</div>
+        </div>
+        <div class="settings-row-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </button>
+    </div>
+
+    <div class="section-label">Data</div>
+    <div class="settings-group">
+      <button class="settings-row" onclick="clearAllData()" style="color:var(--pri-high);">
+        <div class="settings-row-icon" style="background:var(--pri-high-soft);color:var(--pri-high);">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </div>
+        <div class="settings-row-text">
+          <div class="settings-row-label">Clear All Data</div>
+          <div class="settings-row-sub">Permanently delete everything</div>
+        </div>
+      </button>
+    </div>
+
+    <div style="text-align:center;padding:24px 0 8px;">
+      <div style="font-size:12px;color:var(--ink-mute);">Focus · Phase 1</div>
+      <div style="font-size:11px;color:var(--ink-mute);margin-top:2px;">Lists, Reminders, Notes & Streaks coming soon</div>
+    </div>
+  `;
+}
+
+function openSyncSettings() {
+  document.getElementById('settings-modal-title').textContent = 'Sync Code';
+  document.getElementById('settings-modal-body').innerHTML = `
+    ${state.syncCode ? `
+      <div class="sync-code">${state.syncCode}</div>
+      <div class="sync-code-sub">Enter this code on another device to sync your data</div>
+      <button class="btn btn-block btn-sm" style="margin-bottom:10px;" onclick="copySync()">Copy Code</button>
+      <button class="btn btn-block btn-sm btn-danger" onclick="disconnectSync()">Disconnect</button>
+    ` : `
+      <p style="color:var(--ink-soft);font-size:14px;line-height:1.6;margin-bottom:16px;">
+        Enter a 6-character sync code to connect across devices. This requires Firebase to be configured first.
+      </p>
+      <div class="field">
+        <label class="field-label">Sync Code</label>
+        <input type="text" id="sync-code-input" placeholder="ABCD12" maxlength="6"
+          style="text-transform:uppercase;letter-spacing:0.2em;font-size:20px;text-align:center;"
+          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="connectSync()">Connect</button>
+    `}
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;" onclick="renderSettingsModal()">← Back</button>
+  `;
+}
+
+function copySync() {
+  navigator.clipboard.writeText(state.syncCode).then(() => toast('Code copied!', 'success'));
+}
+
+function connectSync() {
+  const code = document.getElementById('sync-code-input').value.trim().toUpperCase();
+  if (code.length !== 6) { toast('Enter a 6-character code', 'error'); return; }
+  if (!isFirebaseConfigured()) { toast('Set up Firebase first', 'error'); return; }
+  state.syncCode = code;
+  saveState();
+  tryStartSync();
+  renderSettingsModal();
+  toast('Connected to ' + code, 'success');
+}
+
+function disconnectSync() {
+  if (!confirm('Disconnect sync? Your local data stays.')) return;
+  state.syncCode = '';
+  if (syncUnsub) { syncUnsub(); syncUnsub = null; }
+  saveState();
+  renderSettingsModal();
+  toast('Disconnected');
+}
+
+function openGraceSettings() {
+  document.getElementById('settings-modal-title').textContent = 'Grace Window';
+  document.getElementById('settings-modal-body').innerHTML = `
+    <p style="color:var(--ink-soft);font-size:14px;line-height:1.6;margin-bottom:16px;">
+      If you forget to log a streak, you can log "yesterday" any time before this hour the next morning without breaking your chain.
+    </p>
+    <div class="field">
+      <label class="field-label">Grace until (hour)</label>
+      <select id="grace-hour-select">
+        ${[6,7,8,9,10,11,12].map(h => `<option value="${h}" ${state.graceWindowHour===h?'selected':''}>${h}:00 AM</option>`).join('')}
+      </select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveGraceWindow()">Save</button>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;" onclick="renderSettingsModal()">← Back</button>
+  `;
+}
+
+function saveGraceWindow() {
+  state.graceWindowHour = parseInt(document.getElementById('grace-hour-select').value);
+  saveState();
+  renderSettingsModal();
+  toast('Saved', 'success');
+}
+
+function openFirebaseSettings() {
+  const cfg = getFirebaseConfig();
+  document.getElementById('settings-modal-title').textContent = 'Firebase';
+  document.getElementById('settings-modal-body').innerHTML = `
+    <p style="color:var(--ink-soft);font-size:14px;line-height:1.6;margin-bottom:16px;">
+      Paste your Firebase project config to enable sync. You can find this in your Firebase Console → Project Settings → Web App.
+    </p>
+    <div class="field">
+      <label class="field-label">API Key</label>
+      <input type="text" id="fb-apikey" placeholder="AIza..." value="${cfg.apiKey||''}">
+    </div>
+    <div class="field">
+      <label class="field-label">Auth Domain</label>
+      <input type="text" id="fb-authdomain" placeholder="your-app.firebaseapp.com" value="${cfg.authDomain||''}">
+    </div>
+    <div class="field">
+      <label class="field-label">Project ID</label>
+      <input type="text" id="fb-projectid" placeholder="your-project-id" value="${cfg.projectId||''}">
+    </div>
+    <div class="field">
+      <label class="field-label">App ID</label>
+      <input type="text" id="fb-appid" placeholder="1:123:web:abc..." value="${cfg.appId||''}">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveFirebaseConfig()">Save Config</button>
+    ${cfg.apiKey ? `<button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;color:var(--pri-high);" onclick="clearFirebaseConfig()">Clear Config</button>` : ''}
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:4px;" onclick="renderSettingsModal()">← Back</button>
+  `;
+}
+
+function getFirebaseConfig() {
+  try { return JSON.parse(localStorage.getItem('focus_fb_config') || '{}'); } catch(e) { return {}; }
+}
+
+function isFirebaseConfigured() {
+  const c = getFirebaseConfig();
+  return !!(c.apiKey && c.projectId);
+}
+
+function saveFirebaseConfig() {
+  const cfg = {
+    apiKey: document.getElementById('fb-apikey').value.trim(),
+    authDomain: document.getElementById('fb-authdomain').value.trim(),
+    projectId: document.getElementById('fb-projectid').value.trim(),
+    appId: document.getElementById('fb-appid').value.trim(),
+  };
+  if (!cfg.apiKey || !cfg.projectId) { toast('API Key and Project ID are required', 'error'); return; }
+  localStorage.setItem('focus_fb_config', JSON.stringify(cfg));
+  toast('Firebase configured', 'success');
+  ensureFirebaseInit();
+  renderSettingsModal();
+}
+
+function clearFirebaseConfig() {
+  if (!confirm('Clear Firebase config?')) return;
+  localStorage.removeItem('focus_fb_config');
+  firestoreDb = null;
+  toast('Config cleared');
+  renderSettingsModal();
+}
+
+function clearAllData() {
+  if (!confirm('Delete ALL data? This cannot be undone.')) return;
+  if (!confirm('Are you sure? Everything will be lost.')) return;
+  state = { ...DEFAULT_STATE };
+  saveState();
+  renderDashboard();
+  renderTodos();
+  updateTabAlerts();
+  toast('All data cleared');
+  closeModal('modal-settings');
+}
+
+// ─────────────────────────────────────────────
+// FAB / MODULE PICKER
+// ─────────────────────────────────────────────
+function openModulePicker() {
+  if (currentView === 'todos') { openTodoModal(); return; }
+  openModal('modal-picker');
+}
+
+// ─────────────────────────────────────────────
+// FIREBASE SYNC
+// ─────────────────────────────────────────────
+function ensureFirebaseInit() {
+  if (firestoreDb) return true;
+  const cfg = getFirebaseConfig();
+  if (!cfg.apiKey || !cfg.projectId) return false;
+  try {
+    const { initializeApp, getFirestore } = window.__firebase;
+    const app = initializeApp(cfg, 'focus-app');
+    firestoreDb = getFirestore(app);
+    return true;
+  } catch(e) {
+    console.warn('Firebase init failed', e);
+    return false;
+  }
+}
+
+async function pushToFirestore() {
+  if (!firestoreDb || !state.syncCode) return;
+  try {
+    const { doc, setDoc } = window.__firebase;
+    await setDoc(doc(firestoreDb, 'focus', state.syncCode), {
+      todos: state.todos,
+      updatedAt: Date.now()
+    });
+  } catch(e) { console.warn('Firestore push failed', e); }
+}
+
+function tryStartSync() {
+  if (!ensureFirebaseInit() || !state.syncCode) return;
+  if (syncUnsub) syncUnsub();
+  const { doc, onSnapshot } = window.__firebase;
+  syncUnsub = onSnapshot(doc(firestoreDb, 'focus', state.syncCode), snap => {
+    if (!snap.exists()) { pushToFirestore(); return; }
+    const data = snap.data();
+    if (data.updatedAt > (state._lastPush || 0)) {
+      state.todos = data.todos || [];
+      state._lastPush = data.updatedAt;
+      try { localStorage.setItem('focus_state', JSON.stringify(state)); } catch(e) {}
+      renderTodos();
+      renderDashboard();
+      updateTabAlerts();
+    }
+  }, e => console.warn('Sync listener error', e));
+}
+
+// ─────────────────────────────────────────────
+// SETTINGS GEAR IN NAV AREA
+// ─────────────────────────────────────────────
+// Long-press on Home tab opens settings
+let settingsPress = null;
+document.getElementById('tab-home').addEventListener('pointerdown', () => {
+  settingsPress = setTimeout(openSettings, 600);
+});
+['pointerup','pointerleave','pointermove'].forEach(ev => {
+  document.getElementById('tab-home').addEventListener(ev, () => {
+    if (settingsPress) { clearTimeout(settingsPress); settingsPress = null; }
+  });
+});
+
+// Settings gear in dash header — inject after render
+function injectDashHeader() {
+  const header = document.querySelector('#view-home .dash-greeting');
+  if (!header) return;
+  const existing = header.querySelector('.dash-settings-btn');
+  if (existing) return;
+  const btn = document.createElement('button');
+  btn.className = 'header-btn dash-settings-btn';
+  btn.style.cssText = 'position:absolute;right:16px;top:calc(var(--safe-top) + 16px);';
+  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+  btn.onclick = openSettings;
+  document.querySelector('#view-home').style.position = 'relative';
+  document.querySelector('#view-home').appendChild(btn);
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+function init() {
+  renderDashboard();
+  renderTodos();
+  updateTabAlerts();
+  injectDashHeader();
+
+  if (window.__firebase) {
+    if (ensureFirebaseInit() && state.syncCode) tryStartSync();
+  } else {
+    window.addEventListener('firebase-ready', () => {
+      if (ensureFirebaseInit() && state.syncCode) tryStartSync();
+    });
+  }
+
+  // Refresh dashboard every minute for time-based sections
+  setInterval(() => {
+    if (currentView === 'home') renderDashboard();
+    updateTabAlerts();
+  }, 60000);
+
+  // Visibility change — resync on return from background
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (currentView === 'home') renderDashboard();
+    if (firestoreDb && state.syncCode) tryStartSync();
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
