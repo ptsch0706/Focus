@@ -674,6 +674,7 @@ function greet(){const h=new Date().getHours();return h<12?'Good morning':h<17?'
 function setPill(group,btn){
   P[group]=btn.dataset.val;
   btn.closest('.pill-row').querySelectorAll('.pill').forEach(p=>p.classList.toggle('sel',p===btn));
+  if(group==='sfreq'){P2.sfreq=btn.dataset.val;if(typeof updateStreakDaysField==='function')updateStreakDaysField();}
 }
 function resetPills(group,val){
   P[group]=val;
@@ -747,14 +748,7 @@ function deleteTodo(){
   if(!id||!confirm('Delete this to-do?'))return;
   S.todos=S.todos.filter(t=>t.id!==id);save();closeModal('modal-todo');renderTodos();renderDash();tabs();toast('Deleted');
 }
-function setFilter(mod,f,btn){
-  if(mod==='todo')tf=f;else if(mod==='list')lf=f;else rf=f;
-  const view_id=mod==='todo'?'view-todos':mod==='list'?'view-lists':'view-reminders';
-  document.querySelectorAll('#'+view_id+' .filter-chip').forEach(c=>c.className='filter-chip');
-  const cls=mod==='todo'?'act-cyan':mod==='list'?'act-amber':'act-violet';
-  btn.classList.add(cls);
-  if(mod==='todo')renderTodos();else if(mod==='list')renderLists();else renderRem();
-}
+
 function renderTodos(){
   const today=td(),act=S.todos.filter(t=>!t.completed),comp=S.todos.filter(t=>t.completed);
   const po={high:0,med:1,low:2};let fil=act;
@@ -1023,15 +1017,29 @@ function renderDash(){
     }).join('');
     out+=`</div>`;
   }
-  if(!out)out=`<div class="empty-state" style="padding-top:60px"><div class="empty-icon" style="width:72px;height:72px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:32px;height:32px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="empty-title">Welcome to Focus</div><div class="empty-sub">Tap + to add your first to-do and get organized.</div></div>`;
+  if(!out)out='<div class="empty-state" style="padding-top:60px"><div class="empty-icon" style="width:72px;height:72px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:32px;height:32px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="empty-title">Welcome to Focus</div><div class="empty-sub">Tap + to add your first to-do and get organized.</div></div>';
+  if(typeof getStreakChain==='function'&&S.streaks&&S.streaks.length&&h>=20){
+    const ar=S.streaks.filter(s=>isScheduledToday(s)&&!isLoggedToday(s));
+    if(ar.length)out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>'
+      +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft)">'+esc(s.emoji)+' '+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
+  } else if(h>=20){
+    out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">Tap the Streaks tab to set up your habits.</div></div>';
+  }
+  if(S.notes){const pn=S.notes.find(n=>n.pinned);if(pn){
+    const pv=pn.body.replace(/[#*`>]+/g,'').trim().substring(0,80);
+    out+='<div class="section-label">&#128204; Pinned Note</div><div class="note-card" onclick="switchView(\'notes\');openNoteDetail(\''+(pn.id)+'\')" style="margin-bottom:10px"><div class="note-card-title">'+(pn.title?esc(pn.title):'Untitled')+'</div>'+(pv?'<div class="note-card-preview">'+esc(pv)+'</div>':'')+'</div>';}}
   document.getElementById('dash-content').innerHTML=out;
 }
 
 // ── TAB ALERTS ──
 function tabs(){
-  const today=td();
+  const today=td(),hr=new Date().getHours();
   document.getElementById('tab-todos').classList.toggle('has-alert',S.todos.some(t=>!t.completed&&t.date<=today));
   document.getElementById('tab-reminders').classList.toggle('has-alert',S.reminders.some(r=>!r.completed&&r.date<=today));
+  if(typeof isScheduledToday==='function'){
+    const ar=S.streaks&&S.streaks.some(s=>isScheduledToday(s)&&!isLoggedToday(s));
+    document.getElementById('tab-streaks').classList.toggle('has-alert',hr>=20&&!!ar);
+  }
 }
 
 // ── FAB ──
@@ -1048,59 +1056,52 @@ function openModulePicker(){
 function openSettings(){renderSett();openModal('modal-settings');}
 function renderSett(){
   document.getElementById('sett-title').textContent='Settings';
-  document.getElementById('sett-body').innerHTML=`
-    <div class="section-label">Sync</div>
-    <div class="sett-group"><button class="sett-row" onclick="settSync()">
-      <div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
-      <div class="sett-text"><div class="sett-label">Sync Code</div><div class="sett-sub">${S.syncCode?'Connected: '+S.syncCode:'Not connected'}</div></div>
-      <div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
-    </button></div>
-    <div class="section-label">Streaks</div>
-    <div class="sett-group"><button class="sett-row" onclick="settGrace()">
-      <div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      <div class="sett-text"><div class="sett-label">Late Log Grace Window</div><div class="sett-sub">Log yesterday before ${S.graceWindowHour}:00 AM</div></div>
-      <div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
-    </button></div>
-    <div class="section-label">Firebase</div>
-    <div class="sett-group"><button class="sett-row" onclick="settFB()">
-      <div class="sett-icon" style="background:#f59e0b20;color:#f59e0b"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-      <div class="sett-text"><div class="sett-label">Firebase</div><div class="sett-sub">${fbOk()?'Configured':'Not configured'}</div></div>
-      <div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
-    </button></div>
-    <div class="section-label">Data</div>
-    <div class="sett-group"><button class="sett-row" onclick="clearAll()" style="color:var(--pri-high)">
-      <div class="sett-icon" style="background:var(--pri-high-soft);color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>
-      <div class="sett-text"><div class="sett-label">Clear All Data</div><div class="sett-sub">Permanently delete everything</div></div>
-    </button></div>
-    <div style="text-align:center;padding:24px 0 8px"><div style="font-size:12px;color:var(--ink-mute)">Focus</div></div>
-    <div class="section-label">Appearance</div>
-    <div class="sett-group" style="padding:14px 16px">
-      <div class="theme-toggle-wrap" id="theme-btns-wrap"></div>
-    </div>
-    <div class="section-label">About</div>
-    <div class="sett-group">
-      <button class="sett-row" onclick="openChangelog()">
-        <div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-        <div class="sett-text"><div class="sett-label">Version &amp; Changelog</div><div class="sett-sub" id="sett-version-sub"></div></div>
-        <div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
-      </button>
-    </div>
-    <div style="text-align:center;padding:20px 0 4px"><div class="version-pill" onclick="openChangelog()"><div class="vdot"></div><span id="sett-version-pill"></span></div></div>`;
-  // Populate dynamic parts after innerHTML set
-  const tbw = document.getElementById('theme-btns-wrap');
-  if (tbw) {
-    tbw.innerHTML = [
-      {t:'dark', label:'Dark', icon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'},
-      {t:'light', label:'Light', icon:'<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'},
-      {t:'system', label:'System', icon:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>'},
-    ].map(({t,label,icon})=>`<button class="theme-btn ${S.theme===t?'active':''}" data-theme="${t}" onclick="setTheme('${t}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">${icon}</svg>${label}</button>`).join('');
-  }
-  const vs = document.getElementById('sett-version-sub');
-  const vp = document.getElementById('sett-version-pill');
-  const ver = getCurrentVersion();
-  if (vs) vs.textContent = ver;
-  if (vp) vp.textContent = ver;
+  const ver=getCurrentVersion();
+  const ticons={
+    dark:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    light:'<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+    system:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>'
+  };
+  const tbHTML=['dark','light','system'].map(function(t){
+    return '<button class="theme-btn'+(S.theme===t?' active':'')+'" data-theme="'+t+'" onclick="setTheme(\''+t+'\')">'
+      +'<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">'+ticons[t]+'</svg>'
+      +(t==='dark'?'Dark':t==='light'?'Light':'System')+'</button>';
+  }).join('');
+  document.getElementById('sett-body').innerHTML=
+    '<div class="section-label">Sync</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="settSync()">'
+    +'<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Sync Code</div><div class="sett-sub">'+(S.syncCode?'Connected: '+S.syncCode:'Not connected')+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
+    +'<div class="section-label">Streaks</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="settGrace()">'
+    +'<div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Late Log Grace Window</div><div class="sett-sub">Log yesterday before '+S.graceWindowHour+':00 AM</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
+    +'<div class="section-label">Firebase</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="settFB()">'
+    +'<div class="sett-icon" style="background:#f59e0b20;color:#f59e0b"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Firebase</div><div class="sett-sub">'+(fbOk()?'Configured':'Not configured')+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
+    +'<div class="section-label">Data</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="clearAll()" style="color:var(--pri-high)">'
+    +'<div class="sett-icon" style="background:var(--pri-high-soft);color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Clear All Data</div><div class="sett-sub">Permanently delete everything</div></div>'
+    +'</button></div>'
+    +'<div class="section-label">Appearance</div>'
+    +'<div class="sett-group" style="padding:14px 16px"><div class="theme-toggle-wrap">'+tbHTML+'</div></div>'
+    +'<div class="section-label">About</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="openChangelog()">'
+    +'<div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Version &amp; Changelog</div><div class="sett-sub">'+ver+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
+    +'<div style="text-align:center;padding:20px 0 4px"><div class="version-pill" onclick="openChangelog()"><div class="vdot"></div>'+ver+'</div></div>';
 }
+
 function settSync(){
   document.getElementById('sett-title').textContent='Sync Code';
   document.getElementById('sett-body').innerHTML=S.syncCode?`
@@ -1286,8 +1287,8 @@ function parseMarkdown(md) {
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
     .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
     .replace(/^---$/gm, '<hr>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/[*][*](.+?)[*][*]/g,'<strong>$1</strong>')
+    .replace(/[*]([^*]+)[*]/g,'<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
@@ -1469,12 +1470,7 @@ function updateStreakDaysField() {
   document.getElementById('streak-days-field').style.display = show ? '' : 'none';
 }
 
-// Override setPill to also handle streak freq
-const _origSetPill = setPill;
-function setPill(group, btn) {
-  _origSetPill(group, btn);
-  if (group === 'sfreq') { P2.sfreq = btn.dataset.val; updateStreakDaysField(); }
-}
+
 
 function saveStreak() {
   const name = document.getElementById('streak-name').value.trim();
@@ -1644,147 +1640,6 @@ function cancelStreakPress() {
 }
 
 // ── DASHBOARD UPDATES for Notes + Streaks ──
-// Override renderDash to inject streak nudges with real data
-const _origRenderDash = renderDash;
-function renderDash() {
-  _origRenderDash();
-  // After base render, update streak nudge if streaks exist
-  if (S.streaks.length > 0) {
-    const hour = new Date().getHours();
-    const atRisk = S.streaks.filter(s => isScheduledToday(s) && !isLoggedToday(s));
-    const nudgeEl = document.querySelector('.nudge-card');
-    if (nudgeEl && hour >= 20 && atRisk.length) {
-      nudgeEl.innerHTML = `<div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>
-        ${atRisk.map(s=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft)">${s.emoji} ${esc(s.name)}</span><span style="font-size:11px;color:var(--streak)">🔥 ${getStreakChain(s)} days</span></div>`).join('')}`;
-    } else if (!nudgeEl && hour >= 20 && atRisk.length) {
-      const dc = document.getElementById('dash-content');
-      const nudge = document.createElement('div');
-      nudge.className = 'nudge-card';
-      nudge.innerHTML = `<div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>
-        ${atRisk.map(s=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft)">${s.emoji} ${esc(s.name)}</span><span style="font-size:11px;color:var(--streak)">🔥 ${getStreakChain(s)} days</span></div>`).join('')}`;
-      dc.appendChild(nudge);
-    }
-    // Update weekly summary with streaks
-    const weekNum = document.querySelector('.week-num:nth-child(2)');
-    if (weekNum) {
-      const now = new Date(), wAgo=new Date(now); wAgo.setDate(wAgo.getDate()-7);
-      const streaksKept = S.streaks.reduce((acc,s)=>{
-        const logged = (s.logs||[]).filter(d=>d>=`${wAgo.getFullYear()}-${String(wAgo.getMonth()+1).padStart(2,'0')}-${String(wAgo.getDate()).padStart(2,'0')}`).length;
-        return acc + logged;
-      },0);
-      weekNum.textContent = streaksKept;
-    }
-    // Notes in weekly summary
-    const weekNums = document.querySelectorAll('.week-num');
-    if (weekNums.length >= 3) {
-      const now = new Date(), wAgo=new Date(now); wAgo.setDate(wAgo.getDate()-7);
-      const wAgoTs = wAgo.getTime();
-      const notesAdded = S.notes.filter(n=>(n.createdAt||0)>=wAgoTs).length;
-      weekNums[2].textContent = notesAdded;
-    }
-  }
-  // Pinned note on dashboard
-  const pinned = S.notes.find(n=>n.pinned);
-  if (pinned) {
-    const dc = document.getElementById('dash-content');
-    const existing = dc.querySelector('.pinned-note-card');
-    if (!existing) {
-      const preview = pinned.body.replace(/[#*`>-]+/g,'').trim().substring(0,80);
-      const card = document.createElement('div');
-      card.className = 'pinned-note-card';
-      card.innerHTML = `<div class="section-label">📌 Pinned Note</div>
-        <div class="note-card" onclick="switchView('notes');openNoteDetail('${pinned.id}')" style="margin-bottom:10px">
-          <div class="note-card-title">${pinned.title ? esc(pinned.title) : 'Untitled'}</div>
-          ${preview ? `<div class="note-card-preview">${esc(preview)}</div>` : ''}
-        </div>`;
-      // Insert before upcoming or at end
-      const upLabel = dc.querySelector('.section-label:last-of-type');
-      if (upLabel) dc.insertBefore(card, upLabel); else dc.appendChild(card);
-    }
-  }
-}
-
-// Update tabs to include streak nudge dot
-const _origTabs = tabs;
-function tabs() {
-  _origTabs();
-  const hour = new Date().getHours();
-  const atRisk = S.streaks.some(s => isScheduledToday(s) && !isLoggedToday(s));
-  document.getElementById('tab-streaks').classList.toggle('has-alert', hour >= 20 && atRisk);
-}
-
-
-// ── THEME ──
-function applyTheme(theme) {
-  document.documentElement.classList.toggle('light', theme === 'light');
-  document.documentElement.classList.toggle('dark', theme === 'dark');
-  // Update meta theme-color for iOS status bar
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = theme === 'light' ? '#f0f4f8' : '#080d1a';
-  S.theme = theme;
-}
-
-function setTheme(theme) {
-  applyTheme(theme);
-  save();
-  // Re-render theme toggle buttons
-  const btns = document.querySelectorAll('.theme-btn');
-  btns.forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
-  toast(theme === 'light' ? '☀️ Light mode' : theme === 'dark' ? '🌙 Dark mode' : '⚙️ System mode');
-}
-
-// ── CHANGELOG ──
-const CHANGELOG = [
-  {
-    version: '0.00.03',
-    date: 'Jun 15, 2026',
-    type: 'minor',
-    items: ['Added light/dark/system theme toggle in Settings', 'Added app versioning and changelog viewer']
-  },
-  {
-    version: '0.00.02',
-    date: 'Jun 15, 2026',
-    type: 'minor',
-    items: ['Added Notes module with markdown rendering, pinning, and module linking', 'Added Streaks module with long-press logging, dot grid, chain counter, and grace window', 'Dashboard now shows real streak nudges, pinned note, and full weekly summary']
-  },
-  {
-    version: '0.00.01',
-    date: 'Jun 15, 2026',
-    type: 'minor',
-    items: ['Initial release — To-Dos, Lists, Reminders, Dashboard with completion ring', 'Firebase sync via 6-character code', 'PWA shell with bottom nav, module picker FAB, toast notifications']
-  }
-];
-
-function openChangelog() {
-  document.getElementById('sett-title').textContent = 'Changelog';
-  document.getElementById('sett-body').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div>
-        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.02em">Focus</div>
-        <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">Current version: <strong style="color:var(--ink)">${CHANGELOG[0].version}</strong></div>
-      </div>
-      <div class="version-pill"><div class="vdot"></div>${CHANGELOG[0].version}</div>
-    </div>
-    ${CHANGELOG.map(entry => `
-      <div class="changelog-entry">
-        <div style="display:flex;align-items:center">
-          <div class="changelog-version">${entry.version}</div>
-          <span class="changelog-type ${entry.type}">${entry.type}</span>
-          <div style="flex:1"></div>
-          <div class="changelog-date">${entry.date}</div>
-        </div>
-        <div class="changelog-items">
-          ${entry.items.map(item => `<div class="changelog-item">${item}</div>`).join('')}
-        </div>
-      </div>`).join('')}
-    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:16px" onclick="renderSett()">← Back</button>
-  `;
-}
-
-function getCurrentVersion() {
-  return CHANGELOG[0] ? CHANGELOG[0].version : '0.00.01';
-}
-
 
 function applySystemTheme() {
   if (S.theme !== 'system') return;
@@ -1798,6 +1653,82 @@ function applySystemTheme() {
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (S.theme === 'system') applySystemTheme();
 });
+
+
+// ── THEME ──
+function applyTheme(theme) {
+  document.documentElement.classList.toggle('light', theme === 'light');
+  document.documentElement.classList.toggle('dark', theme !== 'light');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = theme === 'light' ? '#f0f4f8' : '#080d1a';
+  S.theme = theme;
+}
+function setTheme(theme) {
+  applyTheme(theme);
+  if (theme === 'system') applySystemTheme();
+  save();
+  toast(theme === 'light' ? 'Light mode' : theme === 'dark' ? 'Dark mode' : 'System mode');
+}
+
+// ── CHANGELOG ──
+const CHANGELOG = [
+  {
+    version: '0.00.03',
+    date: 'Jun 15, 2026',
+    type: 'minor',
+    items: [
+      'Added light / dark / system theme toggle in Settings',
+      'Added app versioning and changelog viewer'
+    ]
+  },
+  {
+    version: '0.00.02',
+    date: 'Jun 15, 2026',
+    type: 'minor',
+    items: [
+      'Added Notes module with markdown rendering, pinning, and module linking',
+      'Added Streaks module with long-press logging, dot grid, chain counter, and grace window',
+      'Dashboard now shows real streak nudges, pinned note, and full weekly summary'
+    ]
+  },
+  {
+    version: '0.00.01',
+    date: 'Jun 15, 2026',
+    type: 'minor',
+    items: [
+      'Initial release — To-Dos, Lists, Reminders, Dashboard with completion ring',
+      'Firebase sync via 6-character code',
+      'PWA shell with bottom nav, module picker FAB, toast notifications'
+    ]
+  }
+];
+
+function getCurrentVersion() {
+  return CHANGELOG[0] ? CHANGELOG[0].version : '0.00.01';
+}
+
+function openChangelog() {
+  document.getElementById('sett-title').textContent = 'Changelog';
+  const ver = getCurrentVersion();
+  document.getElementById('sett-body').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<div><div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.02em">Focus</div>'
+    +'<div style="font-size:13px;color:var(--ink-soft);margin-top:2px">Current version: <strong style="color:var(--ink)">'+ver+'</strong></div></div>'
+    +'<div class="version-pill"><div class="vdot"></div>'+ver+'</div></div>'
+    +CHANGELOG.map(function(e){
+      return '<div class="changelog-entry">'
+        +'<div style="display:flex;align-items:center">'
+        +'<div class="changelog-version">'+e.version+'</div>'
+        +'<span class="changelog-type '+e.type+'">'+e.type+'</span>'
+        +'<div style="flex:1"></div>'
+        +'<div class="changelog-date">'+e.date+'</div>'
+        +'</div>'
+        +'<div class="changelog-items">'
+        +e.items.map(function(i){return '<div class="changelog-item">'+i+'</div>';}).join('')
+        +'</div></div>';
+    }).join('')
+    +'<button class="btn btn-ghost btn-block btn-sm" style="margin-top:16px" onclick="renderSett()">&#8592; Back</button>';
+}
 
 </script>
 
