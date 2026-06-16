@@ -696,6 +696,18 @@ html.compact .card { padding: 10px 14px; }
 #note-detail-view .detail-title-wrap{text-align:center;}
 #note-detail-view .detail-sub{text-align:center;}
 
+
+#list-detail-view .detail-title-wrap{text-align:center;}
+#list-detail-view .detail-sub{text-align:center;}
+
+
+/* TAB SWIPE TRANSITIONS — card-like slide */
+@keyframes slideInRight{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-100%)}to{opacity:1;transform:translateX(0)}}
+.view.active.slide-in-right{animation:slideInRight .28s cubic-bezier(.32,.72,0,1) both;}
+.view.active.slide-in-left{animation:slideInLeft .28s cubic-bezier(.32,.72,0,1) both;}
+@media(prefers-reduced-motion:reduce){.view.active.slide-in-right,.view.active.slide-in-left{animation:none}}
+
 </style>
 </head>
 <body>
@@ -1061,10 +1073,18 @@ function resetPills(group,val){
 
 // ── NAV ──
 const VIEWS=['home','todos','lists','reminders','notes','streaks'];
-function switchView(name){
+function switchView(name,direction){
   VIEWS.forEach(v=>{
     const el=document.getElementById('view-'+v),tb=document.getElementById('tab-'+v);
-    if(el)el.classList.toggle('active',v===name);
+    if(el){
+      el.classList.toggle('active',v===name);
+      el.classList.remove('slide-in-right','slide-in-left');
+      if(v===name&&direction){
+        // Force reflow to restart animation
+        void el.offsetWidth;
+        el.classList.add(direction==='left'?'slide-in-right':'slide-in-left');
+      }
+    }
     if(tb)tb.classList.toggle('active',v===name);
   });
   view=name;
@@ -1218,10 +1238,8 @@ function deleteList(){
   S.lists=S.lists.filter(l=>l.id!==id);save();closeModal('modal-list');renderLists();toast('Deleted');
 }
 function renderLists(){
-  let lists=S.lists.filter(canSeeItem);
-  if(lf==='checklist')lists=lists.filter(l=>l.type==='checklist');
-  else if(lf==='freeform')lists=lists.filter(l=>l.type==='freeform');
-  document.getElementById('list-sub').textContent=`${S.lists.length} list${S.lists.length!==1?'s':''}`;
+  const lists=S.lists.filter(canSeeItem);
+  document.getElementById('list-sub').textContent=`${lists.length} list${lists.length!==1?'s':''}`;
   const el=document.getElementById('list-grid');
   if(!lists.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon" style="background:var(--list-soft);border-color:var(--list);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/></svg></div><div class="empty-title">No lists yet</div><div class="empty-sub">Tap + to create a grocery, packing, or idea list.</div></div>`;return;}
   el.innerHTML=lists.map(l=>{
@@ -1231,10 +1249,7 @@ function renderLists(){
     <div class="list-card-hdr">
       <div class="list-icon" style="background:${l.color||'#f59e0b'}1a;border:2px solid ${l.color||'#f59e0b'}"></div>
       <div style="flex:1;min-width:0"><div class="list-name">${esc(l.name)}</div><div class="list-meta">${meta}</div></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-        <span class="list-badge ${l.type}">${l.type==='checklist'?'Checklist':'Freeform'}</span>
-        <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListModal('${l.id}')" style="color:var(--ink-mute)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
-      </div>
+      <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListModal('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
     </div></div>`;
   }).join('');
 }
@@ -2486,6 +2501,17 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.02.10',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Lists: removed the Checklist/Freeform badge from list cards (the previous removal attempt silently failed)',
+      'Lists: centered the title and item count in the list detail header',
+      'Tab swipes now animate with a card-like slide — left swipe slides the next tab in from the right, right swipe slides the previous tab in from the left',
+      'Tab clicks (non-swipe) keep the existing subtle fade transition'
+    ]
+  },
+  {
     version: '0.02.09',
     date: 'Jun 16, 2026',
     type: 'minor',
@@ -3302,13 +3328,13 @@ function initSwipeTabs() {
     if (Math.abs(dx) < 70) return;
     if (Math.abs(dy) > Math.abs(dx) * 0.6) return; // vertical scroll instead
     if (dt > 500) return; // too slow
-    // Navigate
+    // Navigate with card-slide direction
     const idx = VIEWS.indexOf(view);
     if (idx < 0) return;
-    let target;
-    if (dx < 0 && idx < VIEWS.length - 1) target = VIEWS[idx + 1]; // swipe left → next
-    else if (dx > 0 && idx > 0) target = VIEWS[idx - 1]; // swipe right → previous
-    if (target) switchView(target);
+    let target, direction;
+    if (dx < 0 && idx < VIEWS.length - 1) { target = VIEWS[idx + 1]; direction = 'left'; } // swipe left → next slides in from right
+    else if (dx > 0 && idx > 0) { target = VIEWS[idx - 1]; direction = 'right'; } // swipe right → previous slides in from left
+    if (target) switchView(target, direction);
   }, { passive: true });
 }
 
