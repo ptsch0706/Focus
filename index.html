@@ -375,7 +375,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .streak-log-btn svg{width:20px;height:20px;stroke-width:2.5;}
 .streak-log-btn:not(.logged) svg{color:var(--streak);}
 .streak-log-btn.logged svg{color:#fff;}
-.streak-progress{height:3px;background:var(--line);margin:0 16px;}
+.streak-progress{height:3px;background:var(--line);margin:0 16px;border-radius:2px;}
 .streak-progress-fill{height:100%;background:var(--streak);border-radius:2px;transition:width .4s cubic-bezier(.34,1.56,.64,1);}
 .dot-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;padding:10px 16px 14px;}
 .dot{width:100%;aspect-ratio:1;border-radius:2px;background:var(--line);}
@@ -434,28 +434,25 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .note-rich-body code{background:var(--bg-raised);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-family:monospace;font-size:13px;color:var(--cyan);}
 
 /* Sticky toolbar above keyboard */
-.note-sticky-bar{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
+/* TOP TOOLBAR for notes — always anchored just below header */
+.note-top-bar{
+  display:flex;gap:4px;
+  padding:8px 16px;
   background:var(--bg);
-  border-top:1px solid var(--line);
-  z-index:200;
-  padding-bottom:var(--safe-bot);
-  transform:translateY(0);
-  transition:transform .2s ease-out;
+  border-bottom:1px solid var(--line);
+  border-top:none;
+  overflow-x:auto;
+  scrollbar-width:none;
+  flex-shrink:0;
 }
-.note-sticky-bar.hidden{transform:translateY(100%);}
-/* When keyboard is up, position above it via visualViewport */
-.note-sticky-bar.kb-open{padding-bottom:0;}
+.note-top-bar::-webkit-scrollbar{display:none;}
 .note-style-dropdown{
   position:relative;display:inline-block;
 }
 .note-style-menu{
-  position:absolute;bottom:100%;left:0;
+  position:absolute;top:100%;left:0;
   background:var(--bg-raised);border:1px solid var(--line);
-  border-radius:var(--radius);padding:6px;margin-bottom:6px;
+  border-radius:var(--radius);padding:6px;margin-top:6px;
   display:none;flex-direction:column;gap:2px;min-width:140px;
   box-shadow:var(--shadow-lg);z-index:20;
 }
@@ -475,8 +472,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .note-editor-area{
   min-height:60vh;padding:16px;cursor:text;
 }
-#note-detail-view .detail-body{padding-bottom:120px;}
-#note-detail-view .note-link-row{margin-bottom:60px;}
+#note-detail-view .detail-body{padding-bottom:20px;}
 
 /* Linked-notes display on other modules */
 .linked-notes-section{
@@ -1863,7 +1859,7 @@ function renderStreaks() {
       + '<div class="streak-expand-area">'
         + '<div class="dot-grid">' + dots.map(d => d.replace('background:var(--streak)', 'background:'+color)).join('') + '</div>'
       + '</div>'
-      + '<div style="padding:0 16px 14px;display:flex;align-items:center;justify-content:space-between">'
+      + '<div style="padding:14px 16px 14px;display:flex;align-items:center;justify-content:space-between">'
         + '<div style="font-size:12px;color:var(--ink-mute)">' + (scheduled?(logged?'Logged today':'Not yet logged today'):'Rest day') + '</div>'
         + '<button class="streak-log-btn ' + (logged?'logged':'') + '" id="slb-' + s.id + '" style="border-color:'+color+';' + (logged?'background:'+color:'') + '"'
           + ' onclick="event.stopPropagation();logStreak(\''+s.id+'\')"'
@@ -1915,6 +1911,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.01.03',
+    date: 'Jun 15, 2026',
+    type: 'minor',
+    items: [
+      'Notes: text formatting toolbar moved to the TOP of the note (below the header). Always visible, no keyboard fighting',
+      'Notes: Style dropdown now drops DOWN instead of UP since toolbar is at the top',
+      'Streaks: added proper vertical spacing between progress bar and log button so they no longer collide when collapsed'
+    ]
+  },
   {
     version: '0.01.02',
     date: 'Jun 15, 2026',
@@ -2277,51 +2283,12 @@ function initSwipeDismiss() {
 
 // ── KEYBOARD-AWARE NOTE TOOLBAR ──
 function setupNoteToolbarKeyboard() {
-  const toolbar = document.getElementById('note-toolbar-fixed');
-  if (!toolbar) return;
-  function updatePos() {
-    const noteOpen = document.getElementById('note-detail-view').classList.contains('show');
-    if (!noteOpen) { toolbar.classList.add('hidden'); return; }
-    toolbar.classList.remove('hidden');
-    if (window.visualViewport) {
-      const vv = window.visualViewport;
-      const kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      if (kbH > 80) {
-        toolbar.style.bottom = kbH + 'px';
-        toolbar.classList.add('kb-open');
-      } else {
-        toolbar.style.bottom = '0px';
-        toolbar.classList.remove('kb-open');
-      }
-    }
-  }
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', updatePos);
-    window.visualViewport.addEventListener('scroll', updatePos);
-  }
-  // Also call on focus/blur of contenteditable
-  document.addEventListener('focusin', e => {
-    if (e.target.closest('#note-detail-view')) setTimeout(updatePos, 100);
-  });
-  document.addEventListener('focusout', e => {
-    if (e.target.closest('#note-detail-view')) setTimeout(updatePos, 100);
-  });
-  window._updateToolbarPosition = updatePos;
-  updatePos();
+  // No-op: toolbar is now at top of note, no keyboard handling needed
 }
 
-function showNoteToolbar() {
-  const toolbar = document.getElementById('note-toolbar-fixed');
-  if (toolbar) {
-    toolbar.classList.remove('hidden');
-    if (window._updateToolbarPosition) window._updateToolbarPosition();
-  }
-}
+function showNoteToolbar() { /* toolbar is part of detail-view now, shows automatically */ }
 
-function hideNoteToolbar() {
-  const toolbar = document.getElementById('note-toolbar-fixed');
-  if (toolbar) toolbar.classList.add('hidden');
-}
+function hideNoteToolbar() { /* toolbar is part of detail-view now, hides automatically */ }
 
 </script>
 
@@ -2334,6 +2301,24 @@ function hideNoteToolbar() {
       <button class="btn-icon" id="note-pin-btn" onclick="toggleNotePin()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"/></svg></button>
       <button class="btn-icon" onclick="deleteNoteFromDet()" style="color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
     </div>
+  </div>
+  <!-- TOP TOOLBAR — always visible at top of note -->
+  <div class="note-toolbar note-top-bar" id="note-toolbar-top">
+    <div class="note-style-dropdown">
+      <button class="note-tb-btn" onclick="toggleStyleMenu(event)">Style ▾</button>
+      <div class="note-style-menu" id="note-style-menu">
+        <button onclick="setBlockStyle('p')">Normal text</button>
+        <button onclick="setBlockStyle('h1')"><span class="preview-h1">Heading 1</span></button>
+        <button onclick="setBlockStyle('h2')"><span class="preview-h2">Heading 2</span></button>
+        <button onclick="setBlockStyle('h3')"><span class="preview-h3">Heading 3</span></button>
+        <button onclick="setBlockStyle('blockquote')">❝ Quote</button>
+      </div>
+    </div>
+    <button class="note-tb-btn" onclick="richCmd('bold')"><b>B</b></button>
+    <button class="note-tb-btn" onclick="richCmd('italic')"><i>I</i></button>
+    <button class="note-tb-btn" onclick="richCmd('underline')"><u>U</u></button>
+    <button class="note-tb-btn" onclick="richCmd('insertUnorderedList')">• List</button>
+    <button class="note-tb-btn" onclick="richCmd('insertOrderedList')">1. List</button>
   </div>
   <div class="detail-body" id="note-editor-body" onclick="focusNoteBody(event)">
     <div style="padding:16px">
@@ -2348,24 +2333,7 @@ function hideNoteToolbar() {
   </div>
 </div>
 
-<!-- NOTE TOOLBAR — moved outside detail-view so position:fixed works against viewport -->
-<div class="note-toolbar note-sticky-bar hidden" id="note-toolbar-fixed">
-  <div class="note-style-dropdown">
-    <button class="note-tb-btn" onclick="toggleStyleMenu(event)">Style ▾</button>
-    <div class="note-style-menu" id="note-style-menu">
-      <button onclick="setBlockStyle('p')">Normal text</button>
-      <button onclick="setBlockStyle('h1')"><span class="preview-h1">Heading 1</span></button>
-      <button onclick="setBlockStyle('h2')"><span class="preview-h2">Heading 2</span></button>
-      <button onclick="setBlockStyle('h3')"><span class="preview-h3">Heading 3</span></button>
-      <button onclick="setBlockStyle('blockquote')">❝ Quote</button>
-    </div>
-  </div>
-  <button class="note-tb-btn" onclick="richCmd('bold')"><b>B</b></button>
-  <button class="note-tb-btn" onclick="richCmd('italic')"><i>I</i></button>
-  <button class="note-tb-btn" onclick="richCmd('underline')"><u>U</u></button>
-  <button class="note-tb-btn" onclick="richCmd('insertUnorderedList')">• List</button>
-  <button class="note-tb-btn" onclick="richCmd('insertOrderedList')">1. List</button>
-</div>
+
 
 <!-- NOTE LINK PICKER MODAL -->
 <div class="modal-backdrop" id="modal-note-link">
