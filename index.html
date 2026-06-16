@@ -211,9 +211,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .list-icon{width:40px;height:40px;border-radius:12px;background:var(--list-soft);flex-shrink:0;}
 .list-name{font-size:16px;font-weight:600;color:var(--ink);flex:1;}
 .list-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
-.list-badge{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:20px;}
-.list-badge.checklist{background:var(--cyan-soft);color:var(--cyan);}
-.list-badge.freeform{background:var(--reminder-soft);color:var(--reminder);}
+
 
 /* LIST DETAIL */
 .detail-view{position:fixed;inset:0;background:var(--bg);z-index:150;display:none;flex-direction:column;overflow:hidden;}
@@ -656,7 +654,7 @@ html.compact .card { padding: 10px 14px; }
 
 
 /* Small priority dots — used inline before titles & in pill buttons */
-.pri-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;flex-shrink:0;}
+.pri-dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;vertical-align:middle;flex-shrink:0;}
 .pri-dot-high{background:var(--pri-high);}
 .pri-dot-med{background:var(--pri-med);}
 .pri-dot-low{background:var(--cyan);}
@@ -721,7 +719,7 @@ html.compact .card { padding: 10px 14px; }
       <button class="filter-chip act-cyan" onclick="setFilter('todo','all',this)">All</button>
       <button class="filter-chip" onclick="setFilter('todo','today',this)">Today</button>
       <button class="filter-chip" onclick="setFilter('todo','upcoming',this)">Upcoming</button>
-      <button class="filter-chip" onclick="setFilter('todo','high',this)">🔴 High</button>
+      <button class="filter-chip" onclick="setFilter('todo','high',this)"><span class="pri-dot pri-dot-high"></span>High</button>
       <button class="filter-chip" onclick="setFilter('todo','overdue',this)">Overdue</button>
     </div>
     <div id="todo-list"></div>
@@ -834,9 +832,9 @@ html.compact .card { padding: 10px 14px; }
       <div class="field"><label class="field-label">Notes</label><textarea id="todo-notes" placeholder="Optional notes..."></textarea></div>
       <div class="field-row"><div class="field"><label class="field-label">Due Date</label><input type="date" id="todo-date"></div><div class="field"><label class="field-label">Time</label><input type="time" id="todo-time"></div></div>
       <div class="field"><label class="field-label">Priority</label><div class="pill-row" id="pr-priority">
-        <button class="pill" data-val="high" onclick="setPill('priority',this)">🔴 High</button>
-        <button class="pill" data-val="med" onclick="setPill('priority',this)">🟡 Medium</button>
-        <button class="pill sel" data-val="low" onclick="setPill('priority',this)">Low</button>
+        <button class="pill" data-val="high" onclick="setPill('priority',this)"><span class="pri-dot pri-dot-high"></span>High</button>
+        <button class="pill" data-val="med" onclick="setPill('priority',this)"><span class="pri-dot pri-dot-med"></span>Medium</button>
+        <button class="pill sel" data-val="low" onclick="setPill('priority',this)"><span class="pri-dot pri-dot-low"></span>Low</button>
       </div></div>
       <div class="field"><label class="field-label">Repeat</label>
         <div class="pill-row" id="pr-recur">
@@ -1172,6 +1170,18 @@ function tHTML(t){
 }
 
 
+
+function convertListType(id) {
+  const l = S.lists.find(x => x.id === id);
+  if (!l) return;
+  l.type = l.type === 'checklist' ? 'freeform' : 'checklist';
+  save();
+  closeModal('modal-list-menu');
+  // Re-render the detail
+  if (typeof renderListDet === 'function') renderListDet();
+  toast('Switched to ' + (l.type === 'checklist' ? 'Checklist' : 'Freeform'), 'ok');
+}
+
 // ── LIST COLOR PICKER ──
 let selectedListColor = '#f59e0b';
 function selectListColor(color, el) {
@@ -1270,7 +1280,9 @@ function openListMenu(){
   const isC=l.type==='checklist';
   document.getElementById('list-menu-body').innerHTML=`
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="closeModal('modal-list-menu');openListModal('${l.id}')">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit list name &amp; type</button>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit name &amp; color</button>
+    <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="convertListType('${l.id}')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Switch to ${isC?'Freeform':'Checklist'}</button>
     ${isC?`<button class="btn btn-block btn-amber" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="uncheckAll('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Uncheck all items</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px;border-color:var(--pri-high);color:var(--pri-high)" onclick="clearChecked('${l.id}')">
@@ -2464,6 +2476,66 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.02.08',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Lists: removed the All / Checklists / Freeform filter pills from the Lists tab',
+      'Lists: removed the type badge from list cards (no more visual call-out)',
+      'Lists: removed the Type selector from the create/edit modal',
+      'Lists: new lists default to Checklist; use the list menu (⋯) to switch to Freeform if needed'
+    ]
+  },
+  {
+    version: '0.02.07',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Priority dots back to 5px (3px was too small)'
+    ]
+  },
+  {
+    version: '0.02.06',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Replaced the red-circle emoji in the To-Dos High filter chip with a proper 3px dot matching the rest of the priority indicators'
+    ]
+  },
+  {
+    version: '0.02.05',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Priority dots shrunk further to 3px'
+    ]
+  },
+  {
+    version: '0.02.04',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Priority dots (high/medium/low) shrunk from 7px to 5px for less visual weight'
+    ]
+  },
+  {
+    version: '0.02.03',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Swipe horizontally to switch between tabs (Home ↔ To-Dos ↔ Lists ↔ Reminders ↔ Notes ↔ Streaks)',
+      'Swipes are ignored over interactive controls like dot grids, color pickers, filter chips, and inside any open modal or detail view'
+    ]
+  },
+  {
+    version: '0.02.02',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Calendar: fixed empty grid — renderCalendar was calling a function name that did not exist (todayStr instead of td), crashing the render'
+    ]
+  },
+  {
     version: '0.02.01',
     date: 'Jun 16, 2026',
     type: 'minor',
@@ -2620,7 +2692,7 @@ const recurState = { todo: null, rem: null };
 function normalizeRecur(recur, baseDate) {
   if (!recur || recur === 'none') return null;
   if (typeof recur === 'string') {
-    const [y, m, d] = (baseDate || todayStr()).split('-').map(Number);
+    const [y, m, d] = (baseDate || td()).split('-').map(Number);
     const dt = new Date(y, m-1, d);
     return {
       freq: recur,
@@ -2637,7 +2709,7 @@ function normalizeRecur(recur, baseDate) {
 function setRecur(scope, freq) {
   // scope is 'todo' or 'rem'
   const dateInput = document.getElementById(scope === 'todo' ? 'todo-date' : 'rem-date');
-  const baseDateStr = dateInput.value || todayStr();
+  const baseDateStr = dateInput.value || td();
   const [y,m,d] = baseDateStr.split('-').map(Number);
   const baseDate = new Date(y, m-1, d);
 
@@ -2907,7 +2979,7 @@ function calToday() {
   const today = new Date();
   calYear = today.getFullYear();
   calMonth = today.getMonth();
-  calSelectedDate = todayStr();
+  calSelectedDate = td();
   renderCalendar();
 }
 
@@ -2923,7 +2995,7 @@ function renderCalendar() {
   const startDow = first.getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
-  const today = todayStr();
+  const today = td();
 
   // Build map of dates → items
   const itemsByDate = {};
@@ -3150,6 +3222,54 @@ function handleURLScheme() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }
+}
+
+
+// ── SWIPE BETWEEN TABS ──
+function initSwipeTabs() {
+  let startX = 0, startY = 0, startT = 0, tracking = false;
+
+  // Skip swipe nav if any of these is true:
+  // - touch started on an interactive element (button, input, contenteditable)
+  // - any modal or detail-view is open
+  // - touch is on the bottom nav itself
+  function isBlocked(target) {
+    if (!target) return false;
+    if (target.closest('input, textarea, [contenteditable="true"], button, select, .modal, .modal-backdrop, .detail-view.show, nav.tabs, .note-toolbar, .dot-grid, .streak-log-btn, .filter-bar, .filter-chip, .recur-dow-pills, .recur-detail-row, .streak-color-picker, .pill-row, .cal-grid')) return true;
+    // Skip if any modal is open
+    if (document.querySelector('.modal-backdrop.show')) return true;
+    if (document.querySelector('.detail-view.show')) return true;
+    return false;
+  }
+
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    if (isBlocked(e.target)) { tracking = false; return; }
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startT = Date.now();
+    tracking = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    if (e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    const dt = Date.now() - startT;
+    // Require: mostly horizontal, fast enough, far enough
+    if (Math.abs(dx) < 70) return;
+    if (Math.abs(dy) > Math.abs(dx) * 0.6) return; // vertical scroll instead
+    if (dt > 500) return; // too slow
+    // Navigate
+    const idx = VIEWS.indexOf(view);
+    if (idx < 0) return;
+    let target;
+    if (dx < 0 && idx < VIEWS.length - 1) target = VIEWS[idx + 1]; // swipe left → next
+    else if (dx > 0 && idx > 0) target = VIEWS[idx - 1]; // swipe right → previous
+    if (target) switchView(target);
+  }, { passive: true });
 }
 
 </script>
