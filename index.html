@@ -208,7 +208,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .list-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;cursor:pointer;transition:background .15s;}
 .list-card:active{background:var(--bg-raised);}
 .list-card-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px;}
-.list-icon{width:40px;height:40px;border-radius:12px;background:var(--list-soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.list-icon{width:40px;height:40px;border-radius:12px;background:var(--list-soft);flex-shrink:0;}
 .list-name{font-size:16px;font-weight:600;color:var(--ink);flex:1;}
 .list-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
 .list-badge{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:20px;}
@@ -267,7 +267,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .dash-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft);cursor:pointer;transition:opacity .15s;}
 .dash-item:last-child{border-bottom:none;}
 .dash-item:active{opacity:.7;}
-.di-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.di-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .di-text{flex:1;font-size:14px;color:var(--ink);min-width:0;}
 .di-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
 .di-time{font-size:12px;color:var(--ink-soft);flex-shrink:0;}
@@ -326,7 +326,8 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .note-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative;overflow:hidden;}
 .note-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--note);border-radius:3px 0 0 3px;}
 .note-card:active{background:var(--bg-raised);}
-.note-card.pinned::after{content:'📌';position:absolute;top:12px;right:12px;font-size:14px;}
+/* .note-card.pinned indicator handled by JS-injected SVG */
+.note-card.pinned .pin-indicator{position:absolute;top:10px;right:10px;color:var(--note);}
 .note-card-title{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px;padding-right:24px;}
 .note-card-preview{font-size:13px;color:var(--ink-soft);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .note-card-meta{font-size:11px;color:var(--ink-mute);margin-top:8px;display:flex;align-items:center;gap:8px;}
@@ -475,23 +476,6 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 #note-detail-view .detail-body{padding-bottom:20px;}
 
 /* Linked-notes display on other modules */
-.linked-notes-section{
-  margin-top:16px;padding-top:12px;border-top:1px solid var(--line);
-}
-.linked-notes-label{
-  font-size:11px;font-weight:600;color:var(--ink-mute);
-  letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;
-}
-.linked-note-pill{
-  display:flex;align-items:center;gap:8px;padding:8px 12px;
-  background:var(--note-soft);border:1px solid var(--note);
-  border-radius:var(--radius-sm);font-size:13px;color:var(--note);
-  margin-bottom:6px;cursor:pointer;transition:all .15s;
-}
-.linked-note-pill:active{background:var(--bg-raised);}
-.linked-note-pill svg{width:14px;height:14px;stroke-width:2;flex-shrink:0;}
-.linked-note-pill-text{flex:1;color:var(--ink);}
-
 /* STREAK COLOR DOTS */
 .streak-color-dot{width:40px;height:40px;border-radius:50%;flex-shrink:0;border:3px solid var(--bg);box-shadow:0 0 0 2px currentColor;}
 .streak-color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
@@ -518,6 +502,198 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .recur-dow-pill.selected{border-color:var(--cyan);background:var(--cyan-soft);color:var(--cyan);}
 .recur-summary{font-size:12px;color:var(--ink-mute);margin-top:6px;font-style:italic;}
 
+
+/* COMPACT MODE — global density toggle */
+html.compact .todo-item { padding: 10px 14px; }
+html.compact .todo-meta { margin-top: 2px; gap: 6px; }
+html.compact .todo-notes { display: none; }
+html.compact .reminder-item, html.compact .rem-item { padding: 10px 14px; }
+html.compact .list-card-hdr { padding: 10px 14px; }
+html.compact .list-card-icon, html.compact .list-icon { width: 32px; height: 32px; }
+html.compact .note-card { padding: 10px 14px; }
+html.compact .note-card-preview { display: none; }
+html.compact .note-card-meta { margin-top: 4px; }
+html.compact .streak-top { padding: 10px 14px 6px; }
+html.compact .streak-color-dot { width: 32px; height: 32px; }
+html.compact .streak-chain { font-size: 18px; }
+html.compact .dash-item { padding: 8px 0; }
+html.compact .group-header { margin: 12px 0 6px; }
+html.compact .card { padding: 10px 14px; }
+
+/* Username / mention styles */
+.mention-tag {
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.share-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+.share-chip.me { background: var(--cyan-soft); color: var(--cyan); border-color: var(--cyan); }
+.shared-with-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+
+/* LINKED NOTE PILL — inline pill, not full-width box */
+.linked-note-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--note-soft);
+  border: 1px solid var(--note);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--note);
+  margin: 0 6px 6px 0;
+  cursor: pointer;
+  transition: all .15s;
+  max-width: 100%;
+}
+.linked-note-pill:active{background:var(--bg-raised);}
+.linked-note-pill svg{width:12px;height:12px;stroke-width:2;flex-shrink:0;}
+.linked-note-pill-text{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
+.linked-notes-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.linked-notes-label {
+  width: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-mute);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+
+#note-detail-view .detail-hdr .btn-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  padding:0;
+}
+#note-detail-view .detail-hdr .btn-icon svg{
+  width:18px;
+  height:18px;
+}
+
+
+/* NOTIFICATION DASHBOARD CARD */
+.mention-card{
+  background:var(--cyan-soft);
+  border:1px solid var(--cyan);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  margin-bottom:12px;
+}
+.mention-card-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:var(--cyan);
+  margin-bottom:8px;
+}
+.mention-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 0;cursor:pointer;
+  border-top:1px solid var(--cyan);
+  border-top-color:rgba(6,182,212,.2);
+}
+.mention-row:first-of-type{border-top:none;}
+.mention-row:active{opacity:.7;}
+.mention-text{flex:1;min-width:0;}
+.mention-from{
+  font-size:11px;color:var(--ink-mute);
+}
+.mention-snippet{
+  font-size:13px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.mention-badge{
+  font-size:10px;font-weight:700;padding:2px 6px;
+  border-radius:20px;background:var(--cyan);color:#fff;
+  margin-left:6px;flex-shrink:0;
+}
+
+/* Tab notification dot */
+.tab.has-notif::after{
+  content:'';
+  position:absolute;top:8px;right:30%;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--cyan);
+}
+
+
+/* Toggle switch */
+.switch{position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--bg-raised);border:1px solid var(--line);border-radius:26px;transition:.2s;}
+.slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;top:3px;background:var(--ink-soft);border-radius:50%;transition:.2s;}
+.switch input:checked + .slider{background:var(--cyan-soft);border-color:var(--cyan);}
+.switch input:checked + .slider:before{transform:translateX(18px);background:var(--cyan);}
+
+
+/* Small priority dots — used inline before titles & in pill buttons */
+.pri-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;flex-shrink:0;}
+.pri-dot-high{background:var(--pri-high);}
+.pri-dot-med{background:var(--pri-med);}
+.pri-dot-low{background:var(--cyan);}
+
+
+/* CALENDAR */
+.cal-grid-header{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  text-align:center;font-size:11px;font-weight:700;color:var(--ink-mute);
+  letter-spacing:.06em;text-transform:uppercase;
+  padding:12px 8px 8px;border-bottom:1px solid var(--line);
+}
+.cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  padding:8px;gap:2px;
+}
+.cal-day{
+  aspect-ratio:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:6px 0 4px;border-radius:8px;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:500;
+  color:var(--ink-soft);position:relative;
+  transition:background .12s;
+}
+.cal-day:active{background:var(--bg-raised);}
+.cal-day.other-month{color:var(--ink-mute);opacity:.4;}
+.cal-day.today{background:var(--cyan-soft);color:var(--cyan);font-weight:700;}
+.cal-day.has-items::after{
+  content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;background:var(--cyan);
+}
+.cal-day.selected{background:var(--cyan);color:#fff;}
+.cal-day.selected::after{background:#fff;}
+.cal-day .cal-day-num{font-size:14px;line-height:1;}
+.cal-day .cal-dots{display:flex;gap:2px;margin-top:2px;}
+.cal-day .cal-dot{width:4px;height:4px;border-radius:50%;}
+
 </style>
 </head>
 <body>
@@ -527,7 +703,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
   <div class="dash-greeting">
     <div class="dash-date" id="dash-date"></div>
     <div class="dash-hello" id="dash-hello"></div>
-    <button class="header-btn" onclick="openSettings()" style="position:absolute;right:16px;top:calc(var(--safe-top) + 16px);">
+    <button class="header-btn" onclick="openCalendar()" style="position:absolute;right:62px;top:calc(var(--safe-top) + 16px);" title="Calendar"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button><button class="header-btn" onclick="openSettings()" style="position:absolute;right:16px;top:calc(var(--safe-top) + 16px);">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
   </div>
@@ -700,7 +876,16 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
     <div class="modal-body">
       <input type="hidden" id="list-eid">
       <div class="field"><label class="field-label">List Name</label><input type="text" id="list-name" placeholder="e.g. Groceries, Packing, Ideas…" autocomplete="off"></div>
-      <div class="field"><label class="field-label">Icon (emoji)</label><input type="text" id="list-icon" placeholder="🛒" maxlength="2" style="font-size:24px;text-align:center"></div>
+      <div class="field"><label class="field-label">Color</label>
+        <div class="streak-color-picker" id="list-color-picker">
+          <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" onclick="selectListColor('#f59e0b',this)"></div>
+          <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4" onclick="selectListColor('#06b6d4',this)"></div>
+          <div class="color-swatch" data-color="#10b981" style="background:#10b981" onclick="selectListColor('#10b981',this)"></div>
+          <div class="color-swatch" data-color="#f43f5e" style="background:#f43f5e" onclick="selectListColor('#f43f5e',this)"></div>
+          <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectListColor('#8b5cf6',this)"></div>
+          <div class="color-swatch" data-color="#ec4899" style="background:#ec4899" onclick="selectListColor('#ec4899',this)"></div>
+        </div>
+      </div>
       <div class="field"><label class="field-label">List Type</label><div class="pill-row" id="pr-listtype">
         <button class="pill sel" data-val="checklist" onclick="setPill('listtype',this)">☑ Checklist</button>
         <button class="pill" data-val="freeform" onclick="setPill('listtype',this)">≡ Freeform</button>
@@ -730,6 +915,14 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
       <div class="field"><label class="field-label">Title</label><input type="text" id="rem-title" placeholder="What do you want to remember?" autocomplete="off"></div>
       <div class="field"><label class="field-label">Notes</label><textarea id="rem-notes" placeholder="Optional detail..."></textarea></div>
       <div class="field-row"><div class="field"><label class="field-label">Date</label><input type="date" id="rem-date"></div><div class="field"><label class="field-label">Time</label><input type="time" id="rem-time"></div></div>
+      <div class="field"><label class="field-label">Priority</label>
+        <div class="pill-row" id="pr-rpriority">
+          <button class="pill sel" data-val="none" onclick="setPill('rpriority',this)">None</button>
+          <button class="pill" data-val="low" onclick="setPill('rpriority',this)"><span class="pri-dot pri-dot-low"></span>Low</button>
+          <button class="pill" data-val="medium" onclick="setPill('rpriority',this)"><span class="pri-dot pri-dot-med"></span>Medium</button>
+          <button class="pill" data-val="high" onclick="setPill('rpriority',this)"><span class="pri-dot pri-dot-high"></span>High</button>
+        </div>
+      </div>
       <div class="field"><label class="field-label">Repeat</label>
         <div class="pill-row" id="pr-rrecur">
           <button class="pill sel" data-val="none" onclick="setRecur('rem','none')">None</button>
@@ -771,8 +964,31 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 <script>
 'use strict';
+
+// ── SVG ICONS ──
+const ICONS = {
+  pin: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>',
+  pinFilled: '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>',
+  trash: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+  bell: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+  flame: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  paperclip: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+  calendar: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  inbox: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+  user: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  users: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  moon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  sun: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>',
+  monitor: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+};
+function svg(name, size) {
+  size = size || 16;
+  const html = ICONS[name] || '';
+  return html.replace('<svg ', '<svg style="width:'+size+'px;height:'+size+'px;flex-shrink:0" ');
+}
+
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],syncCode:'',graceWindowHour:9,theme:'dark',_v:4};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],syncCode:'',graceWindowHour:9,theme:'dark',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],_v:5};
 let S=loadState(),db=null,unsub=null,view='home';
 applyTheme(S.theme||'dark');
 let tf='all',lf='all',rf='upcoming',noteFilter='all',doneOpen=false,listId=null;
@@ -780,7 +996,22 @@ const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
 
 function loadState(){
   try{
-    const r=localStorage.getItem('focus_v2');if(r)return{...DS,...JSON.parse(r)};
+    const r=localStorage.getItem('focus_v2');
+    if(r){
+      const loaded={...DS,...JSON.parse(r)};
+      // Ensure all items have ownerUsername field (migration v4 -> v5)
+      const me=loaded.myUsername||'';
+      ['todos','lists','reminders','notes','streaks'].forEach(k=>{
+        (loaded[k]||[]).forEach(item=>{
+          if(!item.ownerUsername)item.ownerUsername=me;
+          if(!Array.isArray(item.sharedWith))item.sharedWith=[];
+        });
+      });
+      if(!Array.isArray(loaded.notifications))loaded.notifications=[];
+      if(!Array.isArray(loaded.knownUsernames))loaded.knownUsernames=[];
+      if(typeof loaded.compactMode!=='boolean')loaded.compactMode=true;
+      return loaded;
+    }
     const v1=localStorage.getItem('focus_state');
     if(v1){const o=JSON.parse(v1);return{...DS,todos:o.todos||[],syncCode:o.syncCode||'',graceWindowHour:o.graceWindowHour||9};}
   }catch(e){}return{...DS};
@@ -885,8 +1116,8 @@ function saveTodo(){
   const time=document.getElementById('todo-time').value||'';
   const notes=document.getElementById('todo-notes').value.trim();
   const recurVal = getCurrentRecur('todo');
-  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1)S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal};toast('Updated','ok');}
-  else{S.todos.push({id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,createdAt:Date.now()});toast('To-Do added','ok');}
+  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1){S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal};stampOwner(S.todos[i]);applyMentions(S.todos[i],'todo');}toast('Updated','ok');}
+  else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');S.todos.push(newT);toast('To-Do added','ok');}
   save();closeModal('modal-todo');renderTodos();renderDash();tabs();
 }
 function checkTodo(id){
@@ -905,7 +1136,7 @@ function deleteTodo(){
 }
 
 function renderTodos(){
-  const today=td(),act=S.todos.filter(t=>!t.completed),comp=S.todos.filter(t=>t.completed);
+  const today=td(),act=S.todos.filter(t=>!t.completed&&canSeeItem(t)),comp=S.todos.filter(t=>t.completed&&canSeeItem(t));
   const po={high:0,med:1,low:2};let fil=act;
   if(tf==='today')fil=act.filter(t=>t.date===today);
   else if(tf==='upcoming')fil=act.filter(t=>t.date>today);
@@ -940,6 +1171,14 @@ function tHTML(t){
   ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>`;
 }
 
+
+// ── LIST COLOR PICKER ──
+let selectedListColor = '#f59e0b';
+function selectListColor(color, el) {
+  selectedListColor = color;
+  document.querySelectorAll('#list-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s === el));
+}
+
 // ── LISTS ──
 function openListModal(id=null){
   const l=id?S.lists.find(l=>l.id===id):null;
@@ -954,9 +1193,9 @@ function openListModal(id=null){
 function saveList(){
   const name=document.getElementById('list-name').value.trim();
   if(!name){toast('Please add a name','err');return;}
-  const id=document.getElementById('list-eid').value,icon=document.getElementById('list-icon').value.trim()||'📝';
-  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1)S.lists[i]={...S.lists[i],name,icon,type:P.listtype};toast('Updated','ok');}
-  else{S.lists.push({id:gid(),name,icon,type:P.listtype,items:[],createdAt:Date.now()});toast('List created','ok');}
+  const id=document.getElementById('list-eid').value;
+  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');}toast('Updated','ok');}
+  else{const newL={id:gid(),name,color:selectedListColor,type:P.listtype,items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');S.lists.push(newL);toast('List created','ok');}
   save();closeModal('modal-list');renderLists();
 }
 function deleteList(){
@@ -965,7 +1204,7 @@ function deleteList(){
   S.lists=S.lists.filter(l=>l.id!==id);save();closeModal('modal-list');renderLists();toast('Deleted');
 }
 function renderLists(){
-  let lists=S.lists;
+  let lists=S.lists.filter(canSeeItem);
   if(lf==='checklist')lists=lists.filter(l=>l.type==='checklist');
   else if(lf==='freeform')lists=lists.filter(l=>l.type==='freeform');
   document.getElementById('list-sub').textContent=`${S.lists.length} list${S.lists.length!==1?'s':''}`;
@@ -973,10 +1212,10 @@ function renderLists(){
   if(!lists.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon" style="background:var(--list-soft);border-color:var(--list);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/></svg></div><div class="empty-title">No lists yet</div><div class="empty-sub">Tap + to create a grocery, packing, or idea list.</div></div>`;return;}
   el.innerHTML=lists.map(l=>{
     const tot=(l.items||[]).length,chk=(l.items||[]).filter(i=>i.checked).length;
-    const meta=l.type==='checklist'?`${chk}/${tot} done`:`${tot} item${tot!==1?'s':''}`;
+    const meta=l.type==='checklist'?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
     return`<div class="list-card" onclick="openListDetail('${l.id}')">
     <div class="list-card-hdr">
-      <div class="list-icon">${esc(l.icon||'📝')}</div>
+      <div class="list-icon" style="background:${l.color||'#f59e0b'}1a;border:2px solid ${l.color||'#f59e0b'}"></div>
       <div style="flex:1;min-width:0"><div class="list-name">${esc(l.name)}</div><div class="list-meta">${meta}</div></div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <span class="list-badge ${l.type}">${l.type==='checklist'?'Checklist':'Freeform'}</span>
@@ -987,7 +1226,7 @@ function renderLists(){
 }
 function openListDetail(id){
   listId=id;const l=S.lists.find(l=>l.id===id);if(!l)return;
-  document.getElementById('det-title').innerHTML=esc(l.icon||'📝')+' '+esc(l.name);
+  document.getElementById('det-title').innerHTML=esc(l.name);
   renderListDet();document.getElementById('list-detail-view').classList.add('show');document.body.style.overflow='hidden';
 }
 function closeListDetail(){document.getElementById('list-detail-view').classList.remove('show');document.body.style.overflow='';listId=null;renderLists();}
@@ -1052,7 +1291,9 @@ function openReminderModal(id=null){
   document.getElementById('rem-title').value=r?r.title:'';
   document.getElementById('rem-notes').value=r?r.notes||'':'';
   document.getElementById('rem-date').value=r?r.date||td():td();
-  document.getElementById('rem-time').value=r?r.time||'':'';
+  document.getElementById('rem-time').value=r?(r.time||''):defaultNextHourTime();
+  P.rpriority=r?(r.priority||'none'):'none';
+  document.querySelectorAll('#modal-reminder .pill').forEach(p=>{if(p.closest('#pr-rpriority'))p.classList.toggle('sel',p.dataset.val===P.rpriority);});
   document.getElementById('rem-del-btn').style.display=r?'':'none';
   resetPills('rrecur',r?r.recur||'none':'none');
   const linkedHTML = id ? renderLinkedNotes('reminder', id) : '';
@@ -1073,8 +1314,8 @@ function saveReminder(){
   const time=document.getElementById('rem-time').value||'';
   const notes=document.getElementById('rem-notes').value.trim();
   const recurVal = getCurrentRecur('rem');
-  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1)S.reminders[i]={...S.reminders[i],title,date,time,notes,recur:recurVal};toast('Updated','ok');}
-  else{S.reminders.push({id:gid(),title,date,time,notes,recur:recurVal,completed:false,createdAt:Date.now()});toast('Reminder added','ok');}
+  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
+  else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');S.reminders.push(newR);toast('Reminder added','ok');}
   save();closeModal('modal-reminder');renderRem();renderDash();tabs();
 }
 function checkRem(id){
@@ -1091,7 +1332,7 @@ function deleteReminder(){
   S.reminders=S.reminders.filter(r=>r.id!==id);save();closeModal('modal-reminder');renderRem();renderDash();tabs();toast('Deleted');
 }
 function renderRem(){
-  const today=td();let items=S.reminders;
+  const today=td();let items=S.reminders.filter(canSeeItem);
   if(rf==='upcoming')items=items.filter(r=>!r.completed&&r.date>=today);
   else if(rf==='today')items=items.filter(r=>!r.completed&&r.date===today);
   else if(rf==='all')items=items.filter(r=>!r.completed);
@@ -1192,19 +1433,38 @@ function renderDash(){
   }
   if(S.notes){const pn=S.notes.find(n=>n.pinned);if(pn){
     const pv=stripHTML(pn.body).substring(0,80);
-    out+='<div class="section-label">&#128204; Pinned Note</div><div class="note-card" onclick="switchView(\'notes\');openNoteDetail(\''+(pn.id)+'\')" style="margin-bottom:10px"><div class="note-card-title">'+(pn.title?esc(pn.title):'Untitled')+'</div>'+(pv?'<div class="note-card-preview">'+esc(pv)+'</div>':'')+'</div>';}}
+    out+='<div class="section-label" style="display:flex;align-items:center;gap:6px">'+svg('pin',12)+' Pinned Note</div><div class="note-card" onclick="switchView(\'notes\');openNoteDetail(\''+(pn.id)+'\')" style="margin-bottom:10px"><div class="note-card-title">'+(pn.title?esc(pn.title):'Untitled')+'</div>'+(pv?'<div class="note-card-preview">'+esc(pv)+'</div>':'')+'</div>';}}
+  // Mention notifications card
+  const unread = unreadNotificationCount();
+  if (unread > 0) {
+    const myNotifs = myNotifications().filter(n => !n.read).slice(0, 5);
+    let mentionHTML = '<div class="mention-card"><div class="mention-card-title">' + svg('users', 14)
+      + 'You were tagged <span class="mention-badge">' + unread + '</span></div>';
+    myNotifs.forEach(n => {
+      const itemTypeLabel = { todo: 'To-Do', list: 'List', reminder: 'Reminder', note: 'Note', streak: 'Streak' }[n.itemType] || n.itemType;
+      mentionHTML += '<div class="mention-row" onclick="openMention(\''+n.id+'\')">'
+        + '<div class="mention-text">'
+        + '<div class="mention-from">@' + esc(n.fromUser || 'unknown') + ' in ' + itemTypeLabel + '</div>'
+        + '<div class="mention-snippet">' + esc(n.snippet || '(no preview)') + '</div>'
+        + '</div></div>';
+    });
+    mentionHTML += '</div>';
+    out = mentionHTML + out;
+  }
   document.getElementById('dash-content').innerHTML=out;
 }
 
 // ── TAB ALERTS ──
 function tabs(){
   const today=td(),hr=new Date().getHours();
-  document.getElementById('tab-todos').classList.toggle('has-alert',S.todos.some(t=>!t.completed&&t.date<=today));
-  document.getElementById('tab-reminders').classList.toggle('has-alert',S.reminders.some(r=>!r.completed&&r.date<=today));
+  document.getElementById('tab-todos').classList.toggle('has-alert',S.todos.some(t=>!t.completed&&t.date<=today&&canSeeItem(t)));
+  document.getElementById('tab-reminders').classList.toggle('has-alert',S.reminders.some(r=>!r.completed&&r.date<=today&&canSeeItem(r)));
   if(typeof isScheduledToday==='function'){
-    const ar=S.streaks&&S.streaks.some(s=>isScheduledToday(s)&&!isLoggedToday(s));
+    const ar=S.streaks&&S.streaks.some(s=>isScheduledToday(s)&&!isLoggedToday(s)&&canSeeItem(s));
     document.getElementById('tab-streaks').classList.toggle('has-alert',hr>=20&&!!ar);
   }
+  const homeTab=document.getElementById('tab-home');
+  if(homeTab)homeTab.classList.toggle('has-notif',unreadNotificationCount()>0);
 }
 
 // ── FAB ──
@@ -1239,6 +1499,23 @@ function renderSett(){
     +'<div class="sett-text"><div class="sett-label">Sync Code</div><div class="sett-sub">'+(S.syncCode?'Connected: '+S.syncCode:'Not connected')+'</div></div>'
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
+    +'<div class="section-label">My Profile</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="openUsernameSetup()">'
+    +'<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)">'+svg('user',18)+'</div>'
+    +'<div class="sett-text"><div class="sett-label">Username</div><div class="sett-sub">'+(S.myUsername?'@'+S.myUsername:'Not set — tap to set up')+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button>'
+    +'<button class="sett-row" onclick="openIdentitySwitcher()">'
+    +'<div class="sett-icon" style="background:var(--reminder-soft);color:var(--reminder)">'+svg('users',18)+'</div>'
+    +'<div class="sett-text"><div class="sett-label">Household Members</div><div class="sett-sub">'+(S.knownUsernames||[]).length+' member'+(((S.knownUsernames||[]).length)!==1?'s':'')+' · Switch identity</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
+    +'<div class="section-label">Display</div>'
+    +'<div class="sett-group"><div class="sett-row" style="cursor:default">'
+    +'<div class="sett-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Compact Mode</div><div class="sett-sub">'+(S.compactMode?'On — smaller, denser layout':'Off — comfortable spacing')+'</div></div>'
+    +'<label class="switch"><input type="checkbox" id="compact-toggle" '+(S.compactMode?'checked':'')+' onchange="toggleCompactMode()"><span class="slider"></span></label>'
+    +'</div></div>'
     +'<div class="section-label">Streaks</div>'
     +'<div class="sett-group"><button class="sett-row" onclick="settGrace()">'
     +'<div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
@@ -1258,6 +1535,12 @@ function renderSett(){
     +'</button></div>'
     +'<div class="section-label">Appearance</div>'
     +'<div class="sett-group" style="padding:14px 16px"><div class="theme-toggle-wrap">'+tbHTML+'</div></div>'
+    +'<div class="section-label">Inbox</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="openInbox()">'
+    +'<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)">'+svg('inbox',18)+'</div>'
+    +'<div class="sett-text"><div class="sett-label">Email Forwarding</div><div class="sett-sub">Forward emails as to-dos or notes</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
     +'<div class="section-label">About</div>'
     +'<div class="sett-group"><button class="sett-row" onclick="openChangelog()">'
     +'<div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>'
@@ -1356,7 +1639,7 @@ function openNoteDetail(id=null) {
   const n = id ? S.notes.find(n=>n.id===id) : null;
   if (!n && !id) {
     const newId = gid();
-    S.notes.unshift({id:newId,title:'',body:'',pinned:false,tags:[],linkedTo:null,createdAt:Date.now(),updatedAt:Date.now()});
+    const newN={id:newId,title:'',body:'',pinned:false,tags:[],linkedTo:null,createdAt:Date.now(),updatedAt:Date.now()};stampOwner(newN);S.notes.unshift(newN);
     noteId = newId;
     save();
   }
@@ -1461,6 +1744,8 @@ function noteChanged() {
   note.title = document.getElementById('note-title-inp').value.trim();
   note.body = document.getElementById('note-body-inp').innerHTML;
   note.updatedAt = Date.now();
+  stampOwner(note);
+  applyMentions(note, 'note');
   updateNoteMeta(note);
   clearTimeout(noteChanged._t);
   noteChanged._t = setTimeout(save, 800);
@@ -1540,9 +1825,9 @@ function updateNoteLinkChips(note) {
   let label = '?', icon = '';
   if (type==='todo') { const t=S.todos.find(t=>t.id===id); label=t?t.title:'Deleted'; icon='✓'; }
   else if (type==='list') { const l=S.lists.find(l=>l.id===id); label=l?l.name:'Deleted'; icon='≡'; }
-  else if (type==='reminder') { const r=S.reminders.find(r=>r.id===id); label=r?r.title:'Deleted'; icon='🔔'; }
+  else if (type==='reminder') { const r=S.reminders.find(r=>r.id===id); label=r?r.title:'Deleted'; icon='BELL'; }
   else if (type==='streak') { const s=S.streaks.find(s=>s.id===id); label=s?s.name:'Deleted'; icon=s?s.emoji:''; }
-  el.innerHTML = `<span class="note-link-badge" onclick="jumpToLinked()" style="cursor:pointer">${icon} ${esc(label.substring(0,30))}${label.length>30?'…':''}</span>
+  el.innerHTML = `<span class="note-link-badge" onclick="jumpToLinked()" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px">${icon==='BELL'?svg('bell',12):icon} ${esc(label.substring(0,30))}${label.length>30?'…':''}</span>
     <button class="btn-icon btn-xs" onclick="removeNoteLink()" style="color:var(--ink-mute)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:12px;height:12px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
 }
 
@@ -1603,7 +1888,7 @@ function setFilter(mod, f, btn) {
 }
 
 function renderNotes() {
-  let notes = S.notes;
+  let notes = S.notes.filter(canSeeItem);
   if (noteFilter==='pinned') notes = notes.filter(n=>n.pinned);
   document.getElementById('note-sub').textContent = S.notes.length + ' note' + (S.notes.length!==1?'s':'');
   const el = document.getElementById('note-grid');
@@ -1623,12 +1908,13 @@ function renderNotes() {
       let lbl='',icon='';
       if(type==='todo'){const t=S.todos.find(t=>t.id===id);lbl=t?t.title:'';icon='✓';}
       else if(type==='list'){const l=S.lists.find(l=>l.id===id);lbl=l?l.name:'';icon='≡';}
-      else if(type==='reminder'){const r=S.reminders.find(r=>r.id===id);lbl=r?r.title:'';icon='🔔';}
+      else if(type==='reminder'){const r=S.reminders.find(r=>r.id===id);lbl=r?r.title:'';icon='BELL';}
       else if(type==='streak'){const s=S.streaks.find(s=>s.id===id);lbl=s?s.name:'';icon=s?s.emoji:'';}
-      if(lbl) linkBadge = `<span class="note-link-badge"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>${icon} ${esc(lbl.substring(0,20))}</span>`;
+      if(lbl) linkBadge = `<span class="note-link-badge">${icon==='BELL'?svg('bell',12):icon} ${esc(lbl.substring(0,20))}</span>`;
     }
     return `<div class="note-card ${note.pinned?'pinned':''}" onclick="openNoteDetail('${note.id}')">
-      <div class="note-card-title">${note.title ? esc(note.title) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
+      ${note.pinned?`<span class="pin-indicator">${svg('pin',14)}</span>`:''}
+      <div class="note-card-title">${note.title ? renderMentionsHTML(note.title) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
       ${preview ? `<div class="note-card-preview">${esc(preview)}</div>` : ''}
       <div class="note-card-meta">${dateStr}${linkBadge ? ' · '+linkBadge : ''}</div>
     </div>`;
@@ -1681,6 +1967,8 @@ function openStreakModal(id=null) {
   document.getElementById('streak-name').value = s ? s.name : '';
   selectedStreakColor = s ? (s.color || '#f43f5e') : '#f43f5e';
   document.querySelectorAll('#streak-color-picker .color-swatch').forEach(sw => sw.classList.toggle('selected', sw.dataset.color === selectedStreakColor));
+  document.getElementById('streak-target').value = s && s.target ? s.target : '';
+  document.getElementById('streak-unit').value = s && s.unit ? s.unit : '';
   document.getElementById('streak-del-btn').style.display = s ? '' : 'none';
   P2.sfreq = s ? s.freq||'daily' : 'daily';
   streakDays = s ? (s.days||[0,1,2,3,4,5,6]) : [0,1,2,3,4,5,6];
@@ -1715,10 +2003,14 @@ function saveStreak() {
   const days = freq==='custom' ? streakDays : freq==='mon-fri' ? [1,2,3,4,5] : [0,1,2,3,4,5,6];
   if (id) {
     const i = S.streaks.findIndex(s=>s.id===id);
-    if (i!==-1) S.streaks[i] = {...S.streaks[i],name,color,freq,days};
+    const target_e = parseInt(document.getElementById('streak-target').value) || null;
+    const unit_e = document.getElementById('streak-unit').value.trim() || '';
+    if (i!==-1) { S.streaks[i] = {...S.streaks[i],name,color,freq,days,target:target_e,unit:unit_e}; stampOwner(S.streaks[i]); applyMentions(S.streaks[i],'streak'); }
     toast('Streak updated','ok');
   } else {
-    S.streaks.push({id:gid(),name,color,freq,days,logs:[],_expanded:false,createdAt:Date.now()});
+    const target = parseInt(document.getElementById('streak-target').value) || null;
+  const unit = document.getElementById('streak-unit').value.trim() || '';
+  const newS={id:gid(),name,color,freq,days,target,unit,logs:[],values:{},_expanded:false,createdAt:Date.now()};stampOwner(newS);applyMentions(newS,'streak');S.streaks.push(newS);
     toast('Streak created','ok');
   }
   save(); closeModal('modal-streak'); renderStreaks();
@@ -1807,12 +2099,13 @@ function renderStreaks() {
   const el = document.getElementById('streak-list');
   if (!el) return;
   const now = new Date(), hour = now.getHours();
-  document.getElementById('streak-sub').textContent = S.streaks.length + ' habit' + (S.streaks.length!==1?'s':'');
-  if (!S.streaks.length) {
+  const visible = S.streaks.filter(canSeeItem);
+  document.getElementById('streak-sub').textContent = visible.length + ' habit' + (visible.length!==1?'s':'');
+  if (!visible.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon" style="background:var(--streak-soft);border-color:var(--streak);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="empty-title">No streaks yet</div><div class="empty-sub">Tap + to create your first habit and start your chain.</div></div>';
     return;
   }
-  el.innerHTML = S.streaks.map(s => {
+  el.innerHTML = visible.map(s => {
     const chain = getStreakChain(s);
     const logged = isLoggedToday(s);
     const scheduled = isScheduledToday(s);
@@ -1845,7 +2138,7 @@ function renderStreaks() {
           + '<div class="streak-chain-wrap">'
             + '<div class="streak-chain" style="color:'+color+'">' + chain + '</div>'
             + '<span class="streak-chain-lbl">day' + (chain!==1?'s':'') + '</span>'
-            + (chain>=7?'<span style="margin-left:6px">🔥</span>':'')
+            + (chain>=7?'<span style="margin-left:6px;display:inline-flex;color:#f59e0b">'+svg('flame',16)+'</span>':'')
           + '</div>'
         + '</div>'
         + '<div class="streak-actions">'
@@ -1855,7 +2148,7 @@ function renderStreaks() {
           + '<span style="color:var(--ink-mute);transition:transform .2s;display:inline-flex;transform:rotate('+(expanded?'180':'0')+'deg)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2.5"><polyline points="6 9 12 15 18 9"/></svg></span>'
         + '</div>'
       + '</div>'
-      + '<div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,chain/7*100)+'%;background:'+color+'"></div></div>'
+      + (s.target ? ('<div style="padding:0 16px 6px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:11px;color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Today</div><div style="font-size:13px;color:var(--ink)"><strong style="font-family:Plus Jakarta Sans,sans-serif;color:'+color+';font-size:16px">'+getTodayValue(s)+'</strong> <span style="color:var(--ink-mute)">/ '+s.target+' '+esc(s.unit||'')+'</span></div></div><div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,getTodayValue(s)/s.target*100)+'%;background:'+color+'"></div></div>') : ('<div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,chain/7*100)+'%;background:'+color+'"></div></div>'))
       + '<div class="streak-expand-area">'
         + '<div class="dot-grid">' + dots.map(d => d.replace('background:var(--streak)', 'background:'+color)).join('') + '</div>'
       + '</div>'
@@ -1894,6 +2187,265 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 });
 
 
+
+
+
+function defaultNextHourTime() {
+  const n = new Date();
+  let h = n.getHours() + 1;
+  if (h >= 24) h = 23; // cap at 11pm to avoid wrapping to tomorrow
+  return String(h).padStart(2, '0') + ':00';
+}
+
+// ── USERNAME / MENTION SYSTEM ──
+function normalizeUsername(u) {
+  return (u || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+}
+
+function findUsername(u) {
+  // Case-insensitive match — returns canonical username from knownUsernames
+  if (!u) return '';
+  const norm = normalizeUsername(u);
+  return (S.knownUsernames || []).find(k => normalizeUsername(k) === norm) || u;
+}
+
+function extractMentions(text) {
+  if (!text) return [];
+  const matches = String(text).match(/@([a-zA-Z0-9_]+)/g) || [];
+  return matches.map(m => m.slice(1)).map(normalizeUsername);
+}
+
+function ensureKnownUsername(u) {
+  if (!u) return;
+  const canonical = u.trim();
+  if (!canonical) return;
+  if (!Array.isArray(S.knownUsernames)) S.knownUsernames = [];
+  const exists = S.knownUsernames.some(k => normalizeUsername(k) === normalizeUsername(canonical));
+  if (!exists) S.knownUsernames.push(canonical);
+}
+
+function applyMentions(item, itemType) {
+  // Extract mentions from title + notes/body, auto-add to sharedWith, create notifications
+  const text = [item.title || '', item.notes || '', item.body || '', item.name || ''].join(' ');
+  const mentions = extractMentions(text);
+  if (!Array.isArray(item.sharedWith)) item.sharedWith = [];
+  mentions.forEach(m => {
+    if (!item.sharedWith.some(s => normalizeUsername(s) === m)) {
+      // Find canonical casing from known users; if unknown, store as lowercase
+      const canonical = (S.knownUsernames || []).find(k => normalizeUsername(k) === m) || m;
+      item.sharedWith.push(canonical);
+    }
+    // Create notification for the mentioned user (unless it's the author)
+    if (m !== normalizeUsername(S.myUsername)) {
+      if (!Array.isArray(S.notifications)) S.notifications = [];
+      S.notifications.unshift({
+        id: gid(),
+        type: 'mention',
+        forUser: m,
+        fromUser: S.myUsername,
+        itemType: itemType,
+        itemId: item.id,
+        snippet: (item.title || item.name || (item.body || '').replace(/<[^>]*>/g, '')).substring(0, 80),
+        createdAt: Date.now(),
+        read: false
+      });
+    } else {
+      // Self-mention — still create a notification so it shows on YOUR dashboard
+      if (!Array.isArray(S.notifications)) S.notifications = [];
+      S.notifications.unshift({
+        id: gid(),
+        type: 'self-mention',
+        forUser: m,
+        fromUser: S.myUsername,
+        itemType: itemType,
+        itemId: item.id,
+        snippet: (item.title || item.name || (item.body || '').replace(/<[^>]*>/g, '')).substring(0, 80),
+        createdAt: Date.now(),
+        read: false
+      });
+    }
+  });
+}
+
+function myNotifications() {
+  if (!S.notifications) return [];
+  const me = normalizeUsername(S.myUsername);
+  if (!me) return [];
+  return S.notifications.filter(n => normalizeUsername(n.forUser) === me);
+}
+
+function unreadNotificationCount() {
+  return myNotifications().filter(n => !n.read).length;
+}
+
+function canSeeItem(item) {
+  // Items I own or items shared with me
+  if (!S.myUsername) return true; // No username set yet — show everything (single-user mode)
+  const me = normalizeUsername(S.myUsername);
+  const owner = normalizeUsername(item.ownerUsername || '');
+  if (!owner) return true; // Legacy item with no owner — show it
+  if (owner === me) return true;
+  return (item.sharedWith || []).some(u => normalizeUsername(u) === me);
+}
+
+function renderMentionsHTML(text) {
+  // Render @mentions as styled spans inline
+  if (!text) return '';
+  return esc(text).replace(/@([a-zA-Z0-9_]+)/g, '<span class="mention-tag">@$1</span>');
+}
+
+function stampOwner(item) {
+  // Ensure new items get ownerUsername stamped
+  if (!item.ownerUsername) item.ownerUsername = S.myUsername || '';
+  if (!Array.isArray(item.sharedWith)) item.sharedWith = [];
+}
+
+
+function openMention(notifId) {
+  const n = (S.notifications || []).find(x => x.id === notifId);
+  if (!n) return;
+  n.read = true;
+  save();
+  // Jump to the item
+  if (n.itemType === 'todo') {
+    switchView('todos');
+    setTimeout(() => openTodoModal(n.itemId), 200);
+  } else if (n.itemType === 'list') {
+    switchView('lists');
+    setTimeout(() => openListDetail(n.itemId), 200);
+  } else if (n.itemType === 'reminder') {
+    switchView('reminders');
+    setTimeout(() => openReminderModal(n.itemId), 200);
+  } else if (n.itemType === 'note') {
+    switchView('notes');
+    setTimeout(() => openNoteDetail(n.itemId), 200);
+  } else if (n.itemType === 'streak') {
+    switchView('streaks');
+  }
+  renderDash();
+  tabs();
+}
+
+function markAllNotificationsRead() {
+  (S.notifications || []).forEach(n => {
+    if (normalizeUsername(n.forUser) === normalizeUsername(S.myUsername)) n.read = true;
+  });
+  save();
+  renderDash();
+  tabs();
+}
+
+
+function shareChipsHTML(item) {
+  if (!item || !item.sharedWith || !item.sharedWith.length) return '';
+  const me = normalizeUsername(S.myUsername);
+  const chips = item.sharedWith.map(u => {
+    const isMe = normalizeUsername(u) === me;
+    return '<span class="share-chip ' + (isMe ? 'me' : '') + '">@' + esc(u) + '</span>';
+  }).join('');
+  // Also include owner if it's not us
+  const owner = item.ownerUsername;
+  if (owner && normalizeUsername(owner) !== me && !item.sharedWith.some(u => normalizeUsername(u) === normalizeUsername(owner))) {
+    return '<span class="share-chip">from @' + esc(owner) + '</span>' + chips;
+  }
+  return chips;
+}
+
+// ── USERNAME SETUP MODAL ──
+function openUsernameSetup() {
+  document.getElementById('sett-title').textContent = 'Set Up Sync & Username';
+  document.getElementById('sett-body').innerHTML =
+    '<p style="color:var(--ink-soft);font-size:14px;line-height:1.6;margin-bottom:16px">'
+    + 'Pick a username so others can tag you in shared items. Optionally enter a sync code to join a household.'
+    + '</p>'
+    + '<div class="field"><label class="field-label">Your username</label>'
+    + '<input type="text" id="setup-username-input" placeholder="e.g. phil" maxlength="20" value="' + esc(S.myUsername || '') + '" '
+    + 'style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:18px" oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,\'\').toLowerCase()"></div>'
+    + '<div class="field"><label class="field-label">Sync Code (optional)</label>'
+    + '<input type="text" id="setup-sync-input" placeholder="ABCD12" maxlength="6" value="' + esc(S.syncCode || '') + '" '
+    + 'style="text-transform:uppercase;letter-spacing:.2em;font-size:18px;text-align:center" '
+    + 'oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\')">'
+    + '<div style="font-size:12px;color:var(--ink-mute);margin-top:6px">Leave blank for solo use. Sync requires Firebase to be configured.</div></div>'
+    + '<button class="btn btn-primary btn-block" onclick="saveUsernameSetup()">Save</button>'
+    + '<button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="renderSett()">← Back</button>';
+}
+
+function saveUsernameSetup() {
+  const u = document.getElementById('setup-username-input').value.trim();
+  const sc = document.getElementById('setup-sync-input').value.trim().toUpperCase();
+  if (!u) { toast('Pick a username', 'err'); return; }
+  S.myUsername = u;
+  ensureKnownUsername(u);
+  if (sc) {
+    if (sc.length !== 6) { toast('Sync code must be 6 characters', 'err'); return; }
+    if (!fbOk()) { toast('Set up Firebase to use sync', 'err'); S.syncCode = ''; }
+    else S.syncCode = sc;
+  }
+  // Stamp all existing un-owned items with this username
+  ['todos','lists','reminders','notes','streaks'].forEach(k => {
+    (S[k] || []).forEach(item => { if (!item.ownerUsername) item.ownerUsername = u; });
+  });
+  save();
+  if (S.syncCode && fbOk()) tryStartSync();
+  renderSett();
+  toast('Welcome, @' + u, 'ok');
+}
+
+// Identity switcher (testing without Firebase)
+function openIdentitySwitcher() {
+  document.getElementById('sett-title').textContent = 'Switch Identity (Testing)';
+  const others = (S.knownUsernames || []).filter(u => normalizeUsername(u) !== normalizeUsername(S.myUsername));
+  document.getElementById('sett-body').innerHTML =
+    '<p style="color:var(--ink-soft);font-size:14px;line-height:1.6;margin-bottom:16px">'
+    + 'Switch which user this app is "logged in" as, to test the sharing/tagging system on one device. '
+    + 'When Firebase is set up, this becomes per-device automatically.'
+    + '</p>'
+    + '<div style="margin-bottom:14px"><div style="font-size:11px;color:var(--ink-mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Currently signed in as</div>'
+    + '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:22px;font-weight:800;color:var(--cyan)">@' + esc(S.myUsername || 'none') + '</div></div>'
+    + (others.length
+      ? '<div class="section-label">Switch to</div>' + others.map(u =>
+          '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start" onclick="switchIdentity(\'' + esc(u) + '\')">@' + esc(u) + '</button>'
+        ).join('')
+      : '<div style="color:var(--ink-mute);font-size:13px;text-align:center;padding:16px">No other usernames in this household yet. Add one below.</div>')
+    + '<div class="section-label">Add household member</div>'
+    + '<div class="field"><input type="text" id="add-member-input" placeholder="username" maxlength="20" '
+    + 'oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,\'\').toLowerCase()"></div>'
+    + '<button class="btn btn-block btn-sm" onclick="addHouseholdMember()">Add Member</button>'
+    + '<button class="btn btn-ghost btn-block btn-sm" style="margin-top:16px" onclick="renderSett()">← Back</button>';
+}
+
+function switchIdentity(newUser) {
+  if (!newUser) return;
+  S.myUsername = newUser;
+  ensureKnownUsername(newUser);
+  save();
+  toast('Now signed in as @' + newUser, 'ok');
+  // Re-render everything since visibility just changed
+  renderDash(); renderTodos(); renderLists(); renderRem(); renderNotes(); renderStreaks(); tabs();
+  openIdentitySwitcher();
+}
+
+function addHouseholdMember() {
+  const u = document.getElementById('add-member-input').value.trim();
+  if (!u) { toast('Enter a username', 'err'); return; }
+  ensureKnownUsername(u);
+  save();
+  toast('Added @' + u, 'ok');
+  openIdentitySwitcher();
+}
+
+
+function applyCompactMode() {
+  document.documentElement.classList.toggle('compact', !!S.compactMode);
+  document.documentElement.classList.toggle('comfortable', !S.compactMode);
+}
+function toggleCompactMode() {
+  S.compactMode = !S.compactMode;
+  save();
+  applyCompactMode();
+  renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();
+}
+
 // ── THEME ──
 function applyTheme(theme) {
   document.documentElement.classList.toggle('light', theme === 'light');
@@ -1911,6 +2463,28 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.02.00',
+    date: 'Jun 16, 2026',
+    type: 'medium',
+    items: [
+      'Compact mode (default): denser layout across all tabs; toggle in Settings → Display',
+      'Usernames + tagging: pick a @username and tag others or yourself (@phil) in any item; auto-shares and creates a notification on the Home tab',
+      'Identity switcher in Settings → Household Members for testing the sharing flow on one device (Firebase needed for true multi-device)',
+      'Calendar: full-screen month view from the calendar icon in the Home header; tap any day to view items or add new ones',
+      'Lists: removed emoji icons, replaced with color picker (matches Streaks)',
+      'Lists: removed the word “done” from item counts',
+      'Reminders: added priority (None / Low / Medium / High) matching To-Dos',
+      'Reminders + To-Dos: default time auto-fills to the next hour on the hour',
+      'Streaks: optional numeric goal (e.g. 10,000 steps) with progress bar showing today vs goal',
+      'iOS Shortcuts integration: URL scheme to log streaks from a Shortcut: focus://?focus_action=streak_log&name=Steps&value=8500',
+      'Inbox UI (Settings → Inbox): forwarding address shown; backend pending Firebase setup',
+      'SVG icons replace emoji throughout: pin, trash, bell, flame, calendar, inbox, user, users, paperclip',
+      'Note detail: pin + trash icons properly aligned and redrawn',
+      'Linked notes now display as inline pills (not full-width boxes)',
+      'Dashboard priority dots smaller (8px → 6px)'
+    ]
+  },
   {
     version: '0.01.03',
     date: 'Jun 15, 2026',
@@ -2290,7 +2864,308 @@ function showNoteToolbar() { /* toolbar is part of detail-view now, shows automa
 
 function hideNoteToolbar() { /* toolbar is part of detail-view now, hides automatically */ }
 
+
+// ── CALENDAR ──
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let calSelectedDate = null;
+
+function openCalendar() {
+  const today = new Date();
+  calYear = today.getFullYear();
+  calMonth = today.getMonth();
+  calSelectedDate = null;
+  document.getElementById('calendar-view').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  renderCalendar();
+}
+
+function closeCalendar() {
+  document.getElementById('calendar-view').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function calNavMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  else if (calMonth > 11) { calMonth = 0; calYear++; }
+  calSelectedDate = null;
+  renderCalendar();
+}
+
+function calToday() {
+  const today = new Date();
+  calYear = today.getFullYear();
+  calMonth = today.getMonth();
+  calSelectedDate = todayStr();
+  renderCalendar();
+}
+
+function dateStr(y, m, d) {
+  return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-title').textContent = monthNames[calMonth] + ' ' + calYear;
+
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
+  const today = todayStr();
+
+  // Build map of dates → items
+  const itemsByDate = {};
+  S.todos.filter(canSeeItem).forEach(t => {
+    if (t.date) {
+      if (!itemsByDate[t.date]) itemsByDate[t.date] = { todos: [], reminders: [] };
+      itemsByDate[t.date].todos.push(t);
+    }
+  });
+  S.reminders.filter(canSeeItem).forEach(r => {
+    if (r.date) {
+      if (!itemsByDate[r.date]) itemsByDate[r.date] = { todos: [], reminders: [] };
+      itemsByDate[r.date].reminders.push(r);
+    }
+  });
+
+  let html = '';
+  // Previous month padding
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = prevMonthDays - i;
+    html += '<div class="cal-day other-month"><div class="cal-day-num">' + d + '</div></div>';
+  }
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = dateStr(calYear, calMonth, d);
+    const items = itemsByDate[ds];
+    const cls = ['cal-day'];
+    if (ds === today) cls.push('today');
+    if (calSelectedDate === ds) cls.push('selected');
+    if (items) cls.push('has-items');
+    let dots = '';
+    if (items) {
+      const colors = [];
+      if (items.todos.length) colors.push('var(--cyan)');
+      if (items.reminders.length) colors.push('var(--reminder)');
+      dots = '<div class="cal-dots">' + colors.map(c => '<div class="cal-dot" style="background:' + c + '"></div>').join('') + '</div>';
+    }
+    html += '<div class="' + cls.join(' ') + '" onclick="calSelectDay(\'' + ds + '\')">'
+      + '<div class="cal-day-num">' + d + '</div>' + dots + '</div>';
+  }
+  // Next month padding
+  const totalCells = startDow + daysInMonth;
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    html += '<div class="cal-day other-month"><div class="cal-day-num">' + d + '</div></div>';
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+  renderCalDayDetail();
+}
+
+function calSelectDay(ds) {
+  calSelectedDate = ds;
+  renderCalendar();
+}
+
+function renderCalDayDetail() {
+  const el = document.getElementById('cal-day-detail');
+  if (!calSelectedDate) { el.innerHTML = '<p style="text-align:center;color:var(--ink-mute);font-size:13px;padding:20px">Tap a day to see items and add new ones</p>'; return; }
+  const todos = S.todos.filter(t => t.date === calSelectedDate && canSeeItem(t));
+  const reminders = S.reminders.filter(r => r.date === calSelectedDate && canSeeItem(r));
+  const [y, m, d] = calSelectedDate.split('-').map(Number);
+  const dateLabel = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  let html = '<div style="margin-top:8px;padding-bottom:20px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  html += '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:18px;font-weight:800">' + dateLabel + '</div>';
+  html += '<div style="display:flex;gap:6px">'
+    + '<button class="btn btn-sm" onclick="calCreateTodo()" style="font-size:12px">+ To-Do</button>'
+    + '<button class="btn btn-sm" onclick="calCreateReminder()" style="font-size:12px">+ Reminder</button>'
+    + '</div>';
+  html += '</div>';
+
+  if (todos.length) {
+    html += '<div class="section-label">To-Dos</div>';
+    todos.forEach(t => {
+      html += '<div class="card" style="margin-bottom:6px;cursor:pointer" onclick="closeCalendar();switchView(\'todos\');setTimeout(()=>openTodoModal(\'' + t.id + '\'),200)">'
+        + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(t.title) + '</div>'
+        + (t.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(t.time) + '</div>' : '')
+        + '</div>';
+    });
+  }
+  if (reminders.length) {
+    html += '<div class="section-label">Reminders</div>';
+    reminders.forEach(r => {
+      html += '<div class="card" style="margin-bottom:6px;cursor:pointer" onclick="closeCalendar();switchView(\'reminders\');setTimeout(()=>openReminderModal(\'' + r.id + '\'),200)">'
+        + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(r.title) + '</div>'
+        + (r.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(r.time) + '</div>' : '')
+        + '</div>';
+    });
+  }
+  if (!todos.length && !reminders.length) {
+    html += '<p style="text-align:center;color:var(--ink-mute);font-size:13px;padding:20px">Nothing scheduled for this day</p>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function calCreateTodo() {
+  closeCalendar();
+  switchView('todos');
+  setTimeout(() => {
+    openTodoModal();
+    setTimeout(() => {
+      const dInput = document.getElementById('todo-date');
+      if (dInput && calSelectedDate) dInput.value = calSelectedDate;
+    }, 100);
+  }, 200);
+}
+
+function calCreateReminder() {
+  closeCalendar();
+  switchView('reminders');
+  setTimeout(() => {
+    openReminderModal();
+    setTimeout(() => {
+      const dInput = document.getElementById('rem-date');
+      if (dInput && calSelectedDate) dInput.value = calSelectedDate;
+    }, 100);
+  }, 200);
+}
+
+
+// ── STREAK VALUE-BASED LOGGING ──
+function getTodayValue(streak) {
+  if (!streak.values) return 0;
+  return streak.values[td()] || 0;
+}
+
+function setTodayValue(streakId, value) {
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  if (!s.values) s.values = {};
+  s.values[td()] = value;
+  // Also add to logs if value > 0
+  if (value > 0 && !(s.logs || []).includes(td())) {
+    s.logs = s.logs || [];
+    s.logs.push(td());
+  } else if (value <= 0) {
+    s.logs = (s.logs || []).filter(d => d !== td());
+  }
+  save();
+  renderStreaks();
+  renderDash();
+}
+
+function openStreakValuePrompt(streakId) {
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  const currentValue = getTodayValue(s);
+  const promptText = 'Today\'s ' + (s.unit || 'value') + ' for ' + s.name + ':';
+  const v = prompt(promptText, currentValue || '');
+  if (v === null) return;
+  const num = parseInt(v) || 0;
+  setTodayValue(streakId, num);
+  const reached = s.target && num >= s.target;
+  toast(reached ? '\u2705 Goal reached!' : 'Logged ' + num + ' ' + (s.unit || ''), 'ok');
+}
+
+// Override logStreak to dispatch to value prompt if target exists
+const _origLogStreak = logStreak;
+logStreak = function(id) {
+  const s = S.streaks.find(x => x.id === id);
+  if (s && s.target) {
+    openStreakValuePrompt(id);
+  } else {
+    _origLogStreak(id);
+  }
+};
+
+
+function openInbox() {
+  document.getElementById('sett-title').textContent = 'Inbox';
+  document.getElementById('sett-body').innerHTML =
+    '<div style="text-align:center;padding:40px 20px">'
+    + '<div style="width:64px;height:64px;border-radius:50%;background:var(--cyan-soft);color:var(--cyan);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">' + svg('inbox', 28) + '</div>'
+    + '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px">Inbox</div>'
+    + '<div style="font-size:13px;color:var(--ink-soft);line-height:1.6;max-width:280px;margin:0 auto">Forward emails to your unique inbox address to capture them as to-dos or notes.</div>'
+    + '</div>'
+    + '<div class="sett-group" style="background:var(--bg-elev);border-radius:var(--radius);padding:16px;margin-bottom:12px">'
+    + '<div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:6px">Your forwarding address</div>'
+    + '<div style="font-family:monospace;font-size:13px;color:var(--cyan);padding:8px 10px;background:var(--bg-raised);border-radius:8px;text-align:center">' + (S.myUsername ? S.myUsername + '@inbox.focus.app' : 'set-username-first@inbox.focus.app') + '</div>'
+    + '<div style="font-size:11px;color:var(--ink-mute);margin-top:8px;line-height:1.5">Pending: requires Firebase backend to be connected. Once enabled, forwarded emails will appear here for triage into to-dos or notes.</div>'
+    + '</div>'
+    + '<div class="sett-group" style="opacity:.6"><div style="padding:24px 16px;text-align:center;color:var(--ink-mute);font-size:13px">No forwarded items yet</div></div>'
+    + '<button class="btn btn-ghost btn-block btn-sm" style="margin-top:16px" onclick="renderSett()">← Back</button>';
+}
+
+
+// ── URL SCHEME HANDLER (for iOS Shortcuts) ──
+// Usage: focus://streak/log?name=Steps&value=8500
+//        OR: ?focus_action=streak_log&name=Steps&value=8500 (query param fallback)
+function handleURLScheme() {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get('focus_action');
+  if (!action) return;
+
+  if (action === 'streak_log') {
+    const name = params.get('name');
+    const value = parseInt(params.get('value')) || 0;
+    if (!name) { toast('Missing streak name', 'err'); return; }
+    const s = S.streaks.find(x => normalizeUsername(x.name) === normalizeUsername(name));
+    if (!s) { toast('Streak not found: ' + name, 'err'); return; }
+    if (s.target) {
+      if (!s.values) s.values = {};
+      s.values[td()] = value;
+      if (!(s.logs || []).includes(td())) {
+        s.logs = s.logs || [];
+        s.logs.push(td());
+      }
+      save();
+      toast('Logged ' + value + ' ' + (s.unit || '') + ' for ' + s.name, 'ok');
+    } else {
+      if (!(s.logs || []).includes(td())) {
+        s.logs = s.logs || [];
+        s.logs.push(td());
+        save();
+        toast('Logged ' + s.name, 'ok');
+      }
+    }
+    renderStreaks();
+    renderDash();
+    // Clean the URL
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+}
+
 </script>
+
+
+<!-- CALENDAR OVERLAY -->
+<div class="detail-view" id="calendar-view">
+  <div class="detail-hdr">
+    <button class="detail-back" onclick="closeCalendar()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>Home</button>
+    <div class="detail-title-wrap">
+      <div class="detail-title display" id="cal-month-title">Month</div>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="btn-icon" onclick="calNavMonth(-1)" title="Previous month"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="btn-icon" onclick="calNavMonth(1)" title="Next month"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <button class="btn-icon" onclick="calToday()" title="Today"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></button>
+    </div>
+  </div>
+  <div class="detail-body" style="padding:0">
+    <div class="cal-grid-header">
+      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div id="cal-day-detail" style="padding:0 16px"></div>
+  </div>
+</div>
 
 <!-- NOTE DETAIL VIEW -->
 <div class="detail-view" id="note-detail-view">
@@ -2298,8 +3173,8 @@ function hideNoteToolbar() { /* toolbar is part of detail-view now, hides automa
     <button class="detail-back" onclick="closeNoteDetail()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>Notes</button>
     <div class="detail-title-wrap"><div class="detail-sub" id="note-det-meta"></div></div>
     <div style="display:flex;gap:4px">
-      <button class="btn-icon" id="note-pin-btn" onclick="toggleNotePin()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"/></svg></button>
-      <button class="btn-icon" onclick="deleteNoteFromDet()" style="color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      <button class="btn-icon" id="note-pin-btn" onclick="toggleNotePin()" title="Pin to dashboard"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+      <button class="btn-icon" onclick="deleteNoteFromDet()" style="color:var(--pri-high)" title="Delete note"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
     </div>
   </div>
   <!-- TOP TOOLBAR — always visible at top of note -->
@@ -2359,6 +3234,13 @@ function hideNoteToolbar() { /* toolbar is part of detail-view now, hides automa
           <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectStreakColor('#8b5cf6',this)"></div>
           <div class="color-swatch" data-color="#ec4899" style="background:#ec4899" onclick="selectStreakColor('#ec4899',this)"></div>
         </div>
+      </div>
+      <div class="field"><label class="field-label">Goal (optional)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="streak-target" placeholder="e.g. 10000" min="0" style="flex:1">
+          <input type="text" id="streak-unit" placeholder="steps" maxlength="20" style="flex:1">
+        </div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Track a number toward a daily goal. Leave blank for a simple yes/no streak.</div>
       </div>
       <div class="field"><label class="field-label">Frequency</label><div class="pill-row" id="pr-sfreq">
         <button class="pill sel" data-val="daily" onclick="setPill('sfreq',this)">Daily</button>
