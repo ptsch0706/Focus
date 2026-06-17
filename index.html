@@ -1788,6 +1788,16 @@ function tHTML(t){
   const o=!t.completed&&ov(t.date),pc=t.priority==='high'?'pri-high':t.priority==='med'?'pri-med':'pri-low';
   const cc=t.completed?'checked':(t.priority==='high'?'ph':t.priority==='med'?'pm':'');
   const chips=shareChipsHTML(t);
+  // Completed todos render without swipe actions (no Defer/Done/Delete reveal)
+  if (t.completed) {
+    return `<div class="todo-item done ${pc}" onclick="openTodoModal('${t.id}')">
+  <button class="todo-chk checked" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
+  <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title)}</div>
+  <div class="todo-meta"><span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
+  ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}</div>
+  ${chips?`<div class="shared-with-row">${chips}</div>`:''}
+  ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>`;
+  }
   return`<div class="swipe-wrap" data-item-type="todo" data-item-id="${t.id}">
   <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="swipe-actions">
@@ -2036,6 +2046,14 @@ function renderRem(){
 function rHTML(r){
   const o=!r.completed&&ov(r.date),t2=!r.completed&&isToday(r.date);
   const chips=shareChipsHTML(r);
+  // Completed reminders render without swipe actions
+  if (r.completed) {
+    return `<div class="rem-item done" onclick="openReminderModal('${r.id}')">
+  <button class="rem-chk checked" onclick="event.stopPropagation();checkRem('${r.id}')"></button>
+  <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title)}</div>
+  ${chips?`<div class="shared-with-row">${chips}</div>`:''}
+  ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>`;
+  }
   return`<div class="swipe-wrap" data-item-type="reminder" data-item-id="${r.id}">
   <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="swipe-actions">
@@ -4502,6 +4520,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.03.03',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: completed to-dos and reminders no longer reveal swipe actions (Defer/Done/Delete) — those actions only make sense for active items',
+      'Tapping a completed item still opens the modal to edit; tapping the checkmark still un-completes it'
+    ]
+  },
   {
     version: '0.03.02',
     date: 'Jun 17, 2026',
