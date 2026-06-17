@@ -242,9 +242,9 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .checked-section-toggle.open svg{transform:rotate(90deg);}
 
 /* DASHBOARD */
-.dash-greeting{padding:calc(var(--safe-top) + 20px) 16px 16px;position:relative;}
+/* dash-greeting redefined below as flexbox */
 .dash-date{font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
-.dash-hello{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.03em;}
+/* dash-hello redefined below */
 .dash-hello .accent{color:var(--cyan);}
 .alert-card{background:var(--pri-high-soft);border:1.5px solid var(--pri-high);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;animation:pulse 2.5s ease-in-out infinite;}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(244,63,94,0)}50%{box-shadow:0 0 0 6px rgba(244,63,94,.1)}}
@@ -714,18 +714,375 @@ input.has-mention, .note-title-input.has-mention {
   border-bottom: 2px solid var(--cyan) !important;
 }
 
+
+/* SHARE PICKER */
+.share-member-row{
+  display:flex;align-items:center;gap:12px;
+  width:100%;padding:10px 14px;
+  background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);
+  cursor:pointer;margin-bottom:6px;transition:all .15s;
+  font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);
+}
+.share-member-row:active{background:var(--bg-raised);}
+.share-member-row.selected{border-color:var(--cyan);background:var(--cyan-soft);color:var(--cyan);}
+.share-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--reminder-soft);color:var(--reminder);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;
+}
+.share-member-row.selected .share-avatar{background:var(--cyan);color:#fff;}
+.share-check{width:20px;display:flex;align-items:center;justify-content:center;color:var(--cyan);}
+
+/* SHARED WITH YOU CARD on Dashboard */
+.shared-card{
+  background:var(--reminder-soft);
+  border:1px solid var(--reminder);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  margin-bottom:12px;
+}
+.shared-card-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:var(--reminder);
+  margin-bottom:8px;
+}
+.shared-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 0;cursor:pointer;
+  border-top:1px solid rgba(139,92,246,.18);
+}
+.shared-row:first-of-type{border-top:none;}
+.shared-row:active{opacity:.7;}
+.shared-row-text{flex:1;min-width:0;}
+.shared-row-from{font-size:11px;color:var(--ink-mute);}
+.shared-row-title{
+  font-size:13px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.shared-row-type{
+  font-size:10px;font-weight:600;padding:2px 6px;
+  border-radius:20px;background:var(--bg-raised);
+  color:var(--ink-mute);letter-spacing:.04em;text-transform:uppercase;
+  margin-left:6px;flex-shrink:0;
+}
+
+
+/* SWIPE-ABLE ITEM ROWS */
+.swipe-wrap{
+  position:relative;
+  overflow:hidden;
+  border-radius:var(--radius);
+  margin-bottom:8px;
+  background:transparent;
+}
+.swipe-content{
+  position:relative;
+  background:transparent;
+  transition:transform .25s cubic-bezier(.32,.72,0,1);
+  will-change:transform;
+  z-index:2;
+}
+.swipe-content.swiping{transition:none;}
+.swipe-content > .todo-item,
+.swipe-content > .rem-item{margin-bottom:0;}
+.swipe-actions{
+  position:absolute;
+  top:0;right:0;bottom:0;
+  display:flex;align-items:stretch;
+  z-index:1;
+}
+.swipe-action{
+  display:flex;align-items:center;justify-content:center;
+  width:64px;color:#fff;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:11px;font-weight:600;
+  border:none;background:none;
+  flex-direction:column;gap:3px;
+}
+.swipe-action svg{width:18px;height:18px;stroke-width:2;}
+.swipe-action.complete{background:var(--note);}
+.swipe-action.defer{background:var(--list);}
+.swipe-action.delete{background:var(--pri-high);}
+
+/* Right-swipe-complete sweep overlay (full width green) */
+.swipe-complete-overlay{
+  position:absolute;
+  top:0;left:0;bottom:0;
+  background:var(--note);
+  display:flex;align-items:center;
+  padding-left:18px;
+  color:#fff;font-weight:600;
+  z-index:0;
+  transition:width .12s ease-out;
+}
+.swipe-complete-overlay svg{width:18px;height:18px;stroke-width:2.5;margin-right:6px;}
+
+
+/* QUICK CAPTURE DASHBOARD CARD */
+.capture-card{
+  background:var(--cyan-soft);
+  border:1px solid var(--cyan);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  margin-bottom:12px;
+}
+.capture-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:var(--cyan);
+  margin-bottom:8px;
+}
+.capture-count{
+  font-size:10px;font-weight:700;padding:2px 6px;
+  border-radius:20px;background:var(--cyan);color:#fff;
+}
+.capture-row{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 0;
+  border-top:1px solid rgba(6,182,212,.2);
+}
+.capture-row:first-of-type{border-top:none;}
+.capture-text{
+  flex:1;font-size:13px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  cursor:pointer;
+}
+.capture-text:active{opacity:.7;}
+.capture-actions{display:flex;gap:2px;flex-shrink:0;}
+.capture-act{
+  width:30px;height:30px;border-radius:6px;border:none;background:none;
+  color:var(--ink-soft);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.capture-act svg{width:14px;height:14px;}
+.capture-act:active{background:var(--bg-raised);color:var(--ink);}
+.capture-act.capture-dismiss{color:var(--ink-mute);}
+
+
+.dash-greeting{
+  padding:calc(var(--safe-top) + 20px) 16px 16px;
+  display:flex;align-items:flex-start;gap:12px;
+}
+.dash-greeting-left{flex:1;min-width:0;}
+.dash-greeting-actions{
+  display:flex;gap:6px;align-items:center;flex-shrink:0;
+  margin-top:6px;
+}
+.dash-greeting-actions .header-btn{
+  width:38px;height:38px;
+}
+.dash-hello{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-weight:800;font-size:24px;
+  letter-spacing:-.03em;line-height:1.2;
+  word-break:break-word;
+}
+
+
+/* SEARCH */
+.search-result{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;
+  background:var(--bg-elev);border:1px solid var(--line);
+  border-radius:var(--radius);
+  margin-bottom:6px;cursor:pointer;
+  transition:background .15s;
+}
+.search-result:active{background:var(--bg-raised);}
+.search-result-icon{
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.search-result-icon svg{width:18px;height:18px;stroke-width:2;}
+.search-result-body{flex:1;min-width:0;}
+.search-result-title{
+  font-size:14px;font-weight:500;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.search-result-sub{
+  font-size:12px;color:var(--ink-soft);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.search-result mark{background:var(--cyan-soft);color:var(--cyan);padding:0 2px;border-radius:3px;}
+
+
+/* LIST ATTACHMENTS */
+.list-attachments{
+  padding:12px 16px 8px;
+  border-bottom:1px solid var(--line);
+}
+.list-attach-label{
+  font-size:11px;font-weight:600;color:var(--ink-mute);
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;
+}
+.list-attach-strip{
+  display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
+  padding-bottom:4px;
+}
+.list-attach-strip::-webkit-scrollbar{display:none;}
+.list-attach-thumb{
+  position:relative;
+  width:80px;height:80px;
+  border-radius:8px;overflow:hidden;
+  border:1px solid var(--line);flex-shrink:0;
+}
+.list-attach-thumb img{
+  width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;
+}
+.list-attach-del{
+  position:absolute;top:4px;right:4px;
+  width:20px;height:20px;border-radius:50%;
+  border:none;background:rgba(0,0,0,.6);color:#fff;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.list-attach-del svg{width:12px;height:12px;}
+
+
+/* STREAK BAR CHART */
+.streak-chart{padding:0 16px 14px;}
+.streak-chart-label{font-size:11px;font-weight:600;color:var(--ink-mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.streak-chart-bars{display:flex;gap:6px;align-items:flex-end;}
+.streak-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.streak-bar-track{
+  position:relative;
+  width:100%;height:60px;
+  background:var(--bg-raised);
+  border-radius:4px;
+  overflow:hidden;
+  display:flex;align-items:flex-end;
+}
+.streak-bar-fill{
+  width:100%;
+  border-radius:4px 4px 0 0;
+  transition:height .3s cubic-bezier(.32,.72,0,1);
+  min-height:2px;
+}
+.streak-bar-goal{
+  position:absolute;left:0;right:0;
+  height:1px;background:var(--ink-mute);
+  border-top:1px dashed var(--ink-mute);
+  opacity:.7;z-index:1;
+}
+.streak-bar-day{
+  font-size:10px;color:var(--ink-mute);font-weight:600;
+}
+.streak-bar-day.is-today{color:var(--ink);}
+.streak-bar-val{
+  font-size:9px;color:var(--ink-mute);
+}
+.streak-chart-goal-label{
+  font-size:10px;color:var(--ink-mute);
+  text-align:center;margin-top:8px;font-style:italic;
+}
+
+
+.template-card{
+  display:flex;align-items:center;gap:12px;padding:14px;
+  background:var(--bg-elev);border:1px solid var(--line);
+  border-radius:var(--radius);margin-bottom:8px;
+  cursor:pointer;transition:background .15s;
+}
+.template-card:active{background:var(--bg-raised);}
+
+
+.sunday-card{
+  background:linear-gradient(135deg,var(--reminder-soft) 0%,var(--cyan-soft) 100%);
+  border:1px solid var(--reminder);
+  border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;
+}
+.sunday-card-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:var(--reminder);
+  margin-bottom:6px;
+}
+.sunday-card-body{font-size:13px;color:var(--ink);line-height:1.5;}
+
+.review-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;
+}
+.review-stat{
+  background:var(--bg-elev);border:1px solid var(--line);
+  border-radius:var(--radius);padding:14px;text-align:center;
+}
+.review-num{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:28px;font-weight:800;
+  color:var(--cyan);letter-spacing:-.02em;
+}
+.review-lbl{
+  font-size:11px;color:var(--ink-mute);
+  text-transform:uppercase;letter-spacing:.06em;
+  margin-top:2px;
+}
+
+
+.smart-nudge-card{
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:12px;
+}
+.smart-nudge-title{
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;margin-bottom:4px;
+}
+.smart-nudge-body{
+  font-size:13px;color:var(--ink-soft);line-height:1.4;
+}
+
 </style>
 </head>
 <body>
 
+<!-- ONBOARDING LANDING -->
+<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:var(--bg);overflow-y:auto;padding:calc(var(--safe-top) + 40px) 24px calc(var(--safe-bot) + 40px);">
+  <div style="max-width:380px;margin:0 auto;text-align:center">
+    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:36px;font-weight:800;letter-spacing:-.03em;color:var(--cyan);margin-bottom:6px">Focus</div>
+    <div style="font-size:15px;color:var(--ink-soft);line-height:1.6;margin-bottom:28px">Personal planning for you and your household. To-dos, lists, reminders, notes, and streaks — all in one place.</div>
+
+    <div style="text-align:left;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px">
+      <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--ink);margin-bottom:14px">Get Started</div>
+
+      <div class="field">
+        <label class="field-label">Pick a username</label>
+        <input type="text" id="onboard-username" placeholder="e.g. phil" maxlength="20"
+          style="font-family:'Plus Jakarta Sans',sans-serif;font-size:18px"
+          oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase()">
+        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">So others can tag you. Lowercase, letters and numbers only.</div>
+      </div>
+
+      <div style="margin:14px 0">
+        <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:space-between;padding:10px 12px" onclick="toggleOnboardSync()">
+          <span>Have a household sync code?</span>
+          <svg id="onboard-sync-chev" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;transition:transform .2s"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div id="onboard-sync-section" style="display:none;margin-top:10px">
+          <input type="text" id="onboard-sync" placeholder="ABCD12" maxlength="6"
+            style="text-transform:uppercase;letter-spacing:.2em;font-size:18px;text-align:center"
+            oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+          <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">6-character code from another household member. Leave blank for solo use.</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="finishOnboarding()">Get Started</button>
+      <button class="btn btn-ghost btn-block btn-sm" style="margin-top:6px" onclick="skipOnboarding()">Skip for now</button>
+    </div>
+
+    <div style="font-size:11px;color:var(--ink-mute);line-height:1.5">You can change your username or add a sync code anytime in Settings.</div>
+  </div>
+</div>
+
 <!-- HOME -->
 <div id="view-home" class="view active">
   <div class="dash-greeting">
-    <div class="dash-date" id="dash-date"></div>
-    <div class="dash-hello" id="dash-hello"></div>
-    <button class="header-btn" onclick="openCalendar()" style="position:absolute;right:62px;top:calc(var(--safe-top) + 16px);" title="Calendar"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button><button class="header-btn" onclick="openSettings()" style="position:absolute;right:16px;top:calc(var(--safe-top) + 16px);">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
+    <div class="dash-greeting-left">
+      <div class="dash-date" id="dash-date"></div>
+      <div class="dash-hello" id="dash-hello"></div>
+    </div>
+    <div class="dash-greeting-actions">
+      <button class="header-btn" onclick="openSearch()" title="Search"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+      <button class="header-btn" onclick="openCalendar()" title="Calendar"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
+      <button class="header-btn" onclick="openSettings()" title="Settings"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
   </div>
   <div style="padding:0 16px" id="dash-content"></div>
 </div>
@@ -781,7 +1138,7 @@ input.has-mention, .note-title-input.has-mention {
   </div>
 </div>
 
-<!-- NOTES (Phase 3) -->
+<!-- NOTES -->
 <div id="view-notes" class="view">
   <div class="page-header">
     <div><div class="page-title display">Notes</div><div class="page-subtitle" id="note-sub"></div></div>
@@ -823,6 +1180,7 @@ input.has-mention, .note-title-input.has-mention {
   <div class="detail-hdr">
     <button class="detail-back" onclick="closeListDetail()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>Lists</button>
     <div class="detail-title-wrap"><div class="detail-title" id="det-title"></div><div class="detail-sub" id="det-sub"></div></div>
+    <button class="btn-icon" onclick="openListAttachmentPicker()" title="Add photo"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
     <button class="btn-icon" onclick="openListMenu()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>
   <div class="detail-body"><div id="det-items"></div>
@@ -839,6 +1197,11 @@ input.has-mention, .note-title-input.has-mention {
       <div class="mod-tile" onclick="closeModal('modal-picker');openListModal()"><div class="mod-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg></div><div class="mod-name">List</div><div class="mod-desc">Grocery, packing, ideas</div></div>
       <div class="mod-tile" onclick="closeModal('modal-picker');openReminderModal()"><div class="mod-icon" style="background:var(--reminder-soft);color:var(--reminder)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div class="mod-name">Reminder</div><div class="mod-desc">Time-based awareness</div></div>
       <div class="mod-tile" onclick="closeModal('modal-picker');openNoteDetail()"><div class="mod-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="mod-name">Note</div><div class="mod-desc">Markdown freeform text</div></div>
+      <div class="mod-tile" onclick="closeModal('modal-picker');openQuickCapture()" style="background:var(--cyan-soft);border-color:var(--cyan)">
+        <div class="mod-icon" style="background:var(--cyan-soft);color:var(--cyan)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div>
+        <div class="mod-title">Quick Note</div>
+        <div class="mod-desc">Capture now, sort later</div>
+      </div>
       <div class="mod-tile" onclick="closeModal('modal-picker');openStreakModal()" style="grid-column:1/-1"><div style="display:flex;align-items:center;gap:14px"><div class="mod-icon" style="flex-shrink:0;background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div><div class="mod-name">Streak</div><div class="mod-desc">Habit with chain tracking</div></div></div></div>
     </div>
   </div>
@@ -999,6 +1362,7 @@ const ICONS = {
   users: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   moon: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
   sun: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>',
+  check: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   monitor: '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
 };
 function svg(name, size) {
@@ -1008,9 +1372,9 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],syncCode:'',graceWindowHour:9,theme:'dark',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],_v:5};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,view='home';
-applyTheme(S.theme||'dark');
+applyTheme(S.theme||'light');
 let tf='all',lf='all',rf='upcoming',noteFilter='all',doneOpen=false,listId=null;
 const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
 
@@ -1030,6 +1394,9 @@ function loadState(){
       if(!Array.isArray(loaded.notifications))loaded.notifications=[];
       if(!Array.isArray(loaded.knownUsernames))loaded.knownUsernames=[];
       if(typeof loaded.compactMode!=='boolean')loaded.compactMode=true;
+      if(!loaded.dashSections||typeof loaded.dashSections!=='object'){loaded.dashSections={mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true};}
+      if(!Array.isArray(loaded.templates))loaded.templates=[];
+      if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
       return loaded;
     }
     const v1=localStorage.getItem('focus_state');
@@ -1134,6 +1501,17 @@ function openTodoModal(id=null){
     div.innerHTML = linkedHTML;
     document.querySelector('#modal-todo .modal-body').appendChild(div);
   }
+    // Inject share row at end of modal-body (if not already there)
+  const tBody = document.querySelector('#modal-todo .modal-body');
+  let tShareRow = tBody.querySelector('.share-injected');
+  if (!tShareRow) {
+    tShareRow = document.createElement('div');
+    tShareRow.className = 'share-injected';
+    tBody.appendChild(tShareRow);
+  }
+  tShareRow.innerHTML = renderShareRowHTML('todo', id || '') + renderNotesAboutButtonHTML('todo', id);
+  window._pendingShareWith = id ? null : [];
+  updateShareChipsInActiveModal();
   openModal('modal-todo');setTimeout(()=>document.getElementById('todo-title').focus(),350);
 }
 function saveTodo(){
@@ -1145,7 +1523,7 @@ function saveTodo(){
   const notes=document.getElementById('todo-notes').value.trim();
   const recurVal = getCurrentRecur('todo');
   if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1){S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal};stampOwner(S.todos[i]);applyMentions(S.todos[i],'todo');}toast('Updated','ok');}
-  else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');S.todos.push(newT);toast('To-Do added','ok');}
+  else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');if(window._pendingShareWith&&window._pendingShareWith.length){newT.sharedWith=[...new Set([...(newT.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.todos.push(newT);toast('To-Do added','ok');}
   save();closeModal('modal-todo');renderTodos();renderDash();tabs();
 }
 function checkTodo(id){
@@ -1182,23 +1560,211 @@ function renderTodos(){
   }
   if(comp.length)h+=`<div class="done-toggle ${doneOpen?'open':''}" onclick="toggleDone()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>Completed (${comp.length})</div><div id="done-list" style="${doneOpen?'':'display:none'}">${comp.sort((a,b)=>(b.completedAt||0)-(a.completedAt||0)).map(tHTML).join('')}</div>`;
   document.getElementById('todo-list').innerHTML=h;
+  attachItemSwipes();
   const oc=act.filter(t=>t.date<today).length;
   document.getElementById('todo-sub').textContent=`${act.length} open${oc?' · '+oc+' overdue':''}`;
 }
 function toggleDone(){doneOpen=!doneOpen;const t=document.querySelector('.done-toggle'),l=document.getElementById('done-list');if(t)t.classList.toggle('open',doneOpen);if(l)l.style.display=doneOpen?'':'none';}
 function ghdr(label,count,isOv=false){return`<div class="grp-hdr ${isOv?'ov':''}"><span class="grp-title">${label}</span><span class="grp-count">${count}</span></div>`;}
 function emptyHTML(title,sub){return`<div class="empty-state"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>`;}
+
+// ── SWIPE ACTIONS ON TODO / REMINDER ROWS ──
+function makeSwipeable(wrapEl, opts) {
+  // opts: { onComplete, onDefer, onDelete, itemType, itemId }
+  const content = wrapEl.querySelector('.swipe-content');
+  const actions = wrapEl.querySelector('.swipe-actions');
+  const completeOverlay = wrapEl.querySelector('.swipe-complete-overlay');
+  if (!content) return;
+
+  let startX = 0, startY = 0, startT = 0, currentX = 0;
+  let dragging = false, decided = false, horiz = false;
+  let revealed = false;
+  const actionsWidth = actions ? actions.offsetWidth : 0;
+
+  function reset(animate) {
+    if (!animate) content.classList.add('swiping');
+    content.style.transform = 'translateX(0)';
+    if (completeOverlay) completeOverlay.style.width = '0';
+    revealed = false;
+    setTimeout(() => content.classList.remove('swiping'), 250);
+  }
+
+  function reveal() {
+    content.style.transform = 'translateX(-' + actionsWidth + 'px)';
+    revealed = true;
+  }
+
+  wrapEl.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    if (e.target.closest('button, input, [contenteditable]')) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startT = Date.now();
+    currentX = 0;
+    dragging = true;
+    decided = false;
+    horiz = false;
+    content.classList.add('swiping');
+  }, { passive: true });
+
+  wrapEl.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (!decided) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      horiz = Math.abs(dx) > Math.abs(dy) * 1.3;
+      decided = true;
+      if (!horiz) { dragging = false; content.classList.remove('swiping'); return; }
+    }
+    if (!horiz) return;
+    e.preventDefault();
+    // If revealed and dragging right, allow up to actionsWidth, else clamp to 0
+    if (revealed) {
+      currentX = Math.max(-actionsWidth, Math.min(0, -actionsWidth + dx));
+    } else {
+      // Left-swipe: reveal actions (negative tx). Right-swipe: complete overlay grows.
+      if (dx < 0) {
+        currentX = Math.max(-actionsWidth - 40, dx);
+      } else {
+        currentX = Math.min(0, dx * 0.4); // slight resistance for right swipe; we use overlay instead
+        if (completeOverlay) completeOverlay.style.width = Math.min(dx, wrapEl.offsetWidth) + 'px';
+      }
+    }
+    content.style.transform = 'translateX(' + currentX + 'px)';
+  }, { passive: false });
+
+  wrapEl.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+    content.classList.remove('swiping');
+    if (!horiz) { reset(true); return; }
+
+    const dx = e.changedTouches[0].clientX - startX;
+    const dt = Date.now() - startT;
+
+    // Quick right-swipe = complete
+    if (dx > 80 && dt < 600 && !revealed) {
+      // Animate complete overlay fully then trigger
+      if (completeOverlay) completeOverlay.style.width = wrapEl.offsetWidth + 'px';
+      content.style.transform = 'translateX(' + wrapEl.offsetWidth + 'px)';
+      setTimeout(() => {
+        if (opts.onComplete) opts.onComplete();
+      }, 200);
+      return;
+    }
+
+    // Left swipe past threshold reveals actions
+    if (currentX < -actionsWidth / 2) {
+      reveal();
+    } else {
+      reset(true);
+    }
+  }, { passive: true });
+
+  wrapEl.addEventListener('touchcancel', () => { reset(true); dragging = false; });
+
+  // Tap outside the actions area while revealed should close
+  // (handled at body level — see initItemSwipes)
+}
+
+function initItemSwipes() {
+  // Close any revealed swipes when tapping elsewhere
+  document.addEventListener('touchstart', e => {
+    document.querySelectorAll('.swipe-content').forEach(el => {
+      if (el.style.transform && el.style.transform.includes('translateX(-') && !el.contains(e.target)) {
+        el.style.transform = 'translateX(0)';
+      }
+    });
+  }, { passive: true });
+}
+
+// Helpers used by swipe actions
+function swipeCompleteTodo(id) {
+  checkTodo(id);
+}
+function swipeCompleteRem(id) {
+  checkRem(id);
+}
+function swipeDeferTodo(id) {
+  const t = S.todos.find(x => x.id === id);
+  if (!t) return;
+  const dt = new Date(t.date || td());
+  if (isNaN(dt.getTime())) return;
+  dt.setDate(dt.getDate() + 1);
+  t.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  save();
+  renderTodos();
+  renderDash();
+  toast('Deferred to tomorrow', 'ok');
+}
+function swipeDeferRem(id) {
+  const r = S.reminders.find(x => x.id === id);
+  if (!r) return;
+  const dt = new Date(r.date || td());
+  if (isNaN(dt.getTime())) return;
+  dt.setDate(dt.getDate() + 1);
+  r.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  save();
+  renderRem();
+  renderDash();
+  toast('Deferred to tomorrow', 'ok');
+}
+function swipeDeleteTodo(id) {
+  if (!confirm('Delete this to-do?')) return;
+  S.todos = S.todos.filter(t => t.id !== id);
+  save();
+  renderTodos();
+  renderDash();
+  toast('Deleted');
+}
+function swipeDeleteRem(id) {
+  if (!confirm('Delete this reminder?')) return;
+  S.reminders = S.reminders.filter(r => r.id !== id);
+  save();
+  renderRem();
+  renderDash();
+  toast('Deleted');
+}
+
+// Attach swipe handlers after each render of todos/reminders
+function attachItemSwipes() {
+  document.querySelectorAll('.swipe-wrap').forEach(wrap => {
+    if (wrap.dataset.swipeAttached === '1') return;
+    wrap.dataset.swipeAttached = '1';
+    const itemId = wrap.dataset.itemId;
+    const itemType = wrap.dataset.itemType;
+    makeSwipeable(wrap, {
+      itemId, itemType,
+      onComplete: () => {
+        if (itemType === 'todo') swipeCompleteTodo(itemId);
+        else swipeCompleteRem(itemId);
+      },
+    });
+  });
+}
+
 function tHTML(t){
   const o=!t.completed&&ov(t.date),pc=t.priority==='high'?'pri-high':t.priority==='med'?'pri-med':'pri-low';
   const cc=t.completed?'checked':(t.priority==='high'?'ph':t.priority==='med'?'pm':'');
   const chips=shareChipsHTML(t);
-  return`<div class="todo-item ${t.completed?'done':''} ${pc}" onclick="openTodoModal('${t.id}')">
+  return`<div class="swipe-wrap" data-item-type="todo" data-item-id="${t.id}">
+  <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
+  <div class="swipe-actions">
+    <button class="swipe-action defer" onclick="event.stopPropagation();swipeDeferTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Defer</button>
+    <button class="swipe-action complete" onclick="event.stopPropagation();swipeCompleteTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</button>
+    <button class="swipe-action delete" onclick="event.stopPropagation();swipeDeleteTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>
+  </div>
+  <div class="swipe-content">
+  <div class="todo-item ${t.completed?'done':''} ${pc}" onclick="openTodoModal('${t.id}')">
   <button class="todo-chk ${cc}" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
   <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title)}</div>
   <div class="todo-meta"><span class="todo-date ${o?'ov':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
   ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${t.priority==='high'?'<span class="t-tag high">High</span>':t.priority==='med'?'<span class="t-tag med">Med</span>':''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
-  ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>`;
+  ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>
+  </div>
+  </div>`;
 }
 
 
@@ -1230,6 +1796,18 @@ function openListModal(id=null){
   // list-icon field removed (replaced with color picker)
   document.getElementById('list-del-btn').style.display=l?'':'none';
   resetPills('listtype',l?l.type||'checklist':'checklist');
+    // Inject share row
+  const lBody = document.querySelector('#modal-list .modal-body');
+  let lShareRow = lBody.querySelector('.share-injected');
+  if (!lShareRow) {
+    lShareRow = document.createElement('div');
+    lShareRow.className = 'share-injected';
+    lBody.appendChild(lShareRow);
+  }
+  lShareRow.innerHTML = renderShareRowHTML('list', id || '') + renderNotesAboutButtonHTML('list', id);
+  window._pendingShareWith = id ? null : [];
+  updateShareChipsInActiveModal();
+  injectTemplateBanner();
   openModal('modal-list');setTimeout(()=>document.getElementById('list-name').focus(),350);
 }
 function saveList(){
@@ -1237,7 +1815,7 @@ function saveList(){
   if(!name){toast('Please add a name','err');return;}
   const id=document.getElementById('list-eid').value;
   if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');}toast('Updated','ok');}
-  else{const newL={id:gid(),name,color:selectedListColor,type:P.listtype,items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');S.lists.push(newL);toast('List created','ok');}
+  else{const newL={id:gid(),name,color:selectedListColor,type:P.listtype,items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);toast('List created','ok');}
   save();closeModal('modal-list');renderLists();
 }
 function deleteList(){
@@ -1253,9 +1831,8 @@ function renderLists(){
   el.innerHTML=lists.map(l=>{
     const tot=(l.items||[]).length,chk=(l.items||[]).filter(i=>i.checked).length;
     const meta=l.type==='checklist'?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
-    return`<div class="list-card" onclick="openListDetail('${l.id}')">
+    return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'}">
     <div class="list-card-hdr">
-      <div class="list-icon" style="background:${l.color||'#f59e0b'}1a;border:2px solid ${l.color||'#f59e0b'}"></div>
       <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name)}</div><div class="list-meta">${meta}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
       <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListModal('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
     </div></div>`;
@@ -1272,7 +1849,7 @@ function renderListDet(){
   const items=l.items||[],unc=items.filter(i=>!i.checked),chk=items.filter(i=>i.checked);
   document.getElementById('det-sub').textContent=l.type==='checklist'?`${chk.length}/${items.length} done`:`${items.length} item${items.length!==1?'s':''}`;
   let h='';
-  if(!items.length){h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-icon" style="background:var(--list-soft);border-color:var(--list);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/></svg></div><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;}
+  if(!items.length){h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;}
   else{
     if(unc.length)h+=`<div>`+unc.map(i=>liHTML(i,l.type)).join('')+`</div>`;
     if(chk.length&&l.type==='checklist'){
@@ -1281,7 +1858,7 @@ function renderListDet(){
       if(co)h+=`<div>`+chk.map(i=>liHTML(i,l.type)).join('')+`</div>`;
     }else if(chk.length)h+=chk.map(i=>liHTML(i,l.type)).join('');
   }
-  const lnHTML=renderLinkedNotes('list', listId);document.getElementById('det-items').innerHTML=h + (lnHTML?'<div style="padding:0 16px">'+lnHTML+'</div>':'');
+  const lnHTML=renderLinkedNotes('list', listId);const attachHTML=renderListAttachmentsHTML(l);document.getElementById('det-items').innerHTML=attachHTML + h + (lnHTML?'<div style="padding:0 16px">'+lnHTML+'</div>':'');
 }
 function liHTML(item,type){
   const isC=type==='checklist';
@@ -1308,6 +1885,8 @@ function openListMenu(){
   document.getElementById('list-menu-body').innerHTML=`
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="closeModal('modal-list-menu');openListModal('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit name &amp; color</button>
+    <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="closeModal('modal-list-menu');saveListAsTemplate('${l.id}')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Save as template</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="convertListType('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Switch to ${isC?'Freeform':'Checklist'}</button>
     ${isC?`<button class="btn btn-block btn-amber" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="uncheckAll('${l.id}')">
@@ -1344,6 +1923,17 @@ function openReminderModal(id=null){
     div.innerHTML = linkedHTML;
     document.querySelector('#modal-reminder .modal-body').appendChild(div);
   }
+    // Inject share row
+  const rBody = document.querySelector('#modal-reminder .modal-body');
+  let rShareRow = rBody.querySelector('.share-injected');
+  if (!rShareRow) {
+    rShareRow = document.createElement('div');
+    rShareRow.className = 'share-injected';
+    rBody.appendChild(rShareRow);
+  }
+  rShareRow.innerHTML = renderShareRowHTML('reminder', id || '') + renderNotesAboutButtonHTML('reminder', id);
+  window._pendingShareWith = id ? null : [];
+  updateShareChipsInActiveModal();
   openModal('modal-reminder');setTimeout(()=>document.getElementById('rem-title').focus(),350);
 }
 function saveReminder(){
@@ -1354,7 +1944,7 @@ function saveReminder(){
   const notes=document.getElementById('rem-notes').value.trim();
   const recurVal = getCurrentRecur('rem');
   if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
-  else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');S.reminders.push(newR);toast('Reminder added','ok');}
+  else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');if(window._pendingShareWith&&window._pendingShareWith.length){newR.sharedWith=[...new Set([...(newR.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.reminders.push(newR);toast('Reminder added','ok');}
   save();closeModal('modal-reminder');renderRem();renderDash();tabs();
 }
 function checkRem(id){
@@ -1391,11 +1981,20 @@ function renderRem(){
     h+=rHTML(r);
   });
   el.innerHTML=h;
+  attachItemSwipes();
 }
 function rHTML(r){
   const o=!r.completed&&ov(r.date),t2=!r.completed&&isToday(r.date);
   const chips=shareChipsHTML(r);
-  return`<div class="rem-item ${r.completed?'done':''}" onclick="openReminderModal('${r.id}')">
+  return`<div class="swipe-wrap" data-item-type="reminder" data-item-id="${r.id}">
+  <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
+  <div class="swipe-actions">
+    <button class="swipe-action defer" onclick="event.stopPropagation();swipeDeferRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Defer</button>
+    <button class="swipe-action complete" onclick="event.stopPropagation();swipeCompleteRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</button>
+    <button class="swipe-action delete" onclick="event.stopPropagation();swipeDeleteRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>
+  </div>
+  <div class="swipe-content">
+  <div class="rem-item ${r.completed?'done':''}" onclick="openReminderModal('${r.id}')">
   <button class="rem-chk ${r.completed?'checked':''}" onclick="event.stopPropagation();checkRem('${r.id}')"></button>
   <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title)}</div>
   <div class="todo-meta">
@@ -1404,7 +2003,9 @@ function rHTML(r){
     ${r.recur&&r.recur!=='none'?`<span class="t-tag rem">↻ ${describeRecur(r.recur)}</span>`:''}
   </div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
-  ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>`;
+  ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>
+  </div>
+  </div>`;
 }
 
 // ── DASHBOARD ──
@@ -1413,7 +2014,7 @@ function renderDash(){
   const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('dash-date').textContent=`${days[now.getDay()]}, ${mons[now.getMonth()]} ${now.getDate()}`;
-  document.getElementById('dash-hello').innerHTML=`${greet()}, <span class="accent">Phil.</span>`;
+  document.getElementById('dash-hello').innerHTML=`${greet()}${S.myUsername?', <span class="accent">@'+esc(S.myUsername)+'</span>':''}`;
   const actT=S.todos.filter(t=>!t.completed),todT=actT.filter(t=>t.date===today),ovT=actT.filter(t=>t.date<today),hiOv=ovT.filter(t=>t.priority==='high');
   const compToday=S.todos.filter(t=>t.completed&&t.completedAt&&new Date(t.completedAt).toDateString()===now.toDateString());
   const totT=todT.length+compToday.length,pct=totT>0?Math.round((compToday.length/totT)*100):0;
@@ -1443,7 +2044,7 @@ function renderDash(){
     out+=`</div>`;
   }else if(h>=6){out+=`<div class="section-label">Today</div><div class="card" style="text-align:center;padding:20px;color:var(--ink-soft);font-size:14px">✓ All clear for today</div>`;}
   // streak nudge after 8pm
-  if(h>=20)out+=`<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">Streak tracking arrives in Phase 3.</div></div>`;
+  if(h>=20)out+=`<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">No streaks scheduled for today. Tap the Streaks tab to add a habit.</div></div>`;
   // weekly summary Sunday evening
   if(now.getDay()===0&&h>=17){
     const wAgo=new Date(now);wAgo.setDate(wAgo.getDate()-7);
@@ -1465,19 +2066,28 @@ function renderDash(){
     out+=`</div>`;
   }
   if(!out)out='<div class="empty-state" style="padding-top:60px"><div class="empty-icon" style="width:72px;height:72px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:32px;height:32px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="empty-title">Welcome to Focus</div><div class="empty-sub">Tap + to add your first to-do and get organized.</div></div>';
-  if(typeof getStreakChain==='function'&&S.streaks&&S.streaks.length&&h>=20){
+  if((!S.dashSections||S.dashSections.streakNudge!==false)&&typeof getStreakChain==='function'&&S.streaks&&S.streaks.length&&h>=20){
     const ar=S.streaks.filter(s=>isScheduledToday(s)&&!isLoggedToday(s));
     if(ar.length)out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>'
       +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:'+(s.color||'#f43f5e')+'"></span>'+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
   } else if(h>=20){
     out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">Tap the Streaks tab to set up your habits.</div></div>';
   }
-  if(S.notes){const pn=S.notes.find(n=>n.pinned);if(pn){
+  if((!S.dashSections||S.dashSections.pinnedNote!==false)&&S.notes){const pn=S.notes.find(n=>n.pinned);if(pn){
     const pv=stripHTML(pn.body).substring(0,80);
     out+='<div class="section-label" style="display:flex;align-items:center;gap:6px">'+svg('pin',12)+' Pinned Note</div><div class="note-card" onclick="switchView(\'notes\');openNoteDetail(\''+(pn.id)+'\')" style="margin-bottom:10px"><div class="note-card-title">'+(pn.title?esc(pn.title):'Untitled')+'</div>'+(pv?'<div class="note-card-preview">'+esc(pv)+'</div>':'')+'</div>';}}
+  // Shared with you
+  if (!S.dashSections || S.dashSections.sharedWithYou !== false) {
+    out = renderSharedWithYouHTML() + out;
+  }
+  // Quick capture inbox
+  out = renderQuickCaptureSection() + out;
+  // Sunday review (highest priority — shows above everything)
+  out = renderSmartNudgeCard() + out;
+  out = renderSundayReviewCard() + out;
   // Mention notifications card
   const unread = unreadNotificationCount();
-  if (unread > 0) {
+  if (unread > 0 && (!S.dashSections || S.dashSections.mentions !== false)) {
     const myNotifs = myNotifications().filter(n => !n.read).slice(0, 5);
     let mentionHTML = '<div class="mention-card"><div class="mention-card-title">' + svg('users', 14)
       + 'You were tagged <span class="mention-badge">' + unread + '</span></div>';
@@ -1576,6 +2186,38 @@ function renderSett(){
     +'<div class="sett-text"><div class="sett-label">Email Forwarding</div><div class="sett-sub">Forward emails as to-dos or notes</div></div>'
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
+    +'<div class="section-label">Dashboard Sections</div>'
+    +'<div class="sett-group" style="padding:14px 16px">'
+    +(function(){
+      const sections=[
+        {key:'mentions',label:'Tag notifications'},
+        {key:'sharedWithYou',label:'Shared with you'},
+        {key:'streakNudge',label:'Streak nudge (evenings)'},
+        {key:'pinnedNote',label:'Pinned note'},
+        {key:'upcoming',label:'Upcoming items'},
+        {key:'weeklySummary',label:'Weekly summary'},
+        {key:'quickCapture',label:'Quick capture inbox'},
+        {key:'sundayReview',label:'Sunday review prompt'},
+      ];
+      const ds=S.dashSections||{};
+      return sections.map(s=>{
+        const on=ds[s.key]!==false;
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">'
+          +'<div style="font-size:14px;color:var(--ink)">'+s.label+'</div>'
+          +'<label class="switch"><input type="checkbox" '+(on?'checked':'')+' onchange="toggleDashSection(\''+s.key+'\')"><span class="slider"></span></label>'
+          +'</div>';
+      }).join('');
+    })()
+    +'</div>'
+    +'<div class="section-label">Templates</div>'+'<div class="sett-group"><button class="sett-row" onclick="openTemplatesManager()">'+'<div class="sett-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><line x1=\'8\' y1=\'9\' x2=\'16\' y2=\'9\'/><line x1=\'8\' y1=\'13\' x2=\'16\' y2=\'13\'/><line x1=\'8\' y1=\'17\' x2=\'13\' y2=\'17\'/></svg></div>'+'<div class="sett-text"><div class="sett-label">List Templates</div><div class="sett-sub">'+((S.templates||[]).length)+' saved</div></div>'+'<div class="sett-chev"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'><polyline points=\'9 18 15 12 9 6\'/></svg></div>'+'</button></div>'+'<div class="section-label">Backup</div>'
+    +'<div class="sett-group"><button class="sett-row" onclick="exportData()">'
+    +'<div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Export Backup</div><div class="sett-sub">Download JSON of all your data</div></div>'
+    +'</button>'
+    +'<button class="sett-row" onclick="importData()">'
+    +'<div class="sett-icon" style="background:var(--reminder-soft);color:var(--reminder)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Import Backup</div><div class="sett-sub">Restore from a JSON file</div></div>'
+    +'</button></div>'
     +'<div class="section-label">About</div>'
     +'<div class="sett-group"><button class="sett-row" onclick="openChangelog()">'
     +'<div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>'
@@ -1655,11 +2297,13 @@ function startSync(){
 
 // ── INIT ──
 function init(){
-  applyTheme(S.theme||'dark');
+  applyTheme(S.theme||'light');
+  if(shouldShowOnboarding())showOnboarding();
   applyCompactMode();
   cleanupAllMentions();
   initSwipeDismiss();
   initSwipeTabs();
+  initItemSwipes();
   setupNoteToolbarKeyboard();
   handleURLScheme();
   renderDash();renderTodos();renderLists();renderRem();renderNotes();renderStreaks();tabs();
@@ -1669,7 +2313,7 @@ function init(){
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;if(view==='home')renderDash();if(db&&S.syncCode)startSync();});
 }
 // Apply theme immediately before render
-applyTheme(S.theme||'dark');
+applyTheme(S.theme||'light');
 if(S.theme==='system')applySystemTheme();
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
 
@@ -1783,6 +2427,16 @@ function closeNoteDetail() {
 }
 
 
+
+// Handle Enter key inside the rich note editor: ensure it creates a new paragraph/line
+// even when cursor is right after an atomic mention-tag span
+function handleNoteEditorKeydown(e) {
+  if (e.key !== 'Enter') return;
+  // Let the default behavior happen for most cases; but ensure highlighter doesn't
+  // immediately overwrite the cursor position. Cancel any pending highlight.
+  clearTimeout(noteChanged._h);
+}
+
 // ── LIVE @MENTION HIGHLIGHTING ──
 function highlightMentionsInEditor() {
   const el = document.getElementById('note-body-inp');
@@ -1802,7 +2456,7 @@ function highlightMentionsInEditor() {
     savedOffset = pre.toString().length;
   }
 
-  // Walk text nodes and wrap @username matches
+  // Walk text nodes and find ones with unprocessed @mentions
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
   const textNodes = [];
   let n;
@@ -1811,7 +2465,15 @@ function highlightMentionsInEditor() {
     if (n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('mention-tag')) continue;
     if (/@[a-zA-Z0-9_]+/.test(n.nodeValue)) textNodes.push(n);
   }
-  if (!textNodes.length && el.querySelectorAll('.mention-tag').length === 0) return;
+  if (!textNodes.length) {
+    // Nothing to wrap. Still ensure existing spans have a sibling text node so Enter works
+    el.querySelectorAll('.mention-tag').forEach(span => {
+      if (!span.nextSibling || span.nextSibling.nodeType !== 3) {
+        span.parentNode.insertBefore(document.createTextNode('\u200B'), span.nextSibling);
+      }
+    });
+    return;
+  }
 
   // For each text node with a mention, split and wrap
   textNodes.forEach(node => {
@@ -1819,13 +2481,21 @@ function highlightMentionsInEditor() {
     if (!parent) return;
     const parts = node.nodeValue.split(/(@[a-zA-Z0-9_]+)/);
     const frag = document.createDocumentFragment();
-    parts.forEach(p => {
+    parts.forEach((p, i) => {
       const m = /^@([a-zA-Z0-9_]+)$/.exec(p);
       if (m && isKnownUsername(m[1])) {
         const span = document.createElement('span');
         span.className = 'mention-tag';
+        // contenteditable=false makes the span atomic — browser treats it as one unit
+        // and Enter/arrow keys work normally around it
+        span.contentEditable = 'false';
         span.textContent = p;
         frag.appendChild(span);
+        // Always ensure a text node follows (with zero-width space) so cursor can sit after the span
+        const nextPart = parts[i + 1];
+        if (nextPart === undefined || nextPart === '') {
+          frag.appendChild(document.createTextNode('\u200B'));
+        }
       } else if (p.length) {
         frag.appendChild(document.createTextNode(p));
       }
@@ -1834,25 +2504,33 @@ function highlightMentionsInEditor() {
   });
 
   // Restore cursor by walking text nodes & counting characters
+  // Skip zero-width spaces in the count
   if (savedOffset >= 0) {
     const walker2 = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
     let remaining = savedOffset;
     let placed = false;
     while ((n = walker2.nextNode())) {
-      const len = n.nodeValue.length;
-      if (remaining <= len) {
+      // Strip zero-width spaces from length calculation
+      const visibleLen = n.nodeValue.replace(/\u200B/g, '').length;
+      if (remaining <= visibleLen) {
+        // Find the actual character offset accounting for zero-width spaces
+        let actualOffset = 0, visibleCount = 0;
+        const val = n.nodeValue;
+        while (visibleCount < remaining && actualOffset < val.length) {
+          if (val[actualOffset] !== '\u200B') visibleCount++;
+          actualOffset++;
+        }
         const range = document.createRange();
-        range.setStart(n, remaining);
+        range.setStart(n, actualOffset);
         range.collapse(true);
         sel.removeAllRanges();
         sel.addRange(range);
         placed = true;
         break;
       }
-      remaining -= len;
+      remaining -= visibleLen;
     }
     if (!placed) {
-      // Fallback: cursor at end
       const range = document.createRange();
       range.selectNodeContents(el);
       range.collapse(false);
@@ -1862,13 +2540,57 @@ function highlightMentionsInEditor() {
   }
 }
 
+
+// ── NOTE PASTE SANITIZATION ──
+function handleNotePaste(event) {
+  event.preventDefault();
+  // Always strip styles — get plain text and let the browser handle paragraph breaks
+  const text = (event.clipboardData || window.clipboardData).getData('text/plain');
+  if (!text) return;
+  // Insert as plain text at the cursor — preserves line breaks via document.execCommand
+  // execCommand('insertText') handles newlines correctly inside contenteditable
+  document.execCommand('insertText', false, text);
+  noteChanged();
+}
+
+// ── CODE TOOLBAR BUTTON ──
+function wrapSelectionInCode() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  const text = range.toString();
+  if (!text) {
+    // No selection — insert empty <code></code> with cursor inside
+    const code = document.createElement('code');
+    code.textContent = '\u200B'; // zero-width space so cursor can land inside
+    range.insertNode(code);
+    const newRange = document.createRange();
+    newRange.setStart(code, 0);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  } else {
+    const code = document.createElement('code');
+    code.textContent = text;
+    range.deleteContents();
+    range.insertNode(code);
+    sel.removeAllRanges();
+    const newRange = document.createRange();
+    newRange.setStartAfter(code);
+    newRange.collapse(true);
+    sel.addRange(newRange);
+  }
+  document.getElementById('note-body-inp').focus();
+  noteChanged();
+}
+
 function noteChanged() {
   const note = S.notes.find(n=>n.id===noteId);
   if (!note) return;
-  // Highlight mentions in the body (debounced so we don't re-walk on every keystroke)
-  clearTimeout(noteChanged._h);
-  noteChanged._h = setTimeout(highlightMentionsInEditor, 250);
+  // NOTE: mention highlighting runs on blur (handleNoteEditorBlur), not on input — prevents cursor jumps mid-thought
   note.title = document.getElementById('note-title-inp').value.trim();
+  const titleEl = document.getElementById('note-title-inp');
+  if (titleEl) titleEl.classList.toggle('has-mention', /@[a-zA-Z0-9_]+/.test(note.title));
   note.body = document.getElementById('note-body-inp').innerHTML;
   note.updatedAt = Date.now();
   stampOwner(note);
@@ -1876,6 +2598,10 @@ function noteChanged() {
   updateNoteMeta(note);
   clearTimeout(noteChanged._t);
   noteChanged._t = setTimeout(save, 800);
+}
+
+function handleNoteEditorBlur() {
+  highlightMentionsInEditor();
 }
 
 function updateNoteMeta(note) {
@@ -2105,6 +2831,17 @@ function openStreakModal(id=null) {
   document.querySelectorAll('#streak-days-wrap .pill').forEach(p=>{
     p.classList.toggle('sel', streakDays.includes(parseInt(p.dataset.day)));
   });
+    // Inject share row
+  const sBody = document.querySelector('#modal-streak .modal-body');
+  let sShareRow = sBody.querySelector('.share-injected');
+  if (!sShareRow) {
+    sShareRow = document.createElement('div');
+    sShareRow.className = 'share-injected';
+    sBody.appendChild(sShareRow);
+  }
+  sShareRow.innerHTML = renderShareRowHTML('streak', id || '') + renderNotesAboutButtonHTML('streak', id);
+  window._pendingShareWith = id ? null : [];
+  updateShareChipsInActiveModal();
   openModal('modal-streak');
   setTimeout(()=>document.getElementById('streak-name').focus(), 350);
 }
@@ -2138,7 +2875,7 @@ function saveStreak() {
   } else {
     const target = parseInt(document.getElementById('streak-target').value) || null;
   const unit = document.getElementById('streak-unit').value.trim() || '';
-  const newS={id:gid(),name,color,freq,days,target,unit,logs:[],values:{},_expanded:false,createdAt:Date.now()};stampOwner(newS);applyMentions(newS,'streak');S.streaks.push(newS);
+  const newS={id:gid(),name,color,freq,days,target,unit,logs:[],values:{},_expanded:false,createdAt:Date.now()};stampOwner(newS);applyMentions(newS,'streak');if(window._pendingShareWith&&window._pendingShareWith.length){newS.sharedWith=[...new Set([...(newS.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.streaks.push(newS);
     toast('Streak created','ok');
   }
   save(); closeModal('modal-streak'); renderStreaks();
@@ -2223,6 +2960,43 @@ function toggleStreakExpand(id, event) {
   renderStreaks();
 }
 
+
+// ── STREAK 7-DAY BAR CHART (value-based) ──
+function streakBarChartHTML(streak) {
+  if (!streak || !streak.target) return '';
+  const color = streak.color || '#f43f5e';
+  const values = streak.values || {};
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const dow = ['S','M','T','W','T','F','S'][d.getDay()];
+    const val = values[ds] || 0;
+    days.push({ ds, dow, val, isToday: i === 0 });
+  }
+  const maxVal = Math.max(streak.target, ...days.map(d => d.val), 1);
+  let html = '<div class="streak-chart"><div class="streak-chart-label">Last 7 days</div><div class="streak-chart-bars">';
+  days.forEach(d => {
+    const pct = (d.val / maxVal) * 100;
+    const reached = streak.target && d.val >= streak.target;
+    html += '<div class="streak-bar-col">'
+      + '<div class="streak-bar-track">'
+      + (streak.target && maxVal > streak.target ? '<div class="streak-bar-goal" style="bottom:' + (streak.target / maxVal * 100) + '%"></div>' : '')
+      + '<div class="streak-bar-fill" style="height:' + pct + '%;background:' + color + ';opacity:' + (reached ? 1 : 0.55) + '"></div>'
+      + '</div>'
+      + '<div class="streak-bar-day' + (d.isToday ? ' is-today' : '') + '">' + d.dow + '</div>'
+      + '<div class="streak-bar-val">' + d.val + '</div>'
+      + '</div>';
+  });
+  html += '</div>';
+  if (streak.target) {
+    html += '<div class="streak-chart-goal-label">Goal: ' + streak.target + ' ' + esc(streak.unit || '') + '/day</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function renderStreaks() {
   const el = document.getElementById('streak-list');
   if (!el) return;
@@ -2279,6 +3053,7 @@ function renderStreaks() {
       + '</div>'
       + (s.target ? ('<div style="padding:0 16px 6px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:11px;color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Today</div><div style="font-size:13px;color:var(--ink)"><strong style="font-family:Plus Jakarta Sans,sans-serif;color:'+color+';font-size:16px">'+getTodayValue(s)+'</strong> <span style="color:var(--ink-mute)">/ '+s.target+' '+esc(s.unit||'')+'</span></div></div><div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,getTodayValue(s)/s.target*100)+'%;background:'+color+'"></div></div>') : ('<div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,chain/7*100)+'%;background:'+color+'"></div></div>'))
       + '<div class="streak-expand-area">'
+        + (s.target ? streakBarChartHTML(s) : '')
         + '<div class="dot-grid">' + dots.map(d => d.replace('background:var(--streak)', 'background:'+color)).join('') + '</div>'
       + '</div>'
       + '<div style="padding:14px 16px 14px;display:flex;align-items:center;justify-content:space-between">'
@@ -2601,6 +3376,884 @@ function cleanupAllMentions() {
   }
 }
 
+
+
+// ── EXPLICIT SHARE PICKER ──
+// Used in item modals to add household members without typing @mentions
+let activeShareEditor = null; // tracks which item modal we're editing — has shape {item, type}
+
+function openSharePicker(itemType, itemId) {
+  // Find the item
+  const collection = { todo: S.todos, list: S.lists, reminder: S.reminders, note: S.notes, streak: S.streaks }[itemType];
+  const item = collection ? collection.find(x => x.id === itemId) : null;
+  // For new items not yet saved, use a placeholder shared list stored on activeShareEditor
+  if (!item && !activeShareEditor) {
+    activeShareEditor = { itemType, itemId: null, sharedWith: [] };
+  } else if (item) {
+    activeShareEditor = { itemType, itemId, sharedWith: [...(item.sharedWith || [])] };
+  }
+
+  const members = (S.knownUsernames || []).filter(u => normalizeUsername(u) !== normalizeUsername(S.myUsername));
+  const ed = activeShareEditor;
+
+  let html = '<div style="margin-bottom:12px;font-size:13px;color:var(--ink-soft)">Pick household members to share this with. They\'ll see it on their device once Firebase sync is set up.</div>';
+
+  if (!members.length) {
+    html += '<div class="empty-state" style="padding:24px 12px">'
+      + '<div class="empty-icon" style="width:48px;height:48px">' + svg('users', 20) + '</div>'
+      + '<div class="empty-title" style="font-size:14px">No household members yet</div>'
+      + '<div class="empty-sub" style="font-size:12px">Add members in Settings &rarr; Household Members.</div>'
+      + '</div>';
+  } else {
+    html += members.map(u => {
+      const isSelected = ed.sharedWith.some(s => normalizeUsername(s) === normalizeUsername(u));
+      return '<button class="share-member-row' + (isSelected ? ' selected' : '') + '" onclick="toggleShareMember(\'' + esc(u) + '\', this)" data-username="' + esc(u) + '">'
+        + '<div class="share-avatar">' + esc(u.charAt(0).toUpperCase()) + '</div>'
+        + '<div style="flex:1;text-align:left">@' + esc(u) + '</div>'
+        + '<div class="share-check">' + (isSelected ? svg('check', 16) : '') + '</div>'
+        + '</button>';
+    }).join('');
+  }
+  html += '<div style="display:flex;gap:8px;margin-top:12px">'
+    + '<button class="btn btn-ghost" style="flex:1" onclick="closeModal(\'modal-share-picker\')">Cancel</button>'
+    + '<button class="btn btn-primary" style="flex:1" onclick="confirmSharePicker()">Done</button>'
+    + '</div>';
+  document.getElementById('share-picker-body').innerHTML = html;
+  openModal('modal-share-picker');
+}
+
+function toggleShareMember(username, btn) {
+  if (!activeShareEditor) return;
+  const norm = normalizeUsername(username);
+  const idx = activeShareEditor.sharedWith.findIndex(u => normalizeUsername(u) === norm);
+  if (idx >= 0) {
+    activeShareEditor.sharedWith.splice(idx, 1);
+    btn.classList.remove('selected');
+    btn.querySelector('.share-check').innerHTML = '';
+  } else {
+    activeShareEditor.sharedWith.push(username);
+    btn.classList.add('selected');
+    btn.querySelector('.share-check').innerHTML = svg('check', 16);
+  }
+}
+
+function confirmSharePicker() {
+  if (!activeShareEditor) { closeModal('modal-share-picker'); return; }
+  const ed = activeShareEditor;
+  const collection = { todo: S.todos, list: S.lists, reminder: S.reminders, note: S.notes, streak: S.streaks }[ed.itemType];
+  if (collection && ed.itemId) {
+    const item = collection.find(x => x.id === ed.itemId);
+    if (item) {
+      // Merge with existing mentions (mentions still take priority)
+      const fromMentions = extractMentions([item.title || '', item.body || '', item.notes || '', item.name || ''].join(' '));
+      const all = [...new Set([
+        ...fromMentions.map(m => (S.knownUsernames || []).find(k => normalizeUsername(k) === m) || m),
+        ...ed.sharedWith
+      ])];
+      item.sharedWith = all;
+      save();
+      renderTodos(); renderLists(); renderRem(); renderNotes(); renderStreaks(); renderDash();
+    }
+  } else if (collection && !ed.itemId) {
+    // New item: stash on form for use during save
+    window._pendingShareWith = ed.sharedWith;
+  }
+  closeModal('modal-share-picker');
+  // Re-render the active modal's share area if visible
+  updateShareChipsInActiveModal();
+}
+
+function updateShareChipsInActiveModal() {
+  // Find any visible share-row inside an open modal and update its chip display
+  document.querySelectorAll('.modal-backdrop.show .share-row-chips').forEach(el => {
+    const itemType = el.dataset.itemType;
+    const itemId = el.dataset.itemId;
+    let sharedWith = [];
+    if (itemId) {
+      const collection = { todo: S.todos, list: S.lists, reminder: S.reminders, note: S.notes, streak: S.streaks }[itemType];
+      const item = collection ? collection.find(x => x.id === itemId) : null;
+      if (item) sharedWith = item.sharedWith || [];
+    } else if (window._pendingShareWith) {
+      sharedWith = window._pendingShareWith;
+    }
+    if (!sharedWith.length) {
+      el.innerHTML = '<span style="font-size:12px;color:var(--ink-mute)">No one yet</span>';
+    } else {
+      el.innerHTML = sharedWith.map(u => '<span class="share-chip">@' + esc(u) + '</span>').join('');
+    }
+  });
+}
+
+function renderShareRowHTML(itemType, itemId) {
+  // Returns HTML to inject into item modals — shows current shared-with chips + a button to open the picker
+  return '<div class="field"><label class="field-label">Share with</label>'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + '<div class="share-row-chips" data-item-type="' + itemType + '" data-item-id="' + (itemId || '') + '" style="flex:1;display:flex;flex-wrap:wrap;gap:4px"></div>'
+    + '<button class="btn btn-ghost btn-sm" onclick="openSharePicker(\'' + itemType + '\', \'' + (itemId || '') + '\')">Pick</button>'
+    + '</div></div>';
+}
+
+
+// ── SHARED WITH YOU helper ──
+function getSharedWithMe() {
+  if (!S.myUsername) return [];
+  const me = normalizeUsername(S.myUsername);
+  const result = [];
+  const collections = [
+    { key: 'todos', type: 'todo', label: 'To-Do', getTitle: t => t.title },
+    { key: 'lists', type: 'list', label: 'List', getTitle: l => l.name },
+    { key: 'reminders', type: 'reminder', label: 'Reminder', getTitle: r => r.title },
+    { key: 'notes', type: 'note', label: 'Note', getTitle: n => n.title || stripHTML(n.body || '').substring(0, 40) || 'Untitled' },
+    { key: 'streaks', type: 'streak', label: 'Streak', getTitle: s => s.name },
+  ];
+  collections.forEach(c => {
+    (S[c.key] || []).forEach(item => {
+      const owner = normalizeUsername(item.ownerUsername || '');
+      if (!owner || owner === me) return; // mine, skip
+      const sharedTo = (item.sharedWith || []).map(normalizeUsername);
+      if (!sharedTo.includes(me)) return;
+      result.push({
+        type: c.type,
+        label: c.label,
+        id: item.id,
+        title: c.getTitle(item) || '(untitled)',
+        fromUser: item.ownerUsername,
+        item: item,
+      });
+    });
+  });
+  // Sort by most recent createdAt or updatedAt
+  result.sort((a, b) => (b.item.updatedAt || b.item.createdAt || 0) - (a.item.updatedAt || a.item.createdAt || 0));
+  return result.slice(0, 6);
+}
+
+function renderSharedWithYouHTML() {
+  if (S.dashSections && S.dashSections.sharedWithYou === false) return '';
+  const items = getSharedWithMe();
+  if (!items.length) return '';
+  let html = '<div class="shared-card"><div class="shared-card-title">' + svg('users', 14) + ' Shared with you</div>';
+  items.forEach(it => {
+    html += '<div class="shared-row" onclick="openSharedItem(\'' + it.type + '\', \'' + it.id + '\')">'
+      + '<div class="shared-row-text">'
+      + '<div class="shared-row-from">from @' + esc(it.fromUser) + '</div>'
+      + '<div class="shared-row-title">' + esc(it.title) + '</div>'
+      + '</div>'
+      + '<div class="shared-row-type">' + it.label + '</div>'
+      + '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function openSharedItem(type, id) {
+  if (type === 'todo') { switchView('todos'); setTimeout(() => openTodoModal(id), 200); }
+  else if (type === 'list') { switchView('lists'); setTimeout(() => openListDetail(id), 200); }
+  else if (type === 'reminder') { switchView('reminders'); setTimeout(() => openReminderModal(id), 200); }
+  else if (type === 'note') { switchView('notes'); setTimeout(() => openNoteDetail(id), 200); }
+  else if (type === 'streak') { switchView('streaks'); }
+}
+
+
+function toggleDashSection(key) {
+  if (!S.dashSections) S.dashSections = {};
+  S.dashSections[key] = S.dashSections[key] === false ? true : false;
+  save();
+  // No need to re-render Settings; the switch updates itself visually
+  renderDash();
+}
+
+
+// ── QUICK CAPTURE ──
+function openQuickCapture() {
+  document.getElementById('quick-capture-input').value = '';
+  openModal('modal-quick-capture');
+  setTimeout(() => document.getElementById('quick-capture-input').focus(), 350);
+}
+
+function saveQuickCapture() {
+  const text = document.getElementById('quick-capture-input').value.trim();
+  if (!text) { toast('Nothing to capture', 'err'); return; }
+  // Build a quick note. First line is title, rest is body.
+  const lines = text.split('\n');
+  const title = lines[0].substring(0, 80);
+  const body = lines.length > 1 ? lines.slice(1).join('\n') : '';
+  const newN = {
+    id: gid(),
+    title: title,
+    body: body ? '<p>' + esc(body).replace(/\n/g, '<br>') + '</p>' : '',
+    pinned: false,
+    tags: [],
+    linkedTo: null,
+    _unprocessed: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  stampOwner(newN);
+  applyMentions(newN, 'note');
+  S.notes.unshift(newN);
+  save();
+  closeModal('modal-quick-capture');
+  toast('Captured to triage inbox', 'ok');
+  renderDash();
+  renderNotes();
+}
+
+function getUnprocessedCaptures() {
+  if (!S.notes) return [];
+  return S.notes.filter(n => n._unprocessed === true);
+}
+
+function renderQuickCaptureSection() {
+  if (S.dashSections && S.dashSections.quickCapture === false) return '';
+  const items = getUnprocessedCaptures();
+  if (!items.length) return '';
+  let html = '<div class="capture-card"><div class="capture-title">' + svg('inbox', 14) + ' To Triage <span class="capture-count">' + items.length + '</span></div>';
+  items.slice(0, 4).forEach(n => {
+    const preview = (n.title || stripHTML(n.body || '').substring(0, 60)) || 'Untitled';
+    html += '<div class="capture-row">'
+      + '<div class="capture-text" onclick="openCaptureItem(\'' + n.id + '\')">' + esc(preview) + '</div>'
+      + '<div class="capture-actions">'
+      + '<button class="capture-act" onclick="convertCapture(\'' + n.id + '\', \'todo\')" title="Convert to To-Do"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'2\'><polyline points=\'9 11 12 14 22 4\'/><path d=\'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11\'/></svg></button>'
+      + '<button class="capture-act" onclick="convertCapture(\'' + n.id + '\', \'reminder\')" title="Convert to Reminder"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'2\'><path d=\'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9\'/><path d=\'M13.73 21a2 2 0 0 1-3.46 0\'/></svg></button>'
+      + '<button class="capture-act" onclick="convertCapture(\'' + n.id + '\', \'note\')" title="Keep as Note"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'2\'><path d=\'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\'/><polyline points=\'14 2 14 8 20 8\'/></svg></button>'
+      + '<button class="capture-act capture-dismiss" onclick="dismissCapture(\'' + n.id + '\')" title="Dismiss"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'2\'><line x1=\'18\' y1=\'6\' x2=\'6\' y2=\'18\'/><line x1=\'6\' y1=\'6\' x2=\'18\' y2=\'18\'/></svg></button>'
+      + '</div></div>';
+  });
+  if (items.length > 4) {
+    html += '<div style="font-size:11px;color:var(--ink-mute);text-align:center;padding:4px 0">+ ' + (items.length - 4) + ' more in Notes</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function openCaptureItem(id) {
+  switchView('notes');
+  setTimeout(() => openNoteDetail(id), 200);
+}
+
+function convertCapture(id, targetType) {
+  const n = S.notes.find(x => x.id === id);
+  if (!n) return;
+  const title = n.title || stripHTML(n.body || '').substring(0, 80) || 'Captured';
+  const plainBody = stripHTML(n.body || '');
+  if (targetType === 'note') {
+    // Just mark as processed
+    n._unprocessed = false;
+    save();
+    renderDash();
+    renderNotes();
+    toast('Kept as note', 'ok');
+    return;
+  }
+  if (targetType === 'todo') {
+    const newT = {
+      id: gid(), title, date: td(), time: '', notes: plainBody,
+      priority: 'low', recur: null, completed: false, createdAt: Date.now(),
+    };
+    stampOwner(newT);
+    S.todos.push(newT);
+    // Remove the unprocessed capture
+    S.notes = S.notes.filter(x => x.id !== id);
+    save();
+    renderTodos(); renderDash(); renderNotes();
+    toast('Converted to To-Do', 'ok');
+    return;
+  }
+  if (targetType === 'reminder') {
+    const newR = {
+      id: gid(), title, date: td(), time: defaultNextHourTime(), notes: plainBody,
+      priority: 'none', recur: null, completed: false, createdAt: Date.now(),
+    };
+    stampOwner(newR);
+    S.reminders.push(newR);
+    S.notes = S.notes.filter(x => x.id !== id);
+    save();
+    renderRem(); renderDash(); renderNotes();
+    toast('Converted to Reminder', 'ok');
+    return;
+  }
+}
+
+function dismissCapture(id) {
+  if (!confirm('Discard this captured note?')) return;
+  S.notes = S.notes.filter(x => x.id !== id);
+  save();
+  renderDash(); renderNotes();
+  toast('Discarded');
+}
+
+
+// ── REVERSE LINKING ──
+function createLinkedNote(itemType, itemId) {
+  // Close current modal first
+  ['modal-todo', 'modal-list', 'modal-list-menu', 'modal-reminder', 'modal-streak'].forEach(m => {
+    const el = document.getElementById(m);
+    if (el && el.classList.contains('show')) closeModal(m);
+  });
+  // Create a new note linked to this item
+  const newId = gid();
+  const note = {
+    id: newId,
+    title: '',
+    body: '',
+    pinned: false,
+    tags: [],
+    linkedTo: { type: itemType, id: itemId },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  stampOwner(note);
+  S.notes.unshift(note);
+  save();
+  // Open the new note immediately
+  setTimeout(() => {
+    switchView('notes');
+    setTimeout(() => openNoteDetail(newId), 150);
+  }, 200);
+}
+
+function renderNotesAboutButtonHTML(itemType, itemId) {
+  if (!itemId) return ''; // only for existing items
+  return '<button class="btn btn-ghost btn-block btn-sm" style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="createLinkedNote(\'' + itemType + '\',\'' + itemId + '\')">'
+    + svg('paperclip', 14) + ' Create note about this</button>';
+}
+
+
+// ── GLOBAL SEARCH ──
+function openSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-results').innerHTML = '<p style="text-align:center;color:var(--ink-mute);font-size:13px;padding:40px 16px">Start typing to search across all modules.</p>';
+  document.getElementById('search-view').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('search-input').focus(), 350);
+}
+function closeSearch() {
+  document.getElementById('search-view').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function renderSearch() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  const el = document.getElementById('search-results');
+  if (!q) {
+    el.innerHTML = '<p style="text-align:center;color:var(--ink-mute);font-size:13px;padding:40px 16px">Start typing to search across all modules.</p>';
+    return;
+  }
+  const matchFn = (txt) => txt && String(txt).toLowerCase().includes(q);
+  const todos = (S.todos || []).filter(canSeeItem).filter(t => matchFn(t.title) || matchFn(t.notes));
+  const lists = (S.lists || []).filter(canSeeItem).filter(l => matchFn(l.name) || (l.items || []).some(i => matchFn(i.text)));
+  const reminders = (S.reminders || []).filter(canSeeItem).filter(r => matchFn(r.title) || matchFn(r.notes));
+  const notes = (S.notes || []).filter(canSeeItem).filter(n => matchFn(n.title) || matchFn(stripHTML(n.body || '')));
+  const streaks = (S.streaks || []).filter(canSeeItem).filter(s => matchFn(s.name));
+
+  const total = todos.length + lists.length + reminders.length + notes.length + streaks.length;
+  if (total === 0) {
+    el.innerHTML = '<p style="text-align:center;color:var(--ink-mute);font-size:13px;padding:40px 16px">No matches.</p>';
+    return;
+  }
+
+  function hl(text) {
+    if (!text) return '';
+    const safe = esc(text);
+    const idx = safe.toLowerCase().indexOf(q);
+    if (idx < 0) return safe;
+    return safe.substring(0, idx) + '<mark>' + safe.substring(idx, idx + q.length) + '</mark>' + safe.substring(idx + q.length);
+  }
+
+  let html = '';
+  function section(title, items, renderItem) {
+    if (!items.length) return;
+    html += '<div class="section-label" style="margin-top:14px">' + title + ' <span style="color:var(--ink-mute);font-weight:500">(' + items.length + ')</span></div>';
+    items.forEach(it => html += renderItem(it));
+  }
+
+  section('To-Dos', todos, t => `<div class="search-result" onclick="closeSearch();switchView('todos');setTimeout(()=>openTodoModal('${t.id}'),200)">
+    <div class="search-result-icon" style="background:var(--cyan-soft);color:var(--cyan)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+    <div class="search-result-body"><div class="search-result-title">${hl(t.title)}</div>${t.notes ? '<div class="search-result-sub">' + hl((t.notes || '').substring(0, 100)) + '</div>' : ''}</div>
+  </div>`);
+
+  section('Lists', lists, l => `<div class="search-result" onclick="closeSearch();switchView('lists');setTimeout(()=>openListDetail('${l.id}'),200)">
+    <div class="search-result-icon" style="background:${l.color || '#f59e0b'}1a;color:${l.color || '#f59e0b'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+    <div class="search-result-body"><div class="search-result-title">${hl(l.name)}</div></div>
+  </div>`);
+
+  section('Reminders', reminders, r => `<div class="search-result" onclick="closeSearch();switchView('reminders');setTimeout(()=>openReminderModal('${r.id}'),200)">
+    <div class="search-result-icon" style="background:var(--reminder-soft);color:var(--reminder)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+    <div class="search-result-body"><div class="search-result-title">${hl(r.title)}</div></div>
+  </div>`);
+
+  section('Notes', notes, n => `<div class="search-result" onclick="closeSearch();switchView('notes');setTimeout(()=>openNoteDetail('${n.id}'),200)">
+    <div class="search-result-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+    <div class="search-result-body"><div class="search-result-title">${hl(n.title || 'Untitled')}</div>${(stripHTML(n.body || '').toLowerCase().includes(q)) ? '<div class="search-result-sub">' + hl(stripHTML(n.body || '').substring(0, 100)) + '</div>' : ''}</div>
+  </div>`);
+
+  section('Streaks', streaks, s => `<div class="search-result" onclick="closeSearch();switchView('streaks')">
+    <div class="search-result-icon" style="background:${s.color || '#f43f5e'}1a;color:${s.color || '#f43f5e'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+    <div class="search-result-body"><div class="search-result-title">${hl(s.name)}</div></div>
+  </div>`);
+
+  el.innerHTML = html;
+}
+
+
+// ── LIST ATTACHMENTS (photos) ──
+function openListAttachmentPicker() {
+  if (!listId) return;
+  document.getElementById('list-attach-input').click();
+}
+
+function handleListAttachUpload(event) {
+  const file = event.target.files[0];
+  if (!file || !listId) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // Compress to max 1200px wide, 70% JPEG
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = h * (MAX / w); w = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      // Append to list.attachments
+      const list = S.lists.find(l => l.id === listId);
+      if (!list) return;
+      if (!Array.isArray(list.attachments)) list.attachments = [];
+      list.attachments.push({ id: gid(), dataUrl, addedAt: Date.now() });
+      save();
+      renderListDet();
+      toast('Photo attached', 'ok');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  // Reset input so same file can be re-selected later
+  event.target.value = '';
+}
+
+function deleteListAttachment(attachId) {
+  if (!listId || !confirm('Delete this photo?')) return;
+  const list = S.lists.find(l => l.id === listId);
+  if (!list) return;
+  list.attachments = (list.attachments || []).filter(a => a.id !== attachId);
+  save();
+  renderListDet();
+  toast('Photo deleted');
+}
+
+function openAttachmentViewer(dataUrl) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:pointer';
+  overlay.onclick = () => document.body.removeChild(overlay);
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.cssText = 'max-width:100%;max-height:100%;border-radius:8px;';
+  overlay.appendChild(img);
+  document.body.appendChild(overlay);
+}
+
+function renderListAttachmentsHTML(list) {
+  if (!list || !list.attachments || !list.attachments.length) return '';
+  let html = '<div class="list-attachments"><div class="list-attach-label">Photos</div><div class="list-attach-strip">';
+  list.attachments.forEach(a => {
+    html += '<div class="list-attach-thumb">'
+      + '<img src="' + a.dataUrl + '" onclick="openAttachmentViewer(\'' + a.dataUrl + '\')" alt="attachment">'
+      + '<button class="list-attach-del" onclick="deleteListAttachment(\'' + a.id + '\')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+
+// ── LIST TEMPLATES ──
+function saveListAsTemplate(listId) {
+  const list = S.lists.find(l => l.id === listId);
+  if (!list) return;
+  const tplName = prompt('Name this template:', list.name + ' template');
+  if (!tplName || !tplName.trim()) return;
+  if (!Array.isArray(S.templates)) S.templates = [];
+  const tpl = {
+    id: gid(),
+    name: tplName.trim(),
+    sourceListName: list.name,
+    color: list.color || '#f59e0b',
+    type: list.type || 'checklist',
+    items: (list.items || []).map(i => ({ text: i.text, checked: false })),
+    createdAt: Date.now(),
+  };
+  S.templates.push(tpl);
+  save();
+  toast('Template saved', 'ok');
+}
+
+function deleteTemplate(tplId) {
+  if (!confirm('Delete this template?')) return;
+  S.templates = (S.templates || []).filter(t => t.id !== tplId);
+  save();
+  openTemplatesManager();
+}
+
+function createListFromTemplate(tplId) {
+  const tpl = (S.templates || []).find(t => t.id === tplId);
+  if (!tpl) return;
+  const newName = prompt('Name for the new list:', tpl.name);
+  if (!newName || !newName.trim()) return;
+  const newL = {
+    id: gid(),
+    name: newName.trim(),
+    color: tpl.color,
+    type: tpl.type,
+    items: tpl.items.map(i => ({ id: gid(), text: i.text, checked: false })),
+    createdAt: Date.now(),
+  };
+  stampOwner(newL);
+  S.lists.push(newL);
+  save();
+  closeModal('modal-templates');
+  renderLists();
+  switchView('lists');
+  setTimeout(() => openListDetail(newL.id), 200);
+  toast('List created from template', 'ok');
+}
+
+function openTemplatesManager() {
+  const body = document.getElementById('templates-body');
+  const tpls = S.templates || [];
+  let html = '';
+  if (!tpls.length) {
+    html = '<div class="empty-state" style="padding:32px 16px">'
+      + '<div class="empty-icon" style="width:56px;height:56px;background:var(--list-soft);color:var(--list);border-color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>'
+      + '<div class="empty-title">No templates yet</div>'
+      + '<div class="empty-sub">Open any list, tap the menu, and choose \u201cSave as template\u201d to reuse it later.</div>'
+      + '</div>';
+  } else {
+    html = '<p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">Tap a template to create a fresh list from it.</p>';
+    tpls.forEach(t => {
+      html += '<div class="template-card" onclick="createListFromTemplate(\'' + t.id + '\')">'
+        + '<div class="list-icon" style="background:' + t.color + '1a;border:2px solid ' + t.color + '"></div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div class="list-name">' + esc(t.name) + '</div>'
+        + '<div class="list-meta">' + (t.items || []).length + ' item' + ((t.items || []).length !== 1 ? 's' : '') + ' \u00b7 ' + (t.type === 'checklist' ? 'Checklist' : 'Freeform') + '</div>'
+        + '</div>'
+        + '<button class="btn-icon btn-xs" onclick="event.stopPropagation();deleteTemplate(\'' + t.id + '\')" style="color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
+        + '</div>';
+    });
+  }
+  body.innerHTML = html;
+  openModal('modal-templates');
+}
+
+
+function injectTemplateBanner() {
+  // Show "Or create from template" button in the list modal if templates exist
+  const body = document.querySelector('#modal-list .modal-body');
+  let existing = body.querySelector('.template-banner');
+  if (existing) existing.remove();
+  if ((S.templates || []).length === 0) return;
+  // Only show in NEW mode (not edit)
+  if (document.getElementById('list-eid').value) return;
+  const banner = document.createElement('div');
+  banner.className = 'template-banner';
+  banner.style.cssText = 'background:var(--list-soft);border:1px solid var(--list);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px';
+  banner.innerHTML = '<div style="color:var(--list);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>'
+    + '<div style="flex:1;font-size:12px;color:var(--ink-soft)">You have ' + (S.templates || []).length + ' template(s)</div>'
+    + '<button class="btn btn-sm" style="font-size:12px;padding:4px 10px" onclick="closeModal(\'modal-list\');openTemplatesManager()">Use Template</button>';
+  body.insertBefore(banner, body.firstChild);
+}
+
+
+// ── SUNDAY REVIEW ──
+function isSundayEvening() {
+  const now = new Date();
+  return now.getDay() === 0 && now.getHours() >= 17;
+}
+
+function currentWeekKey() {
+  // ISO-ish week key: YYYY-WW
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+  return d.getFullYear() + '-W' + String(week).padStart(2, '0');
+}
+
+function shouldShowSundayReview() {
+  if (S.dashSections && S.dashSections.sundayReview === false) return false;
+  if (!isSundayEvening()) return false;
+  return S.dismissedSundayWeek !== currentWeekKey();
+}
+
+function dismissSundayReview() {
+  S.dismissedSundayWeek = currentWeekKey();
+  save();
+  renderDash();
+}
+
+function renderSundayReviewCard() {
+  if (!shouldShowSundayReview()) return '';
+  return '<div class="sunday-card">'
+    + '<div class="sunday-card-title">' + svg('calendar', 14) + ' Weekly Review</div>'
+    + '<div class="sunday-card-body">Want to review last week and plan the next?</div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px">'
+    + '<button class="btn btn-ghost btn-sm" style="flex:1" onclick="dismissSundayReview()">Not now</button>'
+    + '<button class="btn btn-primary btn-sm" style="flex:1" onclick="openSundayReview()">Start review</button>'
+    + '</div></div>';
+}
+
+function openSundayReview() {
+  // Compute stats for the past week
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgoStr = weekAgo.getFullYear() + '-' + String(weekAgo.getMonth()+1).padStart(2,'0') + '-' + String(weekAgo.getDate()).padStart(2,'0');
+
+  const completedTodos = (S.todos || []).filter(t => t.completed && t.completedAt && t.completedAt >= weekAgo.getTime()).length;
+  const totalCompletedTodos = (S.todos || []).filter(t => t.completed).length; // fallback if no completedAt
+  const completedShown = completedTodos || totalCompletedTodos;
+  const incompleteOverdue = (S.todos || []).filter(canSeeItem).filter(t => !t.completed && t.date && t.date < td()).length;
+  const notesCreated = (S.notes || []).filter(n => (n.createdAt || 0) >= weekAgo.getTime()).length;
+  const streakLogs = (S.streaks || []).reduce((acc, s) => acc + ((s.logs || []).filter(d => d >= weekAgoStr).length), 0);
+
+  document.getElementById('sett-title').textContent = 'Weekly Review';
+  document.getElementById('sett-body').innerHTML =
+    '<div style="text-align:center;padding:8px 0 16px">'
+    + '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:20px;font-weight:800;color:var(--ink)">Last Week</div>'
+    + '<div style="font-size:13px;color:var(--ink-soft);margin-top:4px">' + weekAgo.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' \u2013 ' + now.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div>'
+    + '</div>'
+    + '<div class="review-grid">'
+    + '<div class="review-stat"><div class="review-num">' + completedShown + '</div><div class="review-lbl">To-dos done</div></div>'
+    + '<div class="review-stat"><div class="review-num">' + streakLogs + '</div><div class="review-lbl">Streak logs</div></div>'
+    + '<div class="review-stat"><div class="review-num">' + notesCreated + '</div><div class="review-lbl">Notes captured</div></div>'
+    + '<div class="review-stat"><div class="review-num">' + incompleteOverdue + '</div><div class="review-lbl">Overdue to-dos</div></div>'
+    + '</div>'
+    + '<div class="section-label">Next Week</div>'
+    + '<button class="btn btn-block" style="margin-bottom:8px;text-align:left;justify-content:flex-start" onclick="closeModal(\'modal-settings\');switchView(\'todos\')">'
+    + svg('check', 16) + '<span style="margin-left:8px">Plan your to-dos</span></button>'
+    + '<button class="btn btn-block" style="margin-bottom:8px;text-align:left;justify-content:flex-start" onclick="closeModal(\'modal-settings\');openCalendar()">'
+    + svg('calendar', 16) + '<span style="margin-left:8px">Review the calendar</span></button>'
+    + '<button class="btn btn-block" style="margin-bottom:8px;text-align:left;justify-content:flex-start" onclick="closeModal(\'modal-settings\');switchView(\'streaks\')">'
+    + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>'
+    + '<span style="margin-left:8px">Check your streaks</span></button>'
+    + '<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="dismissSundayReview();closeModal(\'modal-settings\')">Done</button>';
+  openModal('modal-settings');
+}
+
+
+// ── SMART CONTEXTUAL NUDGES (conservative — show max 1) ──
+function pickSmartNudge() {
+  // Returns { title, body, action: {label, onclick} } or null
+
+  // Priority 1: Overdue todos
+  const overdue = (S.todos || []).filter(canSeeItem).filter(t => !t.completed && t.date && t.date < td());
+  if (overdue.length >= 3) {
+    return {
+      icon: 'calendar',
+      color: 'var(--pri-high)',
+      bg: 'var(--pri-high-soft)',
+      title: 'You have ' + overdue.length + ' overdue to-dos',
+      body: 'Push them to tomorrow in one tap?',
+      actionLabel: 'Defer all',
+      actionFn: 'smartNudgeDeferOverdue()',
+    };
+  }
+
+  // Priority 2: Streak about to hit a milestone
+  if (S.streaks && S.streaks.length) {
+    for (const s of S.streaks.filter(canSeeItem)) {
+      const chain = getStreakChain(s);
+      if (chain === 6) {
+        return {
+          icon: 'flame',
+          color: 'var(--streak)',
+          bg: 'var(--streak-soft)',
+          title: '\u201C' + s.name + '\u201D at 6-day chain',
+          body: 'One more day for a week!',
+          actionLabel: null,
+          actionFn: null,
+        };
+      }
+      if (chain === 29) {
+        return {
+          icon: 'flame',
+          color: 'var(--streak)',
+          bg: 'var(--streak-soft)',
+          title: '\u201C' + s.name + '\u201D at 29 days',
+          body: 'One more for the 30-day milestone.',
+          actionLabel: null,
+          actionFn: null,
+        };
+      }
+    }
+  }
+
+  // Priority 3: Stale list (not touched in 14 days)
+  const now = Date.now();
+  const twoWeeksAgo = now - (14 * 24 * 60 * 60 * 1000);
+  const staleList = (S.lists || []).filter(canSeeItem).find(l => {
+    const lastTouched = l.updatedAt || l.createdAt || 0;
+    return lastTouched < twoWeeksAgo && (l.items || []).length > 0;
+  });
+  if (staleList) {
+    return {
+      icon: 'inbox',
+      color: 'var(--list)',
+      bg: 'var(--list-soft)',
+      title: '\u201C' + staleList.name + '\u201D has been quiet',
+      body: 'Untouched for 2+ weeks. Still need it?',
+      actionLabel: null,
+      actionFn: null,
+    };
+  }
+
+  // Priority 4: Streak going strong this week
+  const dowAgo = new Date(); dowAgo.setDate(dowAgo.getDate() - 7);
+  const dowAgoStr = dowAgo.getFullYear() + '-' + String(dowAgo.getMonth()+1).padStart(2,'0') + '-' + String(dowAgo.getDate()).padStart(2,'0');
+  for (const s of (S.streaks || []).filter(canSeeItem)) {
+    const recentLogs = (s.logs || []).filter(d => d >= dowAgoStr).length;
+    if (recentLogs >= 5) {
+      return {
+        icon: 'flame',
+        color: s.color || 'var(--streak)',
+        bg: 'var(--streak-soft)',
+        title: 'Strong week for \u201C' + s.name + '\u201D',
+        body: 'Logged ' + recentLogs + ' days this week. Keep going.',
+        actionLabel: null,
+        actionFn: null,
+      };
+    }
+  }
+
+  return null;
+}
+
+function smartNudgeDeferOverdue() {
+  const overdue = (S.todos || []).filter(canSeeItem).filter(t => !t.completed && t.date && t.date < td());
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth()+1).padStart(2,'0') + '-' + String(tomorrow.getDate()).padStart(2,'0');
+  overdue.forEach(t => { t.date = tomorrowStr; });
+  save();
+  renderDash(); renderTodos();
+  toast('Deferred ' + overdue.length + ' to-dos to tomorrow', 'ok');
+}
+
+function renderSmartNudgeCard() {
+  const n = pickSmartNudge();
+  if (!n) return '';
+  return '<div class="smart-nudge-card" style="border-color:' + n.color + ';background:' + n.bg + '">'
+    + '<div class="smart-nudge-title" style="color:' + n.color + '">' + svg(n.icon, 14) + ' ' + esc(n.title) + '</div>'
+    + '<div class="smart-nudge-body">' + esc(n.body) + '</div>'
+    + (n.actionLabel ? '<button class="btn btn-sm" style="margin-top:8px;background:' + n.color + ';color:#fff;border-color:' + n.color + '" onclick="' + n.actionFn + '">' + esc(n.actionLabel) + '</button>' : '')
+    + '</div>';
+}
+
+// ── EXPORT / IMPORT ──
+function exportData() {
+  const data = JSON.stringify(S, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().split('T')[0];
+  a.href = url;
+  a.download = 'focus-backup-' + date + '.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+  toast('Backup downloaded', 'ok');
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!parsed || typeof parsed !== 'object') throw new Error('Invalid backup file');
+        if (!confirm('Import this backup? Your current data will be REPLACED.\n\nItems in backup:\n' +
+          ((parsed.todos||[]).length) + ' to-dos, ' +
+          ((parsed.lists||[]).length) + ' lists, ' +
+          ((parsed.reminders||[]).length) + ' reminders, ' +
+          ((parsed.notes||[]).length) + ' notes, ' +
+          ((parsed.streaks||[]).length) + ' streaks')) return;
+        // Merge over defaults so any missing fields fall back gracefully
+        S = { ...DS, ...parsed };
+        save();
+        applyTheme(S.theme || 'dark');
+        applyCompactMode();
+        renderDash(); renderTodos(); renderLists(); renderRem(); renderNotes(); renderStreaks(); tabs();
+        toast('Backup restored', 'ok');
+      } catch (err) {
+        toast('Invalid backup file: ' + err.message, 'err');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+
+// ── ONBOARDING ──
+function shouldShowOnboarding() {
+  // Show if username not set and onboarding hasn't been skipped
+  return !S.myUsername && !S.onboardingDismissed;
+}
+
+function showOnboarding() {
+  document.getElementById('onboarding-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('onboard-username').focus(), 150);
+}
+
+function hideOnboarding() {
+  document.getElementById('onboarding-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function toggleOnboardSync() {
+  const section = document.getElementById('onboard-sync-section');
+  const chev = document.getElementById('onboard-sync-chev');
+  const isOpen = section.style.display === 'block';
+  section.style.display = isOpen ? 'none' : 'block';
+  chev.style.transform = isOpen ? 'rotate(0)' : 'rotate(90deg)';
+  if (!isOpen) setTimeout(() => document.getElementById('onboard-sync').focus(), 100);
+}
+
+function finishOnboarding() {
+  const u = document.getElementById('onboard-username').value.trim();
+  const sc = document.getElementById('onboard-sync').value.trim().toUpperCase();
+  if (!u) { toast('Pick a username to continue', 'err'); return; }
+  S.myUsername = u;
+  ensureKnownUsername(u);
+  if (sc) {
+    if (sc.length !== 6) { toast('Sync code must be 6 characters', 'err'); return; }
+    S.syncCode = sc;
+  }
+  S.onboardingDismissed = true;
+  // Stamp all existing un-owned items with this username
+  ['todos','lists','reminders','notes','streaks'].forEach(k => {
+    (S[k] || []).forEach(item => { if (!item.ownerUsername) item.ownerUsername = u; });
+  });
+  save();
+  hideOnboarding();
+  renderDash();
+  toast('Welcome, @' + u, 'ok');
+}
+
+function skipOnboarding() {
+  if (!confirm('Skip setup? You can add a username later in Settings, but tagging and sharing won\'t work until you do.')) return;
+  S.onboardingDismissed = true;
+  save();
+  hideOnboarding();
+}
+
 // ── THEME ──
 function applyTheme(theme) {
   document.documentElement.classList.toggle('light', theme === 'light');
@@ -2618,6 +4271,78 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.03.01',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Dashboard greeting now shows your @username instead of being hardcoded',
+      'New onboarding landing page on first launch: pick a username and optionally enter a sync code before using the app',
+      'Default theme changed from dark to light for new users (existing users keep their setting)',
+      'Removed the colored box on the left of list cards — left-edge color stripe is now the per-list color cue',
+      'Removed the icon on the list detail empty state (the rounded square with two horizontal lines)'
+    ]
+  },
+  {
+    version: '0.03.00',
+    date: 'Jun 17, 2026',
+    type: 'medium',
+    items: [
+      'Notes: paste now strips foreign styles (clean plain text only) — no more formatting bleeding in from other apps',
+      'Notes: added Code button to the toolbar — wraps selection in monospace inline code',
+      'Notes: mention highlighter now runs only when you leave the editor (on blur), not while typing — eliminates cursor jumps mid-thought',
+      'Streaks: replaced the ugly browser prompt() with a proper in-app modal for logging numeric values, with a live progress preview',
+      'Streaks: expanded value-based streak cards now show a 7-day bar chart with a dashed goal line',
+      'Templates: save any list as a reusable template (List menu → Save as template); manage them in Settings → Templates; new list modal offers to use a template if any exist',
+      'Sunday review: a card appears on the Dashboard on Sunday evenings prompting a weekly review with stats (to-dos done, streak logs, notes, overdue items)',
+      'Smart nudges: dashboard shows up to one contextual hint at a time — overdue to-dos with one-tap defer-all, streak milestone reminders, stale list flags, or strong-week celebrations',
+      'All Phase A + Phase B + Phase C of v0.03.00 — see prior entries'
+    ]
+  },
+  {
+    version: '0.03.00-B',
+    date: 'Jun 16, 2026',
+    type: 'medium',
+    items: [
+      'Swipe gestures on To-Do and Reminder items: swipe LEFT to reveal Defer / Done / Delete actions, swipe RIGHT for instant complete',
+      'Quick Note tile in the + menu — dump a thought, triage from Dashboard “To Triage” card (convert to To-Do, Reminder, keep as Note, or dismiss)',
+      'Each item modal now has a “Create note about this” button that creates a new note pre-linked to the item and opens it immediately',
+      'Global search: magnifying-glass icon in the Dashboard header opens a full-screen search across all 5 modules, with match highlighting',
+      'Dashboard header restructured into proper flexbox layout to fit search + calendar + settings without overlapping the greeting',
+      'List attachments: paperclip icon in the list detail header lets you attach photos (auto-compressed to 1200px / 70% JPEG to stay localStorage-friendly)'
+    ]
+  },
+  {
+    version: '0.03.00-A',
+    date: 'Jun 16, 2026',
+    type: 'medium',
+    items: [
+      'Backup: Settings > Backup lets you export all data as JSON and import to restore',
+      '"Shared with you" section on Dashboard surfaces items owned by other household members and shared to you',
+      'New "Share with..." picker in every item modal (To-Do, List, Reminder, Note, Streak) with a Pick button — select household members from a chip list, no need to type @mentions',
+      'Settings > Dashboard Sections lets you toggle which dashboard cards appear (tag notifications, shared with you, streak nudge, pinned note, etc.)'
+    ]
+  },
+  {
+    version: '0.02.18',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: pressing Enter after a tagged mention now creates a new line correctly',
+      'Mention pills are now treated as atomic units (contenteditable=false) so the cursor and Enter key behave naturally around them',
+      'Always inserts a text node after each mention so the cursor has somewhere to land',
+      'Enter keypress cancels the pending live-highlight refresh so it can\'t fight the keystroke'
+    ]
+  },
+  {
+    version: '0.02.17',
+    date: 'Jun 16, 2026',
+    type: 'minor',
+    items: [
+      'Removed stale "Streak tracking arrives in Phase 3" placeholder from the Dashboard streak nudge',
+      'Cleaned up HTML comments still referencing build phases'
+    ]
+  },
   {
     version: '0.02.16',
     date: 'Jun 16, 2026',
@@ -3477,7 +5202,7 @@ function initSwipeTabs() {
   // - touch is on the bottom nav itself
   function isBlocked(target) {
     if (!target) return false;
-    if (target.closest('input, textarea, [contenteditable="true"], button, select, .modal, .modal-backdrop, .detail-view.show, nav.tabs, .note-toolbar, .dot-grid, .streak-log-btn, .filter-bar, .filter-chip, .recur-dow-pills, .recur-detail-row, .streak-color-picker, .pill-row, .cal-grid')) return true;
+    if (target.closest('input, textarea, [contenteditable="true"], button, select, .modal, .modal-backdrop, .detail-view.show, nav.tabs, .note-toolbar, .dot-grid, .streak-log-btn, .filter-bar, .filter-chip, .recur-dow-pills, .recur-detail-row, .streak-color-picker, .pill-row, .cal-grid, .swipe-wrap')) return true;
     // Skip if any modal is open
     if (document.querySelector('.modal-backdrop.show')) return true;
     if (document.querySelector('.detail-view.show')) return true;
@@ -3566,11 +5291,12 @@ function initSwipeTabs() {
     <button class="note-tb-btn" onclick="richCmd('underline')"><u>U</u></button>
     <button class="note-tb-btn" onclick="richCmd('insertUnorderedList')">• List</button>
     <button class="note-tb-btn" onclick="richCmd('insertOrderedList')">1. List</button>
+    <button class="note-tb-btn" onclick="wrapSelectionInCode()" title="Code"><span style="font-family:monospace;font-size:13px">&lt;/&gt;</span></button>
   </div>
   <div class="detail-body" id="note-editor-body" onclick="focusNoteBody(event)">
     <div style="padding:16px">
       <input class="note-title-input" id="note-title-inp" placeholder="Note title…" autocomplete="off" oninput="noteChanged()">
-      <div class="note-rich-body" id="note-body-inp" contenteditable="true" data-placeholder="Start writing…" oninput="noteChanged()"></div>
+      <div class="note-rich-body" id="note-body-inp" contenteditable="true" data-placeholder="Start writing…" oninput="noteChanged()" onkeydown="handleNoteEditorKeydown(event)" onblur="handleNoteEditorBlur()" onpaste="handleNotePaste(event)"></div>
     </div>
   </div>
   <div class="note-link-row" id="note-link-row">
@@ -3582,11 +5308,83 @@ function initSwipeTabs() {
 
 
 
+
+
+<!-- QUICK CAPTURE MODAL -->
+<div class="modal-backdrop" id="modal-quick-capture">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title">Quick Note</div>
+      <button class="btn-icon" onclick="closeModal('modal-quick-capture')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">Dump a thought now. Triage it later from the Dashboard.</p>
+      <div class="field"><textarea id="quick-capture-input" placeholder="What's on your mind?" rows="4" style="font-size:15px"></textarea></div>
+      <button class="btn btn-primary btn-block" onclick="saveQuickCapture()">Capture</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="list-attach-input" accept="image/*" style="display:none" onchange="handleListAttachUpload(event)">
+
+<!-- TEMPLATES MODAL -->
+<div class="modal-backdrop" id="modal-templates">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title">List Templates</div>
+      <button class="btn-icon" onclick="closeModal('modal-templates')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="templates-body"></div>
+  </div>
+</div>
+
+<!-- SHARE PICKER MODAL -->
+<div class="modal-backdrop" id="modal-share-picker">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title">Share with...</div>
+      <button class="btn-icon" onclick="closeModal('modal-share-picker')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="share-picker-body"></div>
+  </div>
+</div>
+
+
+<!-- SEARCH OVERLAY -->
+<div class="detail-view" id="search-view">
+  <div class="detail-hdr">
+    <button class="detail-back" onclick="closeSearch()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="detail-title-wrap" style="flex:1">
+      <input type="text" id="search-input" placeholder="Search everything..." oninput="renderSearch()" autocomplete="off" style="width:100%;background:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;color:var(--ink);outline:none;padding:0;">
+    </div>
+    <button class="btn-icon" onclick="document.getElementById('search-input').value='';renderSearch();document.getElementById('search-input').focus()" title="Clear"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="detail-body" style="padding:0 16px" id="search-results"></div>
+</div>
+
 <!-- NOTE LINK PICKER MODAL -->
 <div class="modal-backdrop" id="modal-note-link">
   <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
     <div class="modal-header"><div class="modal-title">Link to an item</div><button class="btn-icon" onclick="closeModal('modal-note-link')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="modal-body" id="note-link-picker-body"></div>
+  </div>
+</div>
+
+
+<!-- STREAK VALUE LOG MODAL -->
+<div class="modal-backdrop" id="modal-streak-value">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title" id="streak-value-title">Log Value</div>
+      <button class="btn-icon" onclick="closeModal('modal-streak-value')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="streak-value-id">
+      <div id="streak-value-context" style="margin-bottom:14px;text-align:center;color:var(--ink-soft);font-size:13px"></div>
+      <div class="field">
+        <label class="field-label">Today's value</label>
+        <input type="number" id="streak-value-input" placeholder="0" min="0" inputmode="numeric" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:32px;font-weight:800;text-align:center;letter-spacing:-.02em">
+        <div id="streak-value-unit" style="text-align:center;font-size:12px;color:var(--ink-mute);margin-top:6px"></div>
+      </div>
+      <div id="streak-value-progress" style="display:none;margin-bottom:14px"></div>
+      <button class="btn btn-primary btn-block" onclick="confirmStreakValue()">Save</button>
+    </div>
   </div>
 </div>
 
