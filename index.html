@@ -1114,6 +1114,56 @@ input.has-mention, .note-title-input.has-mention {
   margin-top: 6px;
 }
 
+
+/* NESTED LIST ADD BUTTONS */
+.li-nested-btn-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: -1px;
+}
+.li-nested-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.li-nested-btn:active {
+  background: var(--list-soft);
+  border-color: var(--list);
+  color: var(--list);
+}
+.li-nested-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+
+/* Share picker spacing inside item modals */
+.share-injected {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.share-injected .field {
+  margin-top: 0;
+}
+
 </style>
 </head>
 <body>
@@ -1197,11 +1247,6 @@ input.has-mention, .note-title-input.has-mention {
     <button class="header-btn" onclick="openListModal()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
   </div>
   <div style="padding:0 16px">
-    <div class="filter-bar">
-      <button class="filter-chip act-amber" onclick="setFilter('list','all',this)">All</button>
-      <button class="filter-chip" onclick="setFilter('list','checklist',this)">Checklists</button>
-      <button class="filter-chip" onclick="setFilter('list','freeform',this)">Freeform</button>
-    </div>
     <div id="list-grid"></div>
   </div>
 </div>
@@ -1269,7 +1314,14 @@ input.has-mention, .note-title-input.has-mention {
     <button class="btn-icon" onclick="openListMenu()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>
   <div class="detail-body"><div id="det-items"></div>
-    <div class="li-add-row"><input class="li-add-input" id="li-add-input" placeholder="Add item…" autocomplete="off" onkeydown="if(event.key==='Enter')addListItem()"><button class="li-add-btn" onclick="addListItem()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+    <div class="li-add-row">
+      <input class="li-add-input" id="li-add-input" placeholder="Add item…" autocomplete="off" onkeydown="if(event.key==='Enter')addListItem()">
+      <button class="li-add-btn" id="li-add-item-btn" onclick="addListItem()" title="Add item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    </div>
+    <div class="li-nested-btn-row" id="li-nested-btn-row" style="display:none">
+      <button class="li-nested-btn" id="li-add-section-btn" onclick="addListSectionInline()" title="Add section header"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/></svg><span>Section</span></button>
+      <button class="li-nested-btn" id="li-add-subsection-btn" onclick="addListSubsectionInline()" title="Add subsection header"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/></svg><span>Sub</span></button>
+    </div>
   </div>
 </div>
 
@@ -1344,6 +1396,14 @@ input.has-mention, .note-title-input.has-mention {
     <div class="modal-body">
       <input type="hidden" id="list-eid">
       <div class="field"><label class="field-label">List Name</label><input type="text" id="list-name" placeholder="e.g. Groceries, Packing, Ideas…" autocomplete="off"></div>
+      <div class="field"><label class="field-label">Type</label>
+        <div class="pill-row" id="pr-listtype">
+          <button class="pill sel" data-val="checklist" onclick="setPill('listtype',this)">Checklist</button>
+          <button class="pill" data-val="freeform" onclick="setPill('listtype',this)">Freeform</button>
+          <button class="pill" data-val="nested" onclick="setPill('listtype',this)">Nested</button>
+        </div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Checklist = tappable items. Freeform = text-only. Nested = supports section headers (e.g. days, categories).</div>
+      </div>
       <div class="field"><label class="field-label">Color</label>
         <div class="streak-color-picker" id="list-color-picker">
           <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" onclick="selectListColor('#f59e0b',this)"></div>
@@ -1354,10 +1414,7 @@ input.has-mention, .note-title-input.has-mention {
           <div class="color-swatch" data-color="#ec4899" style="background:#ec4899" onclick="selectListColor('#ec4899',this)"></div>
         </div>
       </div>
-      <div class="field"><label class="field-label">List Type</label><div class="pill-row" id="pr-listtype">
-        <button class="pill sel" data-val="checklist" onclick="setPill('listtype',this)">☑ Checklist</button>
-        <button class="pill" data-val="freeform" onclick="setPill('listtype',this)">≡ Freeform</button>
-      </div></div>
+      
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn btn-ghost btn-sm" id="list-del-btn" onclick="deleteList()" style="display:none;color:var(--pri-high)">Delete</button>
         <button class="btn btn-block btn-amber" onclick="saveList()">Save List</button>
@@ -1507,15 +1564,6 @@ function fmtD(ds){
   return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
 function fmtT(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return`${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`;}
-function nextDate(ds,rec){
-  if(!ds||rec==='none')return null;
-  const[y,m,d]=ds.split('-').map(Number),dt=new Date(y,m-1,d);
-  if(rec==='daily')dt.setDate(dt.getDate()+1);
-  else if(rec==='weekly')dt.setDate(dt.getDate()+7);
-  else if(rec==='monthly')dt.setMonth(dt.getMonth()+1);
-  else if(rec==='yearly')dt.setFullYear(dt.getFullYear()+1);
-  return`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-}
 function greet(){const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening';}
 
 // ── PILL SELECTOR ──
@@ -1865,6 +1913,22 @@ function tHTML(t){
 
 
 
+
+function toggleNestedCheckboxes(id) {
+  const l = S.lists.find(x => x.id === id);
+  if (!l) return;
+  l.showCheckboxes = !l.showCheckboxes;
+  // If turning off, clear any checked states so items don't render as strikethrough
+  if (!l.showCheckboxes) {
+    (l.items || []).forEach(i => { if (!i.isSection && !i.isSubsection) i.checked = false; });
+  }
+  save();
+  closeModal('modal-list-menu');
+  renderListDet();
+  renderLists();
+  toast(l.showCheckboxes ? 'Checkboxes on' : 'Checkboxes off', 'ok');
+}
+
 function convertListType(id) {
   const l = S.lists.find(x => x.id === id);
   if (!l) return;
@@ -1912,9 +1976,12 @@ function saveList(){
   const name=document.getElementById('list-name').value.trim();
   if(!name){toast('Please add a name','err');return;}
   const id=document.getElementById('list-eid').value;
+  let newId=null;
   if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');}toast('Updated','ok');}
-  else{const newL={id:gid(),name,color:selectedListColor,type:P.listtype,items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);toast('List created','ok');}
+  else{const newL={id:gid(),name,color:selectedListColor,type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
   save();closeModal('modal-list');renderLists();
+  // Open the new list immediately
+  if(newId)setTimeout(()=>openListDetail(newId),250);
 }
 function deleteList(){
   const id=document.getElementById('list-eid').value;
@@ -1929,7 +1996,8 @@ function renderLists(){
   el.innerHTML=lists.map(l=>{
     const regularItemsCard=(l.items||[]).filter(i=>!i.isSection&&!i.isSubsection);
     const tot=regularItemsCard.length,chk=regularItemsCard.filter(i=>i.checked).length;
-    const meta=(l.type==='checklist'||l.type==='nested')?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
+    const lHasChks=(l.type==='checklist')||(l.type==='nested'&&l.showCheckboxes);
+    const meta=lHasChks?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
     return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'}">
     <div class="list-card-hdr">
       <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
@@ -1945,11 +2013,18 @@ function openListDetail(id){
 function closeListDetail(){document.getElementById('list-detail-view').classList.remove('show');document.body.style.overflow='';listId=null;renderLists();}
 function renderListDet(){
   const l=S.lists.find(l=>l.id===listId);if(!l)return;
-  const items=l.items||[],unc=items.filter(i=>!i.checked),chk=items.filter(i=>i.checked);
-  const baseMeta=(l.type==='checklist'||l.type==='nested')?`${chk.length}/${regularItems.length}`:`${regularItems.length} item${regularItems.length!==1?'s':''}`;
+  const items=l.items||[];
+  const regularItems=items.filter(i=>!i.isSection&&!i.isSubsection);
+  const unc=regularItems.filter(i=>!i.checked);
+  const chk=regularItems.filter(i=>i.checked);
+  const hasChks=(l.type==='checklist')||(l.type==='nested'&&l.showCheckboxes);
+  const baseMeta=hasChks?`${chk.length}/${regularItems.length}`:`${regularItems.length} item${regularItems.length!==1?'s':''}`;
+  // Update title
+  const titleEl=document.getElementById('det-title');
+  if(titleEl)titleEl.innerHTML=esc(l.name);
   // Show section buttons only for nested lists
-  const secBtns=document.getElementById('li-section-buttons');
-  if(secBtns){secBtns.style.display=(l.type==='nested')?'flex':'none';}
+  const nestedBtns=document.getElementById('li-nested-btn-row');
+  if(nestedBtns){nestedBtns.style.display=(l.type==='nested')?'flex':'none';}
   if(l.recurrence){
     const nextR=getNextRefreshDate(l);
     const recDesc=l.recurrence.schedule==='weekly'?'Weekly':l.recurrence.schedule==='biweekly'?'Bi-weekly':'Monthly';
@@ -1959,16 +2034,27 @@ function renderListDet(){
     document.getElementById('det-sub').textContent=baseMeta;
   }
   let h='';
-  if(!items.length){h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;}
-  else{
-    if(unc.length)h+=`<div>`+unc.map(i=>liHTML(i,l.type,l.color)).join('')+`</div>`;
+  if(!items.length){
+    h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;
+  } else if(l.type==='nested'){
+    // For nested lists, render items in their original order so sections + subsections + items stay together
+    h+=`<div>`+items.filter(i=>!(i.checked&&!i.isSection&&!i.isSubsection)).map(i=>liHTML(i,l.type,l.color,l.showCheckboxes)).join('')+`</div>`;
+    if(chk.length&&l.showCheckboxes){
+      const co=l._co||false;
+      h+=`<div class="checked-section-toggle ${co?'open':''}" onclick="toggleCS('${l.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>Checked (${chk.length})</div>`;
+      if(co)h+=`<div>`+chk.map(i=>liHTML(i,l.type,l.color,l.showCheckboxes)).join('')+`</div>`;
+    }
+  } else {
+    if(unc.length)h+=`<div>`+unc.map(i=>liHTML(i,l.type,l.color,l.showCheckboxes)).join('')+`</div>`;
     if(chk.length&&l.type==='checklist'){
       const co=l._co||false;
       h+=`<div class="checked-section-toggle ${co?'open':''}" onclick="toggleCS('${l.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>Checked (${chk.length})</div>`;
-      if(co)h+=`<div>`+chk.map(i=>liHTML(i,l.type,l.color)).join('')+`</div>`;
-    }else if(chk.length)h+=chk.map(i=>liHTML(i,l.type,l.color)).join('');
+      if(co)h+=`<div>`+chk.map(i=>liHTML(i,l.type,l.color,l.showCheckboxes)).join('')+`</div>`;
+    }else if(chk.length)h+=chk.map(i=>liHTML(i,l.type,l.color,l.showCheckboxes)).join('');
   }
-  const lnHTML=renderLinkedNotes('list', listId);const attachHTML=renderListAttachmentsHTML(l);document.getElementById('det-items').innerHTML=attachHTML + h + (lnHTML?'<div style="padding:0 16px">'+lnHTML+'</div>':'');
+  const lnHTML=renderLinkedNotes('list', listId);
+  const attachHTML=renderListAttachmentsHTML(l);
+  document.getElementById('det-items').innerHTML=attachHTML + h + (lnHTML?'<div style="padding:0 16px">'+lnHTML+'</div>':'');
 }
 function liHTML(item,type,listColor){
   const isC=type==='checklist'||type==='nested';
@@ -1989,35 +2075,48 @@ function liHTML(item,type,listColor){
   }
   // Regular item — indent more if this list type is nested (visual hierarchy)
   const indentClass = (type === 'nested') ? ' li-row-indented' : '';
+  // Nested lists default to bullet (no checkbox) unless showCheckboxes is enabled on the list
+  // We need access to the list for showCheckboxes — passed via the 4th arg, fallback false
+  const showChk = (type === 'checklist') || (type === 'nested' && arguments[3] === true);
   return`<div class="li-row${indentClass} ${item.checked?'checked':''}">
-  ${isC?`<button class="li-chk ${item.checked?'checked':''}" onclick="toggleLI('${item.id}')"></button>`:'<div style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin:0 7px"></div>'}
+  ${showChk?`<button class="li-chk ${item.checked?'checked':''}" onclick="toggleLI('${item.id}')"></button>`:'<div style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin:0 7px"></div>'}
   <div class="li-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${renderMentionsHTML(item.text)}</div>
   <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>`;
 }
 function toggleCS(lid){const l=S.lists.find(l=>l.id===lid);if(!l)return;l._co=!l._co;save();renderListDet();}
 
-function addListSection() {
-  const text = prompt('Section name (e.g. Monday):');
-  if (!text || !text.trim()) return;
+
+function addListSectionInline() {
+  const inp = document.getElementById('li-add-input');
+  const text = inp.value.trim();
+  if (!text) { inp.placeholder = 'Type a section name then tap Section…'; inp.focus(); return; }
   const l = S.lists.find(l => l.id === listId);
   if (!l) return;
   if (!l.items) l.items = [];
-  l.items.push({ id: gid(), text: text.trim(), isSection: true, checked: false, createdAt: Date.now() });
+  l.items.push({ id: gid(), text, isSection: true, checked: false, createdAt: Date.now() });
+  inp.value = '';
+  inp.placeholder = 'Add item…';
   save();
   renderListDet();
+  inp.focus();
 }
 
-function addListSubsection() {
-  const text = prompt('Subsection name (e.g. Dinner):');
-  if (!text || !text.trim()) return;
+function addListSubsectionInline() {
+  const inp = document.getElementById('li-add-input');
+  const text = inp.value.trim();
+  if (!text) { inp.placeholder = 'Type a subsection name then tap Sub…'; inp.focus(); return; }
   const l = S.lists.find(l => l.id === listId);
   if (!l) return;
   if (!l.items) l.items = [];
-  l.items.push({ id: gid(), text: text.trim(), isSubsection: true, checked: false, createdAt: Date.now() });
+  l.items.push({ id: gid(), text, isSubsection: true, checked: false, createdAt: Date.now() });
+  inp.value = '';
+  inp.placeholder = 'Add item…';
   save();
   renderListDet();
+  inp.focus();
 }
+
 
 function addListItem(){
   const inp=document.getElementById('li-add-input'),text=inp.value.trim();if(!text)return;
@@ -2041,6 +2140,10 @@ function openListMenu(){
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>${l.recurrence ? 'Edit recurring refresh' : 'Set up recurring refresh'}</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="convertListType('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Switch type (${l.type==='checklist'?'Checklist':l.type==='freeform'?'Freeform':'Nested'} → ${l.type==='checklist'?'Freeform':l.type==='freeform'?'Nested':'Checklist'})</button>
+    ${l.type==='nested'?`<button class="btn btn-block" style="margin-bottom:10px;justify-content:space-between;gap:12px;align-items:center" onclick="toggleNestedCheckboxes('${l.id}')">
+      <span style="display:flex;align-items:center;gap:12px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/>${l.showCheckboxes?'<polyline points="9 11 12 14 22 4"/>':''}</svg>Show checkboxes</span>
+      <span style="font-size:12px;font-weight:600;color:${l.showCheckboxes?'var(--cyan)':'var(--ink-mute)'}">${l.showCheckboxes?'ON':'OFF'}</span>
+    </button>`:''}
     ${isC?`<button class="btn btn-block btn-amber" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="uncheckAll('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Uncheck all items</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px;border-color:var(--pri-high);color:var(--pri-high)" onclick="clearChecked('${l.id}')">
@@ -4614,6 +4717,58 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.03.09',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Audit cleanup: found and fixed several silent fails from prior versions',
+      'Fixed: streak value-log modal was wired in the HTML but its Save button called confirmStreakValue() which was never defined — fallback path used the old browser prompt() instead. Now the proper in-app modal opens with live progress preview',
+      'Removed: duplicate older nextDate() function (the newer recurrence-aware version was always being used; the older one was dead code shadowed by the second)',
+      'Removed: dead prompt-based addListSection / addListSubsection (replaced by the inline button versions in v0.03.06)'
+    ]
+  },
+  {
+    version: '0.03.08',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: Lists tab still had All / Checklists / Freeform filter chips at the top (removal in v0.02.08 had silently failed) — now gone',
+      'Fixed: New List modal had two separate type selectors stacked on each other (Type / List Type with different options) — the duplicate legacy one is gone',
+      'Fixed: Share with picker in item modals now has proper spacing and a subtle divider above it instead of being jammed against the field above'
+    ]
+  },
+  {
+    version: '0.03.07',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Nested lists now default to no checkboxes — items render with a small bullet dot instead, since most nested lists are for planning (meal prep, agendas, etc.) rather than task tracking',
+      'New “Show checkboxes” toggle in the list menu (only appears on Nested lists) for cases where you do want them',
+      'When checkboxes are off, the list count shows “N items” instead of “X/Y”, and the “Checked” section toggle is hidden'
+    ]
+  },
+  {
+    version: '0.03.06',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: Section and Subsection buttons were missing from the Nested list UI — the HTML element they were supposed to live in was never actually added in the v0.03.04 build',
+      'Redesigned the add-item row for Nested lists: type into the existing input, then tap one of three actions — (+) Item, [≡] Section, or [≢] Sub — to add it at the chosen level',
+      'No more browser prompt() popups for section/subsection names'
+    ]
+  },
+  {
+    version: '0.03.05',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: tapping a new list did nothing — renderListDet was throwing a ReferenceError because regularItems was used before being defined',
+      'Fixed: after creating a list, the app now opens it automatically so you can start adding items',
+      'Added back the Type picker in the create-list modal — now you can choose Checklist, Freeform, or Nested when making a new list (instead of having to cycle in the menu after creation)',
+      'Nested list rendering now keeps items in their original order so section headers, subsection headers, and items stay grouped correctly'
+    ]
+  },
+  {
     version: '0.03.04',
     date: 'Jun 17, 2026',
     type: 'medium',
@@ -5490,14 +5645,40 @@ function setTodayValue(streakId, value) {
 function openStreakValuePrompt(streakId) {
   const s = S.streaks.find(x => x.id === streakId);
   if (!s) return;
-  const currentValue = getTodayValue(s);
-  const promptText = 'Today\'s ' + (s.unit || 'value') + ' for ' + s.name + ':';
-  const v = prompt(promptText, currentValue || '');
-  if (v === null) return;
-  const num = parseInt(v) || 0;
+  document.getElementById('streak-value-id').value = streakId;
+  document.getElementById('streak-value-title').textContent = 'Log ' + s.name;
+  document.getElementById('streak-value-context').textContent = s.target
+    ? 'Goal: ' + s.target + ' ' + (s.unit || '')
+    : '';
+  const current = getTodayValue(s);
+  document.getElementById('streak-value-input').value = current || '';
+  document.getElementById('streak-value-unit').textContent = s.unit || '';
+  // Live progress preview
+  const progressEl = document.getElementById('streak-value-progress');
+  function updatePreview() {
+    if (!s.target) { progressEl.style.display = 'none'; return; }
+    const val = parseInt(document.getElementById('streak-value-input').value) || 0;
+    const pct = Math.min(100, val / s.target * 100);
+    const color = s.color || '#f43f5e';
+    progressEl.style.display = '';
+    progressEl.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-mute);margin-bottom:4px"><span>Progress</span><span>' + Math.round(pct) + '%</span></div>'
+      + '<div style="height:6px;background:var(--line);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + color + ';transition:width .2s"></div></div>';
+  }
+  document.getElementById('streak-value-input').oninput = updatePreview;
+  updatePreview();
+  openModal('modal-streak-value');
+  setTimeout(() => document.getElementById('streak-value-input').focus(), 350);
+}
+
+function confirmStreakValue() {
+  const streakId = document.getElementById('streak-value-id').value;
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  const num = parseInt(document.getElementById('streak-value-input').value) || 0;
   setTodayValue(streakId, num);
   const reached = s.target && num >= s.target;
-  toast(reached ? '\u2705 Goal reached!' : 'Logged ' + num + ' ' + (s.unit || ''), 'ok');
+  closeModal('modal-streak-value');
+  toast(reached ? 'Goal reached!' : 'Logged ' + num + ' ' + (s.unit || ''), 'ok');
 }
 
 // Override logStreak to dispatch to value prompt if target exists
