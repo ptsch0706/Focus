@@ -1164,6 +1164,58 @@ input.has-mention, .note-title-input.has-mention {
   margin-top: 0;
 }
 
+
+/* SECTION COLLAPSE CHEVRON */
+.li-collapse-chev {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0;
+  cursor: pointer; flex-shrink: 0;
+  color: inherit; opacity: .7;
+  margin-right: 4px;
+}
+.li-collapse-chev:active { opacity: 1; }
+.li-collapse-chev-sub { width: 18px; height: 18px; opacity: .5; }
+.li-section.collapsed { padding-bottom: 12px; }
+.li-subsection.collapsed { padding-bottom: 6px; }
+
+
+/* QUICK TAG CHIPS */
+.li-quicktag-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+.li-quicktag-row::-webkit-scrollbar { display: none; }
+.li-quicktag {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.li-quicktag:active {
+  background: var(--list-soft);
+  border-color: var(--list);
+  color: var(--list);
+}
+.li-quicktag-manage {
+  background: none;
+  color: var(--ink-mute);
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
 </style>
 </head>
 <body>
@@ -1314,6 +1366,7 @@ input.has-mention, .note-title-input.has-mention {
     <button class="btn-icon" onclick="openListMenu()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>
   <div class="detail-body"><div id="det-items"></div>
+    <div class="li-quicktag-row" id="li-quicktag-row" style="display:none"></div>
     <div class="li-add-row">
       <input class="li-add-input" id="li-add-input" placeholder="Add item…" autocomplete="off" onkeydown="if(event.key==='Enter')addListItem()">
       <button class="li-add-btn" id="li-add-item-btn" onclick="addListItem()" title="Add item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
@@ -1515,7 +1568,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,view='home';
 applyTheme(S.theme||'light');
 let tf='all',lf='all',rf='upcoming',noteFilter='all',doneOpen=false,listId=null;
@@ -1539,6 +1592,7 @@ function loadState(){
       if(typeof loaded.compactMode!=='boolean')loaded.compactMode=true;
       if(!loaded.dashSections||typeof loaded.dashSections!=='object'){loaded.dashSections={mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true};}
       if(!Array.isArray(loaded.templates))loaded.templates=[];
+      if(!Array.isArray(loaded.quickTags))loaded.quickTags=['Kids','Everyone'];
       if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
       return loaded;
     }
@@ -2025,6 +2079,7 @@ function renderListDet(){
   // Show section buttons only for nested lists
   const nestedBtns=document.getElementById('li-nested-btn-row');
   if(nestedBtns){nestedBtns.style.display=(l.type==='nested')?'flex':'none';}
+  renderQuickTagChips(l);
   if(l.recurrence){
     const nextR=getNextRefreshDate(l);
     const recDesc=l.recurrence.schedule==='weekly'?'Weekly':l.recurrence.schedule==='biweekly'?'Bi-weekly':'Monthly';
@@ -2038,7 +2093,28 @@ function renderListDet(){
     h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;
   } else if(l.type==='nested'){
     // For nested lists, render items in their original order so sections + subsections + items stay together
-    h+=`<div>`+items.filter(i=>!(i.checked&&!i.isSection&&!i.isSubsection)).map(i=>liHTML(i,l.type,l.color,l.showCheckboxes)).join('')+`</div>`;
+    // Skip items inside a collapsed section/subsection
+    let collapsedSection = null;     // id of currently-collapsing section
+    let collapsedSubsection = null;  // id of currently-collapsing subsection
+    const visibleItems = items.filter(i=>{
+      // Reset collapse tracking when we hit a new section
+      if (i.isSection) {
+        collapsedSection = i._collapsed ? i.id : null;
+        collapsedSubsection = null;  // entering new section resets subsection state
+        return true;  // section header itself always visible
+      }
+      // Inside a collapsed section, hide everything until the next section
+      if (collapsedSection) return false;
+      if (i.isSubsection) {
+        collapsedSubsection = i._collapsed ? i.id : null;
+        return true;  // subsection header always visible (unless its parent section is collapsed, handled above)
+      }
+      // Inside a collapsed subsection — hide
+      if (collapsedSubsection) return false;
+      // Regular item: also filter out if checked (those go to Checked section)
+      return !(i.checked && !i.isSection && !i.isSubsection);
+    });
+    h+=`<div>`+visibleItems.map(i=>liHTML(i,l.type,l.color,l.showCheckboxes)).join('')+`</div>`;
     if(chk.length&&l.showCheckboxes){
       const co=l._co||false;
       h+=`<div class="checked-section-toggle ${co?'open':''}" onclick="toggleCS('${l.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>Checked (${chk.length})</div>`;
@@ -2061,14 +2137,18 @@ function liHTML(item,type,listColor){
   const color=listColor||'var(--list)';
   // Section header (top-level, e.g. "Monday")
   if (item.isSection) {
-    return `<div class="li-section" style="border-color:${color};color:${color}">
+    const collapsed = item._collapsed === true;
+    return `<div class="li-section ${collapsed?'collapsed':''}" style="border-color:${color};color:${color}">
+  <button class="li-collapse-chev" onclick="toggleSectionCollapse('${item.id}')" title="${collapsed?'Expand':'Collapse'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;transform:rotate(${collapsed?'-90':'0'}deg);transition:transform .15s"><polyline points="6 9 12 15 18 9"/></svg></button>
   <div class="li-section-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${esc(item.text)}</div>
   <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>`;
   }
   // Subsection header (e.g. "Lunch", "Dinner")
   if (item.isSubsection) {
-    return `<div class="li-subsection">
+    const collapsed = item._collapsed === true;
+    return `<div class="li-subsection ${collapsed?'collapsed':''}">
+  <button class="li-collapse-chev li-collapse-chev-sub" onclick="toggleSectionCollapse('${item.id}')" title="${collapsed?'Expand':'Collapse'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;transform:rotate(${collapsed?'-90':'0'}deg);transition:transform .15s"><polyline points="6 9 12 15 18 9"/></svg></button>
   <div class="li-subsection-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${esc(item.text)}</div>
   <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:12px;height:12px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>`;
@@ -2086,6 +2166,123 @@ function liHTML(item,type,listColor){
 }
 function toggleCS(lid){const l=S.lists.find(l=>l.id===lid);if(!l)return;l._co=!l._co;save();renderListDet();}
 
+
+
+function toggleSectionCollapse(itemId) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  const item = (l.items || []).find(i => i.id === itemId);
+  if (!item) return;
+  if (!item.isSection && !item.isSubsection) return;
+  item._collapsed = !item._collapsed;
+  save();
+  renderListDet();
+}
+
+function collapseAllSections() {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  (l.items || []).forEach(i => {
+    if (i.isSection || i.isSubsection) i._collapsed = true;
+  });
+  save();
+  closeModal('modal-list-menu');
+  renderListDet();
+  toast('Collapsed all', 'ok');
+}
+
+function expandAllSections() {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  (l.items || []).forEach(i => {
+    if (i.isSection || i.isSubsection) i._collapsed = false;
+  });
+  save();
+  closeModal('modal-list-menu');
+  renderListDet();
+  toast('Expanded all', 'ok');
+}
+
+function anySectionsCollapsed(list) {
+  return (list.items || []).some(i => (i.isSection || i.isSubsection) && i._collapsed);
+}
+
+
+function renderQuickTagChips(l) {
+  const row = document.getElementById('li-quicktag-row');
+  if (!row) return;
+  if (!l || l.type !== 'nested') { row.style.display = 'none'; return; }
+  // Build chip list: household members (with @) + S.quickTags + manage button
+  const members = (S.knownUsernames || []).map(u => '@' + u);
+  const labels = S.quickTags || [];
+  const allChips = [...members, ...labels];
+  let html = '';
+  allChips.forEach(chip => {
+    html += '<button class="li-quicktag" onclick="applyQuickTag(\'' + esc(chip).replace(/\'/g, "\\'") + '\')">' + esc(chip) + '</button>';
+  });
+  html += '<button class="li-quicktag li-quicktag-manage" onclick="openQuickTagManager()" title="Manage chips">⚙</button>';
+  row.innerHTML = html;
+  row.style.display = 'flex';
+}
+
+function applyQuickTag(chip) {
+  const inp = document.getElementById('li-add-input');
+  if (!inp) return;
+  // Prefill the input with "chip: " — replace any existing prefix the user hasn't typed past
+  const current = inp.value;
+  // If the input is empty or already has just a prefix, replace it
+  // Otherwise prepend (so they can do @phil + @allie if they want)
+  if (!current.trim() || /^@?[\w]+:\s*$/.test(current.trim())) {
+    inp.value = chip + ': ';
+  } else {
+    inp.value = chip + ': ' + current;
+  }
+  inp.focus();
+  // Place cursor at end
+  setTimeout(() => { inp.setSelectionRange(inp.value.length, inp.value.length); }, 0);
+}
+
+function openQuickTagManager() {
+  const tags = S.quickTags || [];
+  let html = '<p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">Custom labels you can tap above the input. Useful for labels that aren\'t household members — e.g. “Kids”, “Everyone”, “Adults”. Household members are added automatically.</p>';
+  html += '<div class="field"><label class="field-label">Add a new label</label><div style="display:flex;gap:8px"><input type="text" id="new-quicktag-input" placeholder="e.g. Adults" maxlength="20" style="flex:1"><button class="btn btn-primary btn-sm" onclick="addQuickTag()">Add</button></div></div>';
+  if (tags.length) {
+    html += '<div class="section-label" style="margin-top:14px">Your labels</div>';
+    tags.forEach((t, idx) => {
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:6px">';
+      html += '<span style="font-size:14px;color:var(--ink)">' + esc(t) + '</span>';
+      html += '<button class="btn-icon" onclick="removeQuickTag(' + idx + ')" style="color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+      html += '</div>';
+    });
+  }
+  html += '<button class="btn btn-ghost btn-block btn-sm" style="margin-top:14px" onclick="closeModal(\'modal-quicktag-manager\')">Done</button>';
+  document.getElementById('quicktag-manager-body').innerHTML = html;
+  openModal('modal-quicktag-manager');
+}
+
+function addQuickTag() {
+  const inp = document.getElementById('new-quicktag-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  if (!Array.isArray(S.quickTags)) S.quickTags = [];
+  if (S.quickTags.some(t => t.toLowerCase() === val.toLowerCase())) {
+    toast('Already added', 'err');
+    return;
+  }
+  S.quickTags.push(val);
+  save();
+  inp.value = '';
+  openQuickTagManager();
+  renderListDet();
+}
+
+function removeQuickTag(idx) {
+  if (!Array.isArray(S.quickTags)) return;
+  S.quickTags.splice(idx, 1);
+  save();
+  openQuickTagManager();
+  renderListDet();
+}
 
 function addListSectionInline() {
   const inp = document.getElementById('li-add-input');
@@ -2140,6 +2337,8 @@ function openListMenu(){
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>${l.recurrence ? 'Edit recurring refresh' : 'Set up recurring refresh'}</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="convertListType('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Switch type (${l.type==='checklist'?'Checklist':l.type==='freeform'?'Freeform':'Nested'} → ${l.type==='checklist'?'Freeform':l.type==='freeform'?'Nested':'Checklist'})</button>
+    ${l.type==='nested' && (l.items||[]).some(i=>i.isSection||i.isSubsection)?`<button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="${anySectionsCollapsed(l)?'expandAllSections':'collapseAllSections'}()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0" stroke-linecap="round" stroke-linejoin="round"><polyline points="${anySectionsCollapsed(l)?'6 9 12 15 18 9':'18 15 12 9 6 15'}"/></svg>${anySectionsCollapsed(l)?'Expand all sections':'Collapse all sections'}</button>`:''}
     ${l.type==='nested'?`<button class="btn btn-block" style="margin-bottom:10px;justify-content:space-between;gap:12px;align-items:center" onclick="toggleNestedCheckboxes('${l.id}')">
       <span style="display:flex;align-items:center;gap:12px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/>${l.showCheckboxes?'<polyline points="9 11 12 14 22 4"/>':''}</svg>Show checkboxes</span>
       <span style="font-size:12px;font-weight:600;color:${l.showCheckboxes?'var(--cyan)':'var(--ink-mute)'}">${l.showCheckboxes?'ON':'OFF'}</span>
@@ -4717,6 +4916,19 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.03.10',
+    date: 'Jun 17, 2026',
+    type: 'medium',
+    items: [
+      'Collapsible sections + subsections on nested lists: tap the chevron on any section/subsection header to collapse or expand it',
+      'Collapsed state persists across reloads (survives sync once Firebase is set up)',
+      'List menu has a Collapse all / Expand all toggle that appears for nested lists with any sections/subsections',
+      'Quick-tag chips: above the input on nested lists, a horizontal row of tap-to-prefill chips appears — household members (@phil, @allie) plus custom labels like “Kids”, “Everyone”',
+      'Tap a chip to prefill the input with “@phil: ” so you can just type the meal',
+      'Manage custom chips via the ⚙ button on the chip row — add or remove any label'
+    ]
+  },
+  {
     version: '0.03.09',
     date: 'Jun 17, 2026',
     type: 'minor',
@@ -5886,6 +6098,17 @@ function initSwipeTabs() {
 
 <input type="file" id="list-attach-input" accept="image/*" style="display:none" onchange="handleListAttachUpload(event)">
 
+
+
+<!-- QUICK TAG MANAGER MODAL -->
+<div class="modal-backdrop" id="modal-quicktag-manager">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title">Manage Quick Tags</div>
+      <button class="btn-icon" onclick="closeModal('modal-quicktag-manager')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="quicktag-manager-body"></div>
+  </div>
+</div>
 
 <!-- LIST RECURRENCE MODAL -->
 <div class="modal-backdrop" id="modal-list-recurrence">
