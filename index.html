@@ -2141,7 +2141,7 @@ function liHTML(item,type,listColor){
     return `<div class="li-section ${collapsed?'collapsed':''}" style="border-color:${color};color:${color}">
   <button class="li-collapse-chev" onclick="toggleSectionCollapse('${item.id}')" title="${collapsed?'Expand':'Collapse'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;transform:rotate(${collapsed?'-90':'0'}deg);transition:transform .15s"><polyline points="6 9 12 15 18 9"/></svg></button>
   <div class="li-section-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${esc(item.text)}</div>
-  <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <button class="btn-icon" onclick="openListItemMenu('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.6" title="Item options"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>`;
   }
   // Subsection header (e.g. "Lunch", "Dinner")
@@ -2150,7 +2150,7 @@ function liHTML(item,type,listColor){
     return `<div class="li-subsection ${collapsed?'collapsed':''}">
   <button class="li-collapse-chev li-collapse-chev-sub" onclick="toggleSectionCollapse('${item.id}')" title="${collapsed?'Expand':'Collapse'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;transform:rotate(${collapsed?'-90':'0'}deg);transition:transform .15s"><polyline points="6 9 12 15 18 9"/></svg></button>
   <div class="li-subsection-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${esc(item.text)}</div>
-  <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:12px;height:12px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <button class="btn-icon" onclick="openListItemMenu('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.5" title="Item options"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>`;
   }
   // Regular item — indent more if this list type is nested (visual hierarchy)
@@ -2161,7 +2161,7 @@ function liHTML(item,type,listColor){
   return`<div class="li-row${indentClass} ${item.checked?'checked':''}">
   ${showChk?`<button class="li-chk ${item.checked?'checked':''}" onclick="toggleLI('${item.id}')"></button>`:'<div style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin:0 7px"></div>'}
   <div class="li-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${renderMentionsHTML(item.text)}</div>
-  <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <button class="btn-icon" onclick="openListItemMenu('${item.id}')" style="color:var(--ink-mute);padding:4px" title="Item options"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>`;
 }
 function toggleCS(lid){const l=S.lists.find(l=>l.id===lid);if(!l)return;l._co=!l._co;save();renderListDet();}
@@ -2282,6 +2282,209 @@ function removeQuickTag(idx) {
   save();
   openQuickTagManager();
   renderListDet();
+}
+
+
+// ── LIST ITEM MENU + MOVE / DUPLICATE / PROMOTE ──
+let _activeItemId = null;
+
+function openListItemMenu(itemId) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  const item = (l.items || []).find(i => i.id === itemId);
+  if (!item) return;
+  _activeItemId = itemId;
+
+  const isSection = item.isSection === true;
+  const isSubsection = item.isSubsection === true;
+  const isRegular = !isSection && !isSubsection;
+
+  // Title shows the item's text (truncated)
+  const titleText = item.text ? (item.text.length > 30 ? item.text.substring(0, 30) + '\u2026' : item.text) : 'Item';
+  document.getElementById('list-item-menu-title').textContent = titleText;
+
+  // Compute position info
+  const items = l.items || [];
+  const idx = items.findIndex(i => i.id === itemId);
+  const canMoveUp = idx > 0;
+  const canMoveDown = idx < items.length - 1;
+
+  let html = '';
+
+  // Move up / down (always available if applicable)
+  if (canMoveUp) {
+    html += menuBtn('Move up', 'M5 15l7-7 7 7', () => 'moveListItem(\'' + itemId + '\', -1)');
+  }
+  if (canMoveDown) {
+    html += menuBtn('Move down', 'M19 9l-7 7-7-7', () => 'moveListItem(\'' + itemId + '\', 1)');
+  }
+
+  // For nested lists with sections: offer "Move to section..."
+  const hasSections = (l.type === 'nested') && items.some(i => i.isSection);
+  if (hasSections && isRegular) {
+    html += menuBtn('Move to section…', 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2 M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2', () => 'openMoveToSectionPicker(\'' + itemId + '\')');
+  }
+
+  // For regular items only: Duplicate, Promote to section/subsection
+  if (isRegular) {
+    html += menuBtn('Duplicate', 'M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1', () => 'duplicateListItem(\'' + itemId + '\')');
+    if (l.type === 'nested') {
+      html += menuBtn('Promote to section', 'M12 19V5 M5 12l7-7 7 7', () => 'promoteListItem(\'' + itemId + '\', \'section\')');
+      html += menuBtn('Promote to subsection', 'M8 12h13 M3 12h.01 M8 6h13 M3 6h.01 M8 18h13 M3 18h.01', () => 'promoteListItem(\'' + itemId + '\', \'subsection\')');
+    }
+  }
+
+  // For subsection headers: option to demote to regular item
+  if (isSubsection) {
+    html += menuBtn('Demote to regular item', 'M12 5v14 M19 12l-7 7-7-7', () => 'demoteListItem(\'' + itemId + '\', \'item\')');
+    html += menuBtn('Promote to section', 'M12 19V5 M5 12l7-7 7 7', () => 'promoteListItem(\'' + itemId + '\', \'section\')');
+  }
+
+  // For section headers: option to demote to subsection
+  if (isSection) {
+    html += menuBtn('Demote to subsection', 'M12 5v14 M19 12l-7 7-7-7', () => 'demoteListItem(\'' + itemId + '\', \'subsection\')');
+  }
+
+  // Delete (red, always last)
+  html += '<button class="btn btn-block" style="margin-top:14px;justify-content:flex-start;gap:12px;color:var(--pri-high);border-color:var(--pri-high)" onclick="closeModal(\'modal-list-item-menu\');deleteLI(\'' + itemId + '\')">'
+    + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>';
+
+  document.getElementById('list-item-menu-body').innerHTML = html;
+  openModal('modal-list-item-menu');
+}
+
+function menuBtn(label, iconPath, onclickFn) {
+  // iconPath may contain " M " separators for multi-path SVGs; split into d= attributes
+  const paths = iconPath.split(/ M /).map(p => p.trim());
+  const svgPaths = paths.map((p, i) => '<path d="' + (i === 0 ? p : 'M ' + p) + '" />').join('');
+  return '<button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-item-menu\');' + onclickFn() + '">'
+    + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0">' + svgPaths + '</svg>' + label + '</button>';
+}
+
+function moveListItem(itemId, delta) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l || !l.items) return;
+  const idx = l.items.findIndex(i => i.id === itemId);
+  if (idx < 0) return;
+  const newIdx = idx + delta;
+  if (newIdx < 0 || newIdx >= l.items.length) return;
+  // Swap
+  const [moved] = l.items.splice(idx, 1);
+  l.items.splice(newIdx, 0, moved);
+  save();
+  renderListDet();
+  toast(delta > 0 ? 'Moved down' : 'Moved up', 'ok');
+}
+
+function duplicateListItem(itemId) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l || !l.items) return;
+  const idx = l.items.findIndex(i => i.id === itemId);
+  if (idx < 0) return;
+  const orig = l.items[idx];
+  const copy = { ...orig, id: gid(), createdAt: Date.now(), checked: false };
+  delete copy._collapsed;
+  l.items.splice(idx + 1, 0, copy);
+  save();
+  renderListDet();
+  toast('Duplicated', 'ok');
+}
+
+function promoteListItem(itemId, targetType) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l || !l.items) return;
+  const item = l.items.find(i => i.id === itemId);
+  if (!item) return;
+  // Clear current type flags
+  delete item.isSection;
+  delete item.isSubsection;
+  delete item.checked;  // doesn't apply to headers
+  if (targetType === 'section') {
+    item.isSection = true;
+  } else if (targetType === 'subsection') {
+    item.isSubsection = true;
+  }
+  save();
+  renderListDet();
+  toast(targetType === 'section' ? 'Promoted to section' : 'Changed to subsection', 'ok');
+}
+
+function demoteListItem(itemId, targetType) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l || !l.items) return;
+  const item = l.items.find(i => i.id === itemId);
+  if (!item) return;
+  delete item.isSection;
+  delete item.isSubsection;
+  delete item._collapsed;  // doesn't apply to regular items
+  if (targetType === 'subsection') {
+    item.isSubsection = true;
+  }
+  // If targetType === 'item', both flags removed (already a regular item now)
+  save();
+  renderListDet();
+  toast(targetType === 'subsection' ? 'Demoted to subsection' : 'Demoted to regular item', 'ok');
+}
+
+function openMoveToSectionPicker(itemId) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l || !l.items) return;
+  const sections = l.items.filter(i => i.isSection);
+  if (!sections.length) { toast('No sections to move to', 'err'); return; }
+
+  // Find current section the item is under (the most recent section before it)
+  const itemIdx = l.items.findIndex(i => i.id === itemId);
+  let currentSectionId = null;
+  for (let i = itemIdx - 1; i >= 0; i--) {
+    if (l.items[i].isSection) { currentSectionId = l.items[i].id; break; }
+  }
+
+  let html = '<p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">Pick a section to move this item into.</p>';
+  // Option: move to top (before any section)
+  html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px;opacity:.7" onclick="closeModal(\'modal-move-to-section\');moveItemToSection(\'' + itemId + '\', null)">'
+    + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0"><polyline points="18 15 12 9 6 15"/></svg>Top of list (before any section)</button>';
+
+  sections.forEach(s => {
+    const isCurrent = s.id === currentSectionId;
+    html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:space-between;gap:12px' + (isCurrent ? ';opacity:.5' : '') + '" onclick="closeModal(\'modal-move-to-section\');moveItemToSection(\'' + itemId + '\', \'' + s.id + '\')">'
+      + '<span style="display:flex;align-items:center;gap:12px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/></svg>' + esc(s.text) + '</span>'
+      + (isCurrent ? '<span style="font-size:11px;color:var(--ink-mute)">current</span>' : '')
+      + '</button>';
+  });
+
+  document.getElementById('move-to-section-body').innerHTML = html;
+  openModal('modal-move-to-section');
+}
+
+function moveItemToSection(itemId, targetSectionId) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l || !l.items) return;
+  const items = l.items;
+  const itemIdx = items.findIndex(i => i.id === itemId);
+  if (itemIdx < 0) return;
+  const [moved] = items.splice(itemIdx, 1);
+
+  if (targetSectionId === null) {
+    // Move to top of list
+    items.unshift(moved);
+  } else {
+    // Find the target section, then find the last item of that section
+    const targetIdx = items.findIndex(i => i.id === targetSectionId);
+    if (targetIdx < 0) {
+      // Section disappeared? Re-insert at original position
+      items.splice(itemIdx, 0, moved);
+      return;
+    }
+    // Find where this section ends (next section header, or end of list)
+    let insertAt = items.length;
+    for (let i = targetIdx + 1; i < items.length; i++) {
+      if (items[i].isSection) { insertAt = i; break; }
+    }
+    items.splice(insertAt, 0, moved);
+  }
+  save();
+  renderListDet();
+  toast('Moved', 'ok');
 }
 
 function addListSectionInline() {
@@ -4916,6 +5119,18 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.03.11',
+    date: 'Jun 17, 2026',
+    type: 'medium',
+    items: [
+      'List items now have a ⋯ menu (replaces the lone delete icon) with: Move up, Move down, Move to section…, Duplicate, Promote/Demote between regular/subsection/section, and Delete',
+      '“Move to section…” opens a picker showing all sections in the list — great for relocating items across days in a meal plan',
+      'Duplicate creates a copy of any list item directly below the original (handy for repeating prefixes like “@allie:”)',
+      'Promote a regular item to a subsection or section header in-place; demote section→subsection or subsection→item without losing the text',
+      'Section / subsection headers also have a ⋯ menu with Move up/down, demote, and delete options'
+    ]
+  },
+  {
     version: '0.03.10',
     date: 'Jun 17, 2026',
     type: 'medium',
@@ -6107,6 +6322,27 @@ function initSwipeTabs() {
       <button class="btn-icon" onclick="closeModal('modal-quicktag-manager')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body" id="quicktag-manager-body"></div>
+  </div>
+</div>
+
+
+<!-- LIST ITEM MENU MODAL -->
+<div class="modal-backdrop" id="modal-list-item-menu">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title" id="list-item-menu-title">Item Options</div>
+      <button class="btn-icon" onclick="closeModal('modal-list-item-menu')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="list-item-menu-body"></div>
+  </div>
+</div>
+
+<!-- MOVE TO SECTION PICKER MODAL -->
+<div class="modal-backdrop" id="modal-move-to-section">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title">Move to Section</div>
+      <button class="btn-icon" onclick="closeModal('modal-move-to-section')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="move-to-section-body"></div>
   </div>
 </div>
 
