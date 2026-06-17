@@ -1068,6 +1068,52 @@ input.has-mention, .note-title-input.has-mention {
 }
 .list-rec-badge svg{width:10px;height:10px;stroke-width:2.5;}
 
+
+/* NESTED LIST: SECTION + SUBSECTION HEADERS */
+.li-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 8px;
+  border-bottom: 2px solid;
+  margin-top: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.li-section:first-child { margin-top: 0; }
+.li-section-text {
+  flex: 1;
+  outline: none;
+  min-height: 16px;
+}
+.li-subsection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 4px 28px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.li-subsection-text {
+  flex: 1;
+  outline: none;
+  min-height: 14px;
+}
+/* Indent regular items further when inside a nested list */
+.li-row-indented {
+  padding-left: 28px;
+}
+.li-row-indented + .li-subsection {
+  margin-top: 6px;
+}
+
 </style>
 </head>
 <body>
@@ -1822,12 +1868,14 @@ function tHTML(t){
 function convertListType(id) {
   const l = S.lists.find(x => x.id === id);
   if (!l) return;
-  l.type = l.type === 'checklist' ? 'freeform' : 'checklist';
+  // Cycle: checklist -> freeform -> nested -> checklist
+  const next = l.type === 'checklist' ? 'freeform' : (l.type === 'freeform' ? 'nested' : 'checklist');
+  l.type = next;
   save();
   closeModal('modal-list-menu');
-  // Re-render the detail
   if (typeof renderListDet === 'function') renderListDet();
-  toast('Switched to ' + (l.type === 'checklist' ? 'Checklist' : 'Freeform'), 'ok');
+  const labelMap = { checklist: 'Checklist', freeform: 'Freeform', nested: 'Nested' };
+  toast('Switched to ' + labelMap[next], 'ok');
 }
 
 // ── LIST COLOR PICKER ──
@@ -1879,8 +1927,9 @@ function renderLists(){
   const el=document.getElementById('list-grid');
   if(!lists.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon" style="background:var(--list-soft);border-color:var(--list);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/></svg></div><div class="empty-title">No lists yet</div><div class="empty-sub">Tap + to create a grocery, packing, or idea list.</div></div>`;return;}
   el.innerHTML=lists.map(l=>{
-    const tot=(l.items||[]).length,chk=(l.items||[]).filter(i=>i.checked).length;
-    const meta=l.type==='checklist'?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
+    const regularItemsCard=(l.items||[]).filter(i=>!i.isSection&&!i.isSubsection);
+    const tot=regularItemsCard.length,chk=regularItemsCard.filter(i=>i.checked).length;
+    const meta=(l.type==='checklist'||l.type==='nested')?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
     return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'}">
     <div class="list-card-hdr">
       <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
@@ -1897,7 +1946,10 @@ function closeListDetail(){document.getElementById('list-detail-view').classList
 function renderListDet(){
   const l=S.lists.find(l=>l.id===listId);if(!l)return;
   const items=l.items||[],unc=items.filter(i=>!i.checked),chk=items.filter(i=>i.checked);
-  const baseMeta=l.type==='checklist'?`${chk.length}/${items.length}`:`${items.length} item${items.length!==1?'s':''}`;
+  const baseMeta=(l.type==='checklist'||l.type==='nested')?`${chk.length}/${regularItems.length}`:`${regularItems.length} item${regularItems.length!==1?'s':''}`;
+  // Show section buttons only for nested lists
+  const secBtns=document.getElementById('li-section-buttons');
+  if(secBtns){secBtns.style.display=(l.type==='nested')?'flex':'none';}
   if(l.recurrence){
     const nextR=getNextRefreshDate(l);
     const recDesc=l.recurrence.schedule==='weekly'?'Weekly':l.recurrence.schedule==='biweekly'?'Bi-weekly':'Monthly';
@@ -1909,31 +1961,71 @@ function renderListDet(){
   let h='';
   if(!items.length){h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;}
   else{
-    if(unc.length)h+=`<div>`+unc.map(i=>liHTML(i,l.type)).join('')+`</div>`;
+    if(unc.length)h+=`<div>`+unc.map(i=>liHTML(i,l.type,l.color)).join('')+`</div>`;
     if(chk.length&&l.type==='checklist'){
       const co=l._co||false;
       h+=`<div class="checked-section-toggle ${co?'open':''}" onclick="toggleCS('${l.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>Checked (${chk.length})</div>`;
-      if(co)h+=`<div>`+chk.map(i=>liHTML(i,l.type)).join('')+`</div>`;
-    }else if(chk.length)h+=chk.map(i=>liHTML(i,l.type)).join('');
+      if(co)h+=`<div>`+chk.map(i=>liHTML(i,l.type,l.color)).join('')+`</div>`;
+    }else if(chk.length)h+=chk.map(i=>liHTML(i,l.type,l.color)).join('');
   }
   const lnHTML=renderLinkedNotes('list', listId);const attachHTML=renderListAttachmentsHTML(l);document.getElementById('det-items').innerHTML=attachHTML + h + (lnHTML?'<div style="padding:0 16px">'+lnHTML+'</div>':'');
 }
-function liHTML(item,type){
-  const isC=type==='checklist';
-  return`<div class="li-row ${item.checked?'checked':''}">
-  ${isC?`<button class="li-chk ${item.checked?'checked':''}" onclick="toggleLI('${item.id}')"></button>`:'<div style="width:8px;height:8px;border-radius:50%;background:var(--list);flex-shrink:0;margin:0 7px"></div>'}
-  <div class="li-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${esc(item.text)}</div>
+function liHTML(item,type,listColor){
+  const isC=type==='checklist'||type==='nested';
+  const color=listColor||'var(--list)';
+  // Section header (top-level, e.g. "Monday")
+  if (item.isSection) {
+    return `<div class="li-section" style="border-color:${color};color:${color}">
+  <div class="li-section-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${esc(item.text)}</div>
+  <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>`;
+  }
+  // Subsection header (e.g. "Lunch", "Dinner")
+  if (item.isSubsection) {
+    return `<div class="li-subsection">
+  <div class="li-subsection-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${esc(item.text)}</div>
+  <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px;opacity:.5"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:12px;height:12px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>`;
+  }
+  // Regular item — indent more if this list type is nested (visual hierarchy)
+  const indentClass = (type === 'nested') ? ' li-row-indented' : '';
+  return`<div class="li-row${indentClass} ${item.checked?'checked':''}">
+  ${isC?`<button class="li-chk ${item.checked?'checked':''}" onclick="toggleLI('${item.id}')"></button>`:'<div style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin:0 7px"></div>'}
+  <div class="li-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${renderMentionsHTML(item.text)}</div>
   <button class="btn-icon" onclick="deleteLI('${item.id}')" style="color:var(--ink-mute);padding:4px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>`;
 }
 function toggleCS(lid){const l=S.lists.find(l=>l.id===lid);if(!l)return;l._co=!l._co;save();renderListDet();}
+
+function addListSection() {
+  const text = prompt('Section name (e.g. Monday):');
+  if (!text || !text.trim()) return;
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  if (!l.items) l.items = [];
+  l.items.push({ id: gid(), text: text.trim(), isSection: true, checked: false, createdAt: Date.now() });
+  save();
+  renderListDet();
+}
+
+function addListSubsection() {
+  const text = prompt('Subsection name (e.g. Dinner):');
+  if (!text || !text.trim()) return;
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  if (!l.items) l.items = [];
+  l.items.push({ id: gid(), text: text.trim(), isSubsection: true, checked: false, createdAt: Date.now() });
+  save();
+  renderListDet();
+}
+
 function addListItem(){
   const inp=document.getElementById('li-add-input'),text=inp.value.trim();if(!text)return;
   const l=S.lists.find(l=>l.id===listId);if(!l)return;
   if(!l.items)l.items=[];l.items.push({id:gid(),text,checked:false,createdAt:Date.now()});
   inp.value='';save();renderListDet();inp.focus();
 }
-function toggleLI(iid){const l=S.lists.find(l=>l.id===listId);if(!l)return;const i=(l.items||[]).find(i=>i.id===iid);if(i){i.checked=!i.checked;i.checkedAt=i.checked?Date.now():null;}save();renderListDet();}
+function toggleLI(iid){const l=S.lists.find(l=>l.id===listId);if(!l)return;const i=(l.items||[]).find(i=>i.id===iid);if(i){if(i.isSection||i.isSubsection)return;i.checked=!i.checked;i.checkedAt=i.checked?Date.now():null;}save();renderListDet();}
 function updateLI(iid,text){const l=S.lists.find(l=>l.id===listId);if(!l)return;const i=(l.items||[]).find(i=>i.id===iid);if(i&&text.trim())i.text=text.trim();save();}
 function deleteLI(iid){const l=S.lists.find(l=>l.id===listId);if(!l)return;l.items=(l.items||[]).filter(i=>i.id!==iid);save();renderListDet();}
 function openListMenu(){
@@ -1948,7 +2040,7 @@ function openListMenu(){
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px${l.recurrence ? ';border-color:var(--list);color:var(--list)' : ''}" onclick="openListRecurrenceModal('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>${l.recurrence ? 'Edit recurring refresh' : 'Set up recurring refresh'}</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="convertListType('${l.id}')">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Switch to ${isC?'Freeform':'Checklist'}</button>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Switch type (${l.type==='checklist'?'Checklist':l.type==='freeform'?'Freeform':'Nested'} → ${l.type==='checklist'?'Freeform':l.type==='freeform'?'Nested':'Checklist'})</button>
     ${isC?`<button class="btn btn-block btn-amber" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="uncheckAll('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Uncheck all items</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px;border-color:var(--pri-high);color:var(--pri-high)" onclick="clearChecked('${l.id}')">
@@ -4373,11 +4465,12 @@ function getDueRecurringLists() {
 function refreshRecurringList(listId, silent) {
   const list = S.lists.find(l => l.id === listId);
   if (!list) return;
-  // For checklist: uncheck all items
-  // For freeform: empty the items but keep the list shell
-  // Actually: for freeform, refreshing means clear all items (freeform lists don't have checkable state)
-  if (list.type === 'checklist') {
-    (list.items || []).forEach(i => { i.checked = false; });
+  // Checklist + Nested: uncheck all regular items (preserve headers + subsections in Nested)
+  // Freeform: empty the items but keep the list shell
+  if (list.type === 'checklist' || list.type === 'nested') {
+    (list.items || []).forEach(i => {
+      if (!i.isSection && !i.isSubsection) i.checked = false;
+    });
   } else {
     list.items = [];
   }
@@ -4520,6 +4613,20 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.03.04',
+    date: 'Jun 17, 2026',
+    type: 'medium',
+    items: [
+      'New list type: Nested. Same as a checklist but supports section headers (e.g. days of the week) and optional subsection headers (e.g. Lunch / Dinner)',
+      'Section headers render bold and color-tinted; subsection headers render smaller and muted; regular items indent under them',
+      'Headers cannot be checked off and don\'t count toward the item count or progress',
+      'Recurring refresh on a Nested list unchecks regular items but preserves all section and subsection headers — your structure stays intact week to week',
+      'Switch any list to Nested via List menu → Switch type (cycles Checklist → Freeform → Nested → Checklist)',
+      'When a list is Nested, two extra buttons appear below the add-item input: + Section and + Subsection',
+      'Mention rendering now works inside list items too (@phil gets a cyan pill in the list)'
+    ]
+  },
   {
     version: '0.03.03',
     date: 'Jun 17, 2026',
