@@ -2160,7 +2160,7 @@ function liHTML(item,type,listColor){
   const showChk = (type === 'checklist') || (type === 'nested' && arguments[3] === true);
   return`<div class="li-row${indentClass} ${item.checked?'checked':''}">
   ${showChk?`<button class="li-chk ${item.checked?'checked':''}" onclick="toggleLI('${item.id}')"></button>`:'<div style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin:0 7px"></div>'}
-  <div class="li-text" contenteditable="true" onblur="updateLI('${item.id}',this.textContent)" style="outline:none">${renderMentionsHTML(item.text)}</div>
+  <div class="li-text" contenteditable="true" onfocus="liTextFocus(this,'${item.id}')" onblur="liTextBlur(this,'${item.id}')" style="outline:none">${renderMentionsHTML(item.text)}</div>
   <button class="btn-icon" onclick="openListItemMenu('${item.id}')" style="color:var(--ink-mute);padding:4px" title="Item options"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>`;
 }
@@ -2525,6 +2525,37 @@ function addListItem(){
   inp.value='';save();renderListDet();inp.focus();
 }
 function toggleLI(iid){const l=S.lists.find(l=>l.id===listId);if(!l)return;const i=(l.items||[]).find(i=>i.id===iid);if(i){if(i.isSection||i.isSubsection)return;i.checked=!i.checked;i.checkedAt=i.checked?Date.now():null;}save();renderListDet();}
+
+// ── LIST ITEM EDIT: plain text while focused, mention pills when blurred ──
+function liTextFocus(el, itemId) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  const item = (l.items || []).find(i => i.id === itemId);
+  if (!item) return;
+  // Replace styled HTML with plain text so the cursor doesn't get trapped in/after pill spans
+  el.textContent = item.text || '';
+  // Place cursor at end so the user can start typing immediately
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function liTextBlur(el, itemId) {
+  const l = S.lists.find(l => l.id === listId);
+  if (!l) return;
+  const item = (l.items || []).find(i => i.id === itemId);
+  if (!item) return;
+  const newText = (el.textContent || '').trim();
+  // Save the plain text
+  if (newText) item.text = newText;
+  // Re-render with mention pills
+  el.innerHTML = renderMentionsHTML(item.text || '');
+  save();
+}
+
 function updateLI(iid,text){const l=S.lists.find(l=>l.id===listId);if(!l)return;const i=(l.items||[]).find(i=>i.id===iid);if(i&&text.trim())i.text=text.trim();save();}
 function deleteLI(iid){const l=S.lists.find(l=>l.id===listId);if(!l)return;l.items=(l.items||[]).filter(i=>i.id!==iid);save();renderListDet();}
 function openListMenu(){
@@ -5118,6 +5149,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.03.12',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: typing after an @mention in a list item was continuing the mention formatting (cursor was trapped inside the styled span). Now when you tap to edit a list row, the mention pills temporarily revert to plain text. On blur, they re-render as styled pills.'
+    ]
+  },
   {
     version: '0.03.11',
     date: 'Jun 17, 2026',
