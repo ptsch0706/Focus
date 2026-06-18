@@ -2739,8 +2739,6 @@ function renderDash(){
     if(more>0)out+=`<div class="dash-item" onclick="switchView('todos')"><div class="di-dot" style="background:var(--ink-mute)"></div><div class="di-text" style="color:var(--ink-soft)">+${more} more</div></div>`;
     out+=`</div>`;
   }else if(h>=6){out+=`<div class="section-label">Today</div><div class="card" style="text-align:center;padding:20px;color:var(--ink-soft);font-size:14px">✓ All clear for today</div>`;}
-  // streak nudge after 8pm
-  if(h>=20)out+=`<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">No streaks scheduled for today. Tap the Streaks tab to add a habit.</div></div>`;
   // weekly summary Sunday evening
   if(now.getDay()===0&&h>=17){
     const wAgo=new Date(now);wAgo.setDate(wAgo.getDate()-7);
@@ -2766,7 +2764,7 @@ function renderDash(){
     const ar=S.streaks.filter(s=>isScheduledToday(s)&&!isLoggedToday(s));
     if(ar.length)out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>'
       +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:'+(s.color||'#f43f5e')+'"></span>'+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
-  } else if(h>=20){
+  } else if(h>=20&&(!S.dashSections||S.dashSections.streakNudge!==false)){
     out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">Tap the Streaks tab to set up your habits.</div></div>';
   }
   if((!S.dashSections||S.dashSections.pinnedNote!==false)&&S.notes){const pn=S.notes.find(n=>n.pinned);if(pn){
@@ -5149,6 +5147,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.03.13',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: two “Log your streaks” cards were showing on the Dashboard simultaneously. There was a leftover unconditional card from an earlier version of the app that ran in parallel with the proper gated logic. Removed.',
+      'Fixed: the streak-setup nudge card (“Tap the Streaks tab to set up your habits”) was ignoring the streakNudge toggle in Dashboard Sections settings. Now respects the toggle.'
+    ]
+  },
   {
     version: '0.03.12',
     date: 'Jun 17, 2026',
