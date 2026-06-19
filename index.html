@@ -3072,21 +3072,40 @@ function initFB(){
 let _syncStatus = 'idle';
 function setSyncStatus(s){_syncStatus=s;updateSyncIndicator();}
 
+let _syncHideTimer = null;
 function updateSyncIndicator(){
   const el=document.getElementById('sync-indicator');
   if(!el)return;
-  // Hide entirely if Firebase isn't configured in the build (don't bother users with this)
-  if(!fbOk()){el.style.display='none';return;}
-  // Hide if user hasn't joined a sync household yet
-  if(!S.syncCode){el.style.display='none';return;}
-  el.style.display='inline-flex';
+  // Hide entirely if Firebase isn't configured or user hasn't joined a sync household
+  if(!fbOk()||!S.syncCode){hideSyncIndicator(true);return;}
   const dot=document.getElementById('sync-dot');
   const lbl=document.getElementById('sync-label');
+  // Set color + label by status
   if(_syncStatus==='ok'){dot.style.background='var(--note)';lbl.textContent='Synced';}
   else if(_syncStatus==='syncing'){dot.style.background='var(--cyan)';lbl.textContent='Syncing\u2026';}
   else if(_syncStatus==='error'){dot.style.background='var(--pri-high)';lbl.textContent='Sync error';}
   else if(_syncStatus==='offline'){dot.style.background='var(--ink-mute)';lbl.textContent='Offline';}
   else{dot.style.background='var(--ink-mute)';lbl.textContent='Sync';}
+  // Show indicator
+  el.style.display='inline-flex';
+  // Force reflow so opacity transition fires
+  void el.offsetWidth;
+  el.style.opacity='1';
+  el.style.pointerEvents='auto';
+  // Auto-hide when status is OK (the boring success state). Show persistently for syncing/error/offline.
+  clearTimeout(_syncHideTimer);
+  if(_syncStatus==='ok'){
+    _syncHideTimer=setTimeout(()=>hideSyncIndicator(),2000);
+  }
+}
+function hideSyncIndicator(immediate){
+  const el=document.getElementById('sync-indicator');
+  if(!el)return;
+  clearTimeout(_syncHideTimer);
+  el.style.opacity='0';
+  el.style.pointerEvents='none';
+  if(immediate){el.style.display='none';}
+  else{setTimeout(()=>{if(el.style.opacity==='0')el.style.display='none';},350);}
 }
 
 
@@ -5392,6 +5411,16 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.03',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: sync indicator (bottom-right) was stuck on screen showing “Synced” perpetually. Now it auto-hides 2 seconds after reaching the synced state — you only see it briefly when syncing happens, or persistently if there’s an error / offline / actively syncing',
+      'Indicator now fades in/out smoothly instead of popping on and off',
+      'Cleaned up a CSS bug (display:none was set twice in the inline style)'
+    ]
+  },
+  {
     version: '0.04.02',
     date: 'Jun 17, 2026',
     type: 'minor',
@@ -6796,7 +6825,7 @@ function initSwipeTabs() {
 
 
 <!-- SYNC STATUS INDICATOR -->
-<div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 86px);right:14px;z-index:200;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);display:none;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);">
+<div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 86px);right:14px;z-index:200;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);opacity:0;transition:opacity .3s ease;pointer-events:none;">
   <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ink-mute);transition:background .2s"></span>
   <span id="sync-label">Sync</span>
 </div>
