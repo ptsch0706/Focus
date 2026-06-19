@@ -1184,7 +1184,7 @@ input.has-mention, .note-title-input.has-mention {
 .li-quicktag-row {
   display: flex;
   gap: 6px;
-  padding: 8px 16px 0;
+  padding: 8px 16px 10px;
   overflow-x: auto;
   scrollbar-width: none;
   flex-wrap: nowrap;
@@ -1215,6 +1215,26 @@ input.has-mention, .note-title-input.has-mention {
   padding: 6px 10px;
   font-size: 14px;
 }
+
+
+/* MENTION NOTIFY POPOVER */
+.mention-tappable { cursor: pointer; }
+.mention-popover-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.mention-popover-btn:active { background: var(--cyan-soft); color: var(--cyan); }
 
 </style>
 </head>
@@ -1429,7 +1449,23 @@ input.has-mention, .note-title-input.has-mention {
             <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day(s) of week</label>
             <div class="recur-dow-pills" id="recur-dow-pills-todo"></div>
           </div>
-          <div id="recur-dom-row-todo" style="display:none;font-size:13px;color:var(--ink-soft)">On day <span id="recur-dom-label-todo">1</span> of the month</div>
+          <div id="recur-dom-row-todo" style="display:none">
+            <div class="pill-row" style="margin-bottom:10px">
+              <button class="pill sel" data-mmode="dayOfMonth" onclick="setMonthlyMode('todo','dayOfMonth',this)">Day of month</button>
+              <button class="pill" data-mmode="nthWeekday" onclick="setMonthlyMode('todo','nthWeekday',this)">Day of week</button>
+            </div>
+            <div id="recur-dom-numeric-todo">
+              <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day of the month</label>
+              <select id="recur-dom-select-todo" onchange="setDayOfMonth('todo',this.value)" style="width:100%"></select>
+            </div>
+            <div id="recur-dom-nthweekday-todo" style="display:none">
+              <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On the</label>
+              <div style="display:flex;gap:8px">
+                <select id="recur-nth-position-todo" onchange="setNthWeekday('todo')" style="flex:1"></select>
+                <select id="recur-nth-weekday-todo" onchange="setNthWeekday('todo')" style="flex:1"></select>
+              </div>
+            </div>
+          </div>
           <div id="recur-ym-row-todo" style="display:none;font-size:13px;color:var(--ink-soft)">On <span id="recur-ym-label-todo">Jan 1</span> each year</div>
           <div class="recur-summary" id="recur-summary-todo"></div>
         </div>
@@ -1519,7 +1555,23 @@ input.has-mention, .note-title-input.has-mention {
             <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day(s) of week</label>
             <div class="recur-dow-pills" id="recur-dow-pills-rem"></div>
           </div>
-          <div id="recur-dom-row-rem" style="display:none;font-size:13px;color:var(--ink-soft)">On day <span id="recur-dom-label-rem">1</span> of the month</div>
+          <div id="recur-dom-row-rem" style="display:none">
+            <div class="pill-row" style="margin-bottom:10px">
+              <button class="pill sel" data-mmode="dayOfMonth" onclick="setMonthlyMode('rem','dayOfMonth',this)">Day of month</button>
+              <button class="pill" data-mmode="nthWeekday" onclick="setMonthlyMode('rem','nthWeekday',this)">Day of week</button>
+            </div>
+            <div id="recur-dom-numeric-rem">
+              <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day of the month</label>
+              <select id="recur-dom-select-rem" onchange="setDayOfMonth('rem',this.value)" style="width:100%"></select>
+            </div>
+            <div id="recur-dom-nthweekday-rem" style="display:none">
+              <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On the</label>
+              <div style="display:flex;gap:8px">
+                <select id="recur-nth-position-rem" onchange="setNthWeekday('rem')" style="flex:1"></select>
+                <select id="recur-nth-weekday-rem" onchange="setNthWeekday('rem')" style="flex:1"></select>
+              </div>
+            </div>
+          </div>
           <div id="recur-ym-row-rem" style="display:none;font-size:13px;color:var(--ink-soft)">On <span id="recur-ym-label-rem">Jan 1</span> each year</div>
           <div class="recur-summary" id="recur-summary-rem"></div>
         </div>
@@ -1540,8 +1592,32 @@ input.has-mention, .note-title-input.has-mention {
   </div>
 </div>
 
+<!-- Firebase config — lives in a separate file so it survives app updates. See SETUP-FIREBASE.md -->
+<script>window.FB_CONFIG = null;</script>
+<script src="firebase-config.js" onerror="console.info('firebase-config.js not loaded — sync disabled')"></script>
+
+
 <script>
 'use strict';
+
+// ═══════════════════════════════════════════════════════════════════════
+// FIREBASE CONFIG (read-only — DO NOT EDIT)
+// Your real config lives in firebase-config.js (a separate file that survives
+// app updates). See SETUP-FIREBASE.md for setup instructions.
+// ═══════════════════════════════════════════════════════════════════════
+// Read config from window.FB_CONFIG (set by firebase-config.js, a separate file you write once).
+// If the file is missing or contains placeholder values, sync stays disabled and the app works fine offline-only.
+const EMBEDDED_FB_CONFIG = (typeof window !== 'undefined' && window.FB_CONFIG) ? window.FB_CONFIG : {};
+function fbConfigIsValid(){
+  const c = EMBEDDED_FB_CONFIG || {};
+  if (!c.apiKey || !c.projectId) return false;
+  if (typeof c.apiKey !== 'string' || typeof c.projectId !== 'string') return false;
+  if (c.apiKey.startsWith('PASTE_') || c.projectId.startsWith('PASTE_')) return false;
+  if (c.apiKey.startsWith('YOUR_') || c.projectId.startsWith('YOUR_')) return false;
+  return true;
+}
+// ═══════════════════════════════════════════════════════════════════════
+
 
 // ── SVG ICONS ──
 const ICONS = {
@@ -1602,7 +1678,7 @@ function loadState(){
 }
 function save(){
   try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){}
-  if(db&&S.syncCode)push();
+  if(db&&S.syncCode)pushDebounced();
 }
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1675,7 +1751,7 @@ function openTodoModal(id=null){
   document.getElementById('todo-title').value=t?t.title:'';
   document.getElementById('todo-notes').value=t?t.notes||'':'';
   document.getElementById('todo-date').value=t?t.date||td():td();
-  document.getElementById('todo-time').value=t?t.time||'':'';
+  document.getElementById('todo-time').value=t?(t.time||''):defaultNextHourTime();
   document.getElementById('todo-del-btn').style.display=t?'':'none';
   resetPills('priority',t?t.priority||'low':'low');
   resetPills('recur',t?t.recur||'none':'none');
@@ -1718,7 +1794,7 @@ function checkTodo(id){
   const t=S.todos.find(t=>t.id===id);if(!t)return;
   if(!t.completed){
     t.completed=true;t.completedAt=Date.now();
-    if(t.recur&&t.recur!=='none'){S.todos.push({id:gid(),title:t.title,date:nextDate(t.date,t.recur),time:t.time||'',notes:t.notes||'',priority:t.priority,recur:t.recur,completed:false,createdAt:Date.now()});toast('Done! Next one scheduled ↻','ok');}
+    if(t.recur&&t.recur!=='none'){const nextT={id:gid(),title:t.title,date:nextDate(t.date,t.recur),time:t.time||'',notes:t.notes||'',priority:t.priority,recur:t.recur,completed:false,createdAt:Date.now(),ownerUsername:t.ownerUsername||S.myUsername||'',sharedWith:[...(t.sharedWith||[])]};S.todos.push(nextT);toast('Done! Next one scheduled ↻','ok');}
     else toast('Done! ✓','ok');
   }else{t.completed=false;t.completedAt=null;toast('Marked incomplete');}
   save();renderTodos();renderDash();tabs();
@@ -1940,7 +2016,7 @@ function tHTML(t){
   if (t.completed) {
     return `<div class="todo-item done ${pc}" onclick="openTodoModal('${t.id}')">
   <button class="todo-chk checked" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title)}</div>
+  <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
   ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
@@ -1956,7 +2032,7 @@ function tHTML(t){
   <div class="swipe-content">
   <div class="todo-item ${t.completed?'done':''} ${pc}" onclick="openTodoModal('${t.id}')">
   <button class="todo-chk ${cc}" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title)}</div>
+  <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date ${o?'ov':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
   ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${t.priority==='high'?'<span class="t-tag high">High</span>':t.priority==='med'?'<span class="t-tag med">Med</span>':''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
@@ -2031,9 +2107,12 @@ function saveList(){
   if(!name){toast('Please add a name','err');return;}
   const id=document.getElementById('list-eid').value;
   let newId=null;
-  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');}toast('Updated','ok');}
+  let editedId=null;
+  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');editedId=id;}toast('Updated','ok');}
   else{const newL={id:gid(),name,color:selectedListColor,type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
   save();closeModal('modal-list');renderLists();
+  // If we just edited the list currently open in detail view, refresh its header live
+  if(editedId&&typeof listId!=='undefined'&&listId===editedId&&typeof renderListDet==='function')renderListDet();
   // Open the new list immediately
   if(newId)setTimeout(()=>openListDetail(newId),250);
 }
@@ -2054,7 +2133,7 @@ function renderLists(){
     const meta=lHasChks?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
     return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'}">
     <div class="list-card-hdr">
-      <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
+      <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name,'list',l.id)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
       <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListModal('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
     </div></div>`;
   }).join('');
@@ -2639,7 +2718,7 @@ function checkRem(id){
   const r=S.reminders.find(r=>r.id===id);if(!r)return;
   if(!r.completed){
     r.completed=true;r.completedAt=Date.now();
-    if(r.recur&&r.recur!=='none'){S.reminders.push({id:gid(),title:r.title,date:nextDate(r.date,r.recur),time:r.time||'',notes:r.notes||'',recur:r.recur,completed:false,createdAt:Date.now()});toast('Acknowledged · Next scheduled ↻','ok');}
+    if(r.recur&&r.recur!=='none'){const nextR={id:gid(),title:r.title,date:nextDate(r.date,r.recur),time:r.time||'',notes:r.notes||'',recur:r.recur,completed:false,createdAt:Date.now(),ownerUsername:r.ownerUsername||S.myUsername||'',sharedWith:[...(r.sharedWith||[])]};S.reminders.push(nextR);toast('Acknowledged · Next scheduled ↻','ok');}
     else toast('Acknowledged ✓','ok');
   }else{r.completed=false;r.completedAt=null;toast('Marked active');}
   save();renderRem();renderDash();tabs();
@@ -2678,7 +2757,7 @@ function rHTML(r){
   if (r.completed) {
     return `<div class="rem-item done" onclick="openReminderModal('${r.id}')">
   <button class="rem-chk checked" onclick="event.stopPropagation();checkRem('${r.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title)}</div>
+  <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
   ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>`;
   }
@@ -2692,7 +2771,7 @@ function rHTML(r){
   <div class="swipe-content">
   <div class="rem-item ${r.completed?'done':''}" onclick="openReminderModal('${r.id}')">
   <button class="rem-chk ${r.completed?'checked':''}" onclick="event.stopPropagation();checkRem('${r.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title)}</div>
+  <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   <div class="todo-meta">
     ${r.time?`<span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtT(r.time)}</span>`:''}
     ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':t2?'<span class="t-tag rem" style="background:var(--cyan-soft);color:var(--cyan)">Today</span>':''}
@@ -2944,21 +3023,36 @@ function settGrace(){
     <button class="btn btn-primary btn-block" onclick="S.graceWindowHour=parseInt(document.getElementById('grace-sel').value);save();renderSett();toast('Saved','ok')">Save</button>
     <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="renderSett()">← Back</button>`;
 }
-function settFB(){
-  const c=fbCfg();
-  document.getElementById('sett-title').textContent='Firebase';
-  document.getElementById('sett-body').innerHTML=`
-    <p style="color:var(--ink-soft);font-size:14px;line-height:1.6;margin-bottom:16px">Paste your Firebase project config from Firebase Console → Project Settings → Web App.</p>
-    <div class="field"><label class="field-label">API Key</label><input type="text" id="fb-key" placeholder="AIza..." value="${c.apiKey||''}"></div>
-    <div class="field"><label class="field-label">Auth Domain</label><input type="text" id="fb-auth" placeholder="your-app.firebaseapp.com" value="${c.authDomain||''}"></div>
-    <div class="field"><label class="field-label">Project ID</label><input type="text" id="fb-proj" placeholder="your-project-id" value="${c.projectId||''}"></div>
-    <div class="field"><label class="field-label">App ID</label><input type="text" id="fb-app" placeholder="1:123:web:abc..." value="${c.appId||''}"></div>
-    <button class="btn btn-primary btn-block" onclick="saveFB()">Save Config</button>
-    ${c.apiKey?`<button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;color:var(--pri-high)" onclick="if(confirm('Clear config?')){localStorage.removeItem('focus_fb');db=null;toast('Cleared');renderSett();}">Clear Config</button>`:''}
-    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:4px" onclick="renderSett()">← Back</button>`;
+function settFB() {
+  document.getElementById('sett-title').textContent = 'Cloud Sync';
+  const ok = fbOk();
+  const connected = ok && db && S.syncCode;
+  let statusHTML = '';
+  if (!ok) {
+    statusHTML = '<div style="background:var(--pri-high-soft);border:1px solid var(--pri-high);color:var(--pri-high);padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:14px">Firebase is not configured in this build. Sync is disabled.</div>';
+  } else if (connected) {
+    statusHTML = '<div style="background:var(--note-soft);border:1px solid var(--note);color:var(--note);padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:14px">\u2713 Connected as @' + esc(S.myUsername || '?') + '. Items are private by default \u2014 you only see your own data and items others have tagged you in.</div>';
+  } else {
+    statusHTML = '<div style="background:var(--list-soft);border:1px solid var(--list);color:var(--list);padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:14px">Firebase is configured but you haven\'t joined a household yet. Set a sync code in Profile &amp; Username to start syncing.</div>';
+  }
+  document.getElementById('sett-body').innerHTML = statusHTML
+    + '<div class="section-label">Privacy model</div>'
+    + '<div style="background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--ink-soft);line-height:1.5;margin-bottom:14px">'
+    + '<p style="margin-bottom:8px"><strong style="color:var(--ink)">Private by default.</strong> Your to-dos, lists, reminders, notes, and streaks are visible only to you on your own device.</p>'
+    + '<p style="margin-bottom:8px"><strong style="color:var(--ink)">Shared by tagging.</strong> The moment you @-tag a household member or use the &ldquo;Share with&hellip;&rdquo; picker, that specific item appears on their device too. Either of you can then edit it.</p>'
+    + '<p style="margin:0"><strong style="color:var(--ink)">Untag to unshare.</strong> Remove the @-tag (or unpick them in the share picker) and the item disappears from their view.</p>'
+    + '</div>'
+    + '<div class="section-label">How to connect</div>'
+    + '<ol style="margin-left:18px;padding-left:0;font-size:13px;color:var(--ink-soft);line-height:1.6">'
+    + '<li>One person picks a 6-character sync code (e.g. <code>FOCUS1</code>).</li>'
+    + '<li>The other person enters the same code in Settings &rarr; Profile &amp; Username.</li>'
+    + '<li>Each person picks a different @username so tags can be addressed individually.</li>'
+    + '<li>Changes sync within a few seconds. The status dot in the bottom-right shows live sync state.</li>'
+    + '</ol>'
+    + '<button class="btn btn-ghost btn-block btn-sm" style="margin-top:14px" onclick="renderSett()">&larr; Back</button>';
 }
-function fbCfg(){try{return JSON.parse(localStorage.getItem('focus_fb')||'{}');}catch(e){return{};}}
-function fbOk(){const c=fbCfg();return!!(c.apiKey&&c.projectId);}
+function fbCfg(){return fbConfigIsValid()?EMBEDDED_FB_CONFIG:{};}
+function fbOk(){return fbConfigIsValid();}
 function saveFB(){
   const cfg={apiKey:document.getElementById('fb-key').value.trim(),authDomain:document.getElementById('fb-auth').value.trim(),projectId:document.getElementById('fb-proj').value.trim(),appId:document.getElementById('fb-app').value.trim()};
   if(!cfg.apiKey||!cfg.projectId){toast('API Key and Project ID required','err');return;}
@@ -2974,20 +3068,90 @@ function initFB(){
   if(db)return true;const c=fbCfg();if(!c.apiKey||!c.projectId)return false;
   try{const{initializeApp,getFirestore}=window.__firebase;const app=initializeApp(c,'focus');db=getFirestore(app);return true;}catch(e){console.warn(e);return false;}
 }
-async function push(){
+// Sync-status: 'idle' | 'syncing' | 'ok' | 'error' | 'offline'
+let _syncStatus = 'idle';
+function setSyncStatus(s){_syncStatus=s;updateSyncIndicator();}
+
+function updateSyncIndicator(){
+  const el=document.getElementById('sync-indicator');
+  if(!el)return;
+  // Hide entirely if Firebase isn't configured in the build (don't bother users with this)
+  if(!fbOk()){el.style.display='none';return;}
+  // Hide if user hasn't joined a sync household yet
+  if(!S.syncCode){el.style.display='none';return;}
+  el.style.display='inline-flex';
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  if(_syncStatus==='ok'){dot.style.background='var(--note)';lbl.textContent='Synced';}
+  else if(_syncStatus==='syncing'){dot.style.background='var(--cyan)';lbl.textContent='Syncing\u2026';}
+  else if(_syncStatus==='error'){dot.style.background='var(--pri-high)';lbl.textContent='Sync error';}
+  else if(_syncStatus==='offline'){dot.style.background='var(--ink-mute)';lbl.textContent='Offline';}
+  else{dot.style.background='var(--ink-mute)';lbl.textContent='Sync';}
+}
+
+
+let _pushTimer = null;
+function pushDebounced(){
   if(!db||!S.syncCode)return;
-  try{const{doc,setDoc}=window.__firebase;await setDoc(doc(db,'focus',S.syncCode),{todos:S.todos,lists:S.lists,reminders:S.reminders,notes:S.notes,streaks:S.streaks,updatedAt:Date.now()});}catch(e){console.warn(e);}
+  clearTimeout(_pushTimer);
+  _pushTimer=setTimeout(push, 800);
+}
+
+async function push(){
+  if(!db||!S.syncCode){setSyncStatus('offline');return;}
+  setSyncStatus('syncing');
+  try{
+    const{doc,setDoc}=window.__firebase;
+    // SHARED data (visible to everyone with this sync code)
+    const payload = {
+      todos:S.todos,
+      lists:S.lists,
+      reminders:S.reminders,
+      notes:S.notes,
+      streaks:S.streaks,
+      notifications:S.notifications||[],
+      knownUsernames:S.knownUsernames||[],
+      updatedAt:Date.now(),
+      updatedBy:S.myUsername||'',
+    };
+    await setDoc(doc(db,'focus',S.syncCode),payload);
+    S._lp=payload.updatedAt;
+    setSyncStatus('ok');
+  }catch(e){
+    console.warn('Sync push failed:',e);
+    setSyncStatus('error');
+  }
 }
 function startSync(){
-  if(!initFB()||!S.syncCode)return;if(unsub)unsub();
+  if(!initFB()||!S.syncCode){setSyncStatus('offline');return;}
+  if(unsub)unsub();
   const{doc,onSnapshot}=window.__firebase;
+  setSyncStatus('syncing');
   unsub=onSnapshot(doc(db,'focus',S.syncCode),snap=>{
     if(!snap.exists()){push();return;}
     const data=snap.data();
-    if(data.updatedAt>(S._lp||0)){S.todos=data.todos||[];S.lists=data.lists||[];S.reminders=data.reminders||[];S.notes=data.notes||[];S.streaks=data.streaks||[];S._lp=data.updatedAt;
-    try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){}
-    renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();tabs();}
-  },e=>console.warn(e));
+    // Ignore our own writes echoing back
+    if(data.updatedBy===S.myUsername && data.updatedAt<=(S._lp||0)){setSyncStatus('ok');return;}
+    if(data.updatedAt>(S._lp||0)){
+      S.todos=data.todos||[];
+      S.lists=data.lists||[];
+      S.reminders=data.reminders||[];
+      S.notes=data.notes||[];
+      S.streaks=data.streaks||[];
+      if(Array.isArray(data.notifications))S.notifications=data.notifications;
+      if(Array.isArray(data.knownUsernames)){
+        // Merge: keep any local additions, then add any incoming additions
+        const merged=[...new Set([...(S.knownUsernames||[]),...data.knownUsernames])];
+        S.knownUsernames=merged;
+      }
+      S._lp=data.updatedAt;
+      try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){}
+      renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();tabs();
+      setSyncStatus('ok');
+    }else{
+      setSyncStatus('ok');
+    }
+  },e=>{console.warn('Sync listener error:',e);setSyncStatus('error');});
 }
 
 // ── INIT ──
@@ -3003,6 +3167,7 @@ function init(){
   setupNoteToolbarKeyboard();
   handleURLScheme();
   renderDash();renderTodos();renderLists();renderRem();renderNotes();renderStreaks();tabs();
+  updateSyncIndicator();
   if(window.__firebase){if(initFB()&&S.syncCode)startSync();}
   else window.addEventListener('firebase-ready',()=>{if(initFB()&&S.syncCode)startSync();});
   setInterval(()=>{if(view==='home')renderDash();tabs();},60000);
@@ -3463,7 +3628,7 @@ function renderNotes() {
     }
     return `<div class="note-card ${note.pinned?'pinned':''}" onclick="openNoteDetail('${note.id}')">
       ${note.pinned?`<span class="pin-indicator">${svg('pin',14)}</span>`:''}
-      <div class="note-card-title">${note.title ? renderMentionsHTML(note.title) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
+      <div class="note-card-title">${note.title ? renderMentionsHTML(note.title,'note',note.id) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
       ${preview ? `<div class="note-card-preview">${esc(preview)}</div>` : ''}
       <div class="note-card-meta">${dateStr}${linkBadge ? ' · '+linkBadge : ''}</div>
       ${shareChipsHTML(note) ? `<div class="shared-with-row">${shareChipsHTML(note)}</div>` : ''}
@@ -3732,7 +3897,7 @@ function renderStreaks() {
       + '<div class="streak-top">'
         + '<div class="streak-color-dot" style="background:'+color+';color:'+color+'"></div>'
         + '<div class="streak-info">'
-          + '<div class="streak-name">' + renderMentionsHTML(s.name) + '</div>'
+          + '<div class="streak-name">' + renderMentionsHTML(s.name,'streak',s.id) + '</div>'
           + '<div class="streak-chain-wrap">'
             + '<div class="streak-chain" style="color:'+color+'">' + chain + '</div>'
             + '<span class="streak-chain-lbl">day' + (chain!==1?'s':'') + '</span>'
@@ -3894,11 +4059,90 @@ function canSeeItem(item) {
   return (item.sharedWith || []).some(u => normalizeUsername(u) === me);
 }
 
-function renderMentionsHTML(text) {
+
+// ── MENTION TAP-TO-NOTIFY POPOVER ──
+let _mentionPopoverTarget = null; // { username, itemType, itemId }
+
+function openMentionPopover(event, username, itemType, itemId) {
+  _mentionPopoverTarget = { username, itemType, itemId };
+  const pop = document.getElementById('mention-popover');
+  document.getElementById('mention-popover-label').textContent = 'Notify @' + username;
+
+  // Position near the tap, clamped to stay on-screen
+  const rect = event.target.getBoundingClientRect();
+  const popWidth = 180; // approx, before measuring
+  let left = rect.left;
+  let top = rect.bottom + 6;
+  if (left + popWidth > window.innerWidth - 12) left = window.innerWidth - popWidth - 12;
+  if (left < 12) left = 12;
+
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+  pop.style.display = 'block';
+
+  // If popover would go off the bottom of the screen, show it above the tap instead
+  requestAnimationFrame(() => {
+    const popRect = pop.getBoundingClientRect();
+    if (popRect.bottom > window.innerHeight - 12) {
+      pop.style.top = (rect.top - popRect.height - 6) + 'px';
+    }
+  });
+}
+
+function closeMentionPopover() {
+  document.getElementById('mention-popover').style.display = 'none';
+  _mentionPopoverTarget = null;
+}
+
+function confirmNotifyMention() {
+  if (!_mentionPopoverTarget) return;
+  const { username, itemType, itemId } = _mentionPopoverTarget;
+  const collection = { todo: S.todos, list: S.lists, reminder: S.reminders, note: S.notes, streak: S.streaks }[itemType];
+  const item = collection ? collection.find(x => x.id === itemId) : null;
+  const snippet = item ? (item.title || item.name || stripHTML(item.body || '')).substring(0, 80) : '';
+
+  if (!Array.isArray(S.notifications)) S.notifications = [];
+  S.notifications.unshift({
+    id: gid(),
+    type: 'manual-notify',
+    forUser: normalizeUsername(username),
+    fromUser: S.myUsername,
+    itemType: itemType,
+    itemId: itemId,
+    snippet: snippet,
+    createdAt: Date.now(),
+    read: false
+  });
+  save();
+  closeMentionPopover();
+  toast('Notified @' + username, 'ok');
+}
+
+// Dismiss popover when tapping anywhere else
+document.addEventListener('touchstart', function(e) {
+  const pop = document.getElementById('mention-popover');
+  if (pop && pop.style.display === 'block' && !pop.contains(e.target) && !e.target.classList.contains('mention-tappable')) {
+    closeMentionPopover();
+  }
+}, { passive: true });
+document.addEventListener('click', function(e) {
+  const pop = document.getElementById('mention-popover');
+  if (pop && pop.style.display === 'block' && !pop.contains(e.target) && !e.target.classList.contains('mention-tappable')) {
+    closeMentionPopover();
+  }
+}, true);
+
+function renderMentionsHTML(text, itemType, itemId) {
   // Render @mentions as styled spans inline (only for known household usernames)
+  // If itemType + itemId are provided, mentions become tappable (opens a Notify popover).
+  // Omit them (or call with just text) for editable contexts where tapping should mean "start editing" instead.
   if (!text) return '';
+  const interactive = itemType !== undefined && itemId !== undefined;
   return esc(text).replace(/@([a-zA-Z0-9_]+)/g, function(match, username) {
     if (isKnownUsername(username)) {
+      if (interactive) {
+        return '<span class="mention-tag mention-tappable" onclick="event.stopPropagation();openMentionPopover(event,\'' + username + '\',\'' + itemType + '\',\'' + itemId + '\')">@' + username + '</span>';
+      }
       return '<span class="mention-tag">@' + username + '</span>';
     }
     return match; // leave unknown mentions as plain text
@@ -4343,7 +4587,7 @@ function convertCapture(id, targetType) {
   }
   if (targetType === 'todo') {
     const newT = {
-      id: gid(), title, date: td(), time: '', notes: plainBody,
+      id: gid(), title, date: td(), time: defaultNextHourTime(), notes: plainBody,
       priority: 'low', recur: null, completed: false, createdAt: Date.now(),
     };
     stampOwner(newT);
@@ -5148,6 +5392,84 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.02',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Firebase config moved out of index.html into a separate firebase-config.js file. This way your config survives every app update — you no longer have to paste it in again each time a new version of index.html ships.',
+      'firebase-config.js is loaded BEFORE the main script. If it\'s missing (404) or contains placeholder values, the app still loads cleanly with sync disabled — no errors, no breakage.',
+      'EMBEDDED_FB_CONFIG in index.html is now a read-only computed value; do not edit it. The placeholder-detection logic now catches both PASTE_ and YOUR_ prefixes.'
+    ]
+  },
+  {
+    version: '0.04.01',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Sync privacy model: items are now PRIVATE BY DEFAULT, even when two devices share a sync code. A household member only sees an item if you’ve @-tagged them (or used the Share with… picker). Untag = unshare.',
+      'Fixed: recurring to-do/reminder instances now inherit the original item’s ownerUsername and sharedWith list, so the next auto-scheduled copy stays correctly private or shared',
+      'Cloud Sync settings page updated to describe the privacy model: private-by-default, shared-by-tagging, untag-to-unshare',
+      'Architectural note: the render-filter (canSeeItem) was already enforcing privacy on every screen — streaks, todos, lists, reminders, notes, search, dashboard nudges, calendar entries. This release just closes the recurring-instance gap and documents the model'
+    ]
+  },
+  {
+    version: '0.04.00',
+    date: 'Jun 17, 2026',
+    type: 'major',
+    items: [
+      'Cloud sync via Firebase is now built into the app. Set up once in the source file, then anyone you share the PWA URL with can sync by entering the same 6-character sync code',
+      'Removed per-user Firebase config UI from Settings — Firebase project credentials are now embedded in the source (apiKey is non-secret per Firebase design; security comes from Firestore rules)',
+      'Settings → Cloud Sync now shows a status + how-it-works guide instead of a config form',
+      'New sync status indicator (bottom-right corner): green dot = synced, blue = syncing, red = error, gray = offline. Only visible when you’re joined to a household',
+      'Sync now includes notifications and known usernames — so tags and notify-pings reach the other person’s device, and adding a new household member propagates automatically',
+      'Personal preferences (theme, templates, quick tags, compact mode, dismissed Sunday review, etc.) stay local to each device — not synced',
+      'Sync writes are debounced — rapid edits batch into one Firestore write instead of flooding the connection',
+      'Listener ignores echoes of your own writes to avoid the local UI rendering twice in a row'
+    ]
+  },
+  {
+    version: '0.03.17',
+    date: 'Jun 17, 2026',
+    type: 'medium',
+    items: [
+      '@mentions are now tappable wherever they appear as read-only text (to-do/reminder/list/note/streak cards, calendar entries)',
+      'Tapping a mention opens a small popover with a “Notify @username” button — sends a fresh notification even if that person was already tagged on the item before',
+      'Mentions inside editable fields (list item rows, the note editor) are NOT tappable for notify — tapping there still means “start editing”, as before',
+      'First-time tagging still auto-notifies as it always has; the new tap-to-notify is for re-pinging someone after the fact'
+    ]
+  },
+  {
+    version: '0.03.16',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: list name edits didn\'t show up in the detail view header until you left and re-opened the list. Now it updates live the moment you save.',
+      'Added breathing room between the quick-tag chip row and the add-item input on nested lists — they were sitting right on top of each other'
+    ]
+  },
+  {
+    version: '0.03.15',
+    date: 'Jun 17, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: the time picker in the To-Do modal was always blank for new to-dos. It now defaults to the next upcoming hour (e.g. 6:23pm → 7:00pm), matching the existing behavior already in place for Reminders',
+      'Quick Capture → To-Do conversion now also defaults the time to the next hour, for consistency with the To-Do modal and Quick Capture → Reminder conversion',
+      'Editing an existing to-do or reminder that has no time set still leaves the field blank — the default only applies to brand-new items'
+    ]
+  },
+  {
+    version: '0.03.14',
+    date: 'Jun 17, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: monthly recurrence on To-Dos and Reminders had no way to actually pick a day — the UI showed a static “On day 1 of the month” label with no input control',
+      'Monthly recurrence now offers two real modes: “Day of month” (pick 1–31, or “Last day”) and “Day of week” (e.g. “3rd Thursday”, with 1st/2nd/3rd/4th/Last positions)',
+      'Recurrence summary text now describes the pattern correctly, e.g. “Every month on the 3rd Thursday” or “Every 2 months on day 15”',
+      'Date math correctly handles month-length edge cases: “Last day” adapts to 28/29/30/31-day months, and a numeric day like 31 clamps to the actual last day in shorter months',
+      'Nth-weekday math also handles months with only 4 occurrences of a weekday when “5th” would overflow — falls back to the 4th/last occurrence'
+    ]
+  },
+  {
     version: '0.03.13',
     date: 'Jun 17, 2026',
     type: 'minor',
@@ -5645,6 +5967,7 @@ function openChangelog() {
 const DOW_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const recurState = { todo: null, rem: null };
+const DOW_NAMES_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 function normalizeRecur(recur, baseDate) {
   if (!recur || recur === 'none') return null;
@@ -5656,6 +5979,7 @@ function normalizeRecur(recur, baseDate) {
       interval: 1,
       daysOfWeek: recur === 'weekly' ? [dt.getDay()] : null,
       dayOfMonth: recur === 'monthly' ? d : null,
+      monthlyMode: recur === 'monthly' ? 'dayOfMonth' : null,
       month: recur === 'yearly' ? m : null,
       day: recur === 'yearly' ? d : null,
     };
@@ -5717,9 +6041,42 @@ function setRecur(scope, freq) {
     ).join('');
   }
 
-  // Monthly: show day of month
+  // Monthly: populate the day-of-month select + nth-weekday selects, set mode
   if (freq === 'monthly') {
-    document.getElementById('recur-dom-label-' + scope).textContent = r.dayOfMonth;
+    if (!r.monthlyMode) r.monthlyMode = 'dayOfMonth';
+    if (!r.position) r.position = Math.min(4, Math.ceil(d / 7));
+    if (r.weekday === undefined || r.weekday === null) r.weekday = baseDate.getDay();
+
+    // Populate day-of-month dropdown if empty
+    const domSelect = document.getElementById('recur-dom-select-' + scope);
+    if (domSelect && !domSelect.options.length) {
+      let opts = '';
+      for (let i = 1; i <= 31; i++) opts += '<option value="' + i + '">' + i + '</option>';
+      opts += '<option value="-1">Last day</option>';
+      domSelect.innerHTML = opts;
+    }
+    if (domSelect) domSelect.value = r.dayOfMonth;
+
+    // Populate nth-position dropdown if empty
+    const posSelect = document.getElementById('recur-nth-position-' + scope);
+    if (posSelect && !posSelect.options.length) {
+      posSelect.innerHTML = '<option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="-1">Last</option>';
+    }
+    if (posSelect) posSelect.value = r.position;
+
+    // Populate weekday dropdown if empty
+    const wdSelect = document.getElementById('recur-nth-weekday-' + scope);
+    if (wdSelect && !wdSelect.options.length) {
+      wdSelect.innerHTML = DOW_NAMES_FULL.map((n, i) => '<option value="' + i + '">' + n + '</option>').join('');
+    }
+    if (wdSelect) wdSelect.value = r.weekday;
+
+    // Toggle pill + sub-row visibility based on monthlyMode
+    document.querySelectorAll('#recur-dom-row-' + scope + ' .pill[data-mmode]').forEach(p => {
+      p.classList.toggle('sel', p.dataset.mmode === r.monthlyMode);
+    });
+    document.getElementById('recur-dom-numeric-' + scope).style.display = r.monthlyMode === 'dayOfMonth' ? '' : 'none';
+    document.getElementById('recur-dom-nthweekday-' + scope).style.display = r.monthlyMode === 'nthWeekday' ? '' : 'none';
   }
 
   // Yearly: show month/day
@@ -5749,6 +6106,32 @@ function toggleRecurDow(scope, dow, btn) {
   updateRecurSummary(scope);
 }
 
+
+function setMonthlyMode(scope, mode, btn) {
+  const r = recurState[scope];
+  if (!r) return;
+  r.monthlyMode = mode;
+  document.querySelectorAll('#recur-dom-row-' + scope + ' .pill[data-mmode]').forEach(p => p.classList.toggle('sel', p === btn));
+  document.getElementById('recur-dom-numeric-' + scope).style.display = mode === 'dayOfMonth' ? '' : 'none';
+  document.getElementById('recur-dom-nthweekday-' + scope).style.display = mode === 'nthWeekday' ? '' : 'none';
+  updateRecurSummary(scope);
+}
+
+function setDayOfMonth(scope, value) {
+  const r = recurState[scope];
+  if (!r) return;
+  r.dayOfMonth = parseInt(value);
+  updateRecurSummary(scope);
+}
+
+function setNthWeekday(scope) {
+  const r = recurState[scope];
+  if (!r) return;
+  r.position = parseInt(document.getElementById('recur-nth-position-' + scope).value);
+  r.weekday = parseInt(document.getElementById('recur-nth-weekday-' + scope).value);
+  updateRecurSummary(scope);
+}
+
 function updateRecurSummary(scope) {
   const r = recurState[scope];
   if (!r) { document.getElementById('recur-summary-' + scope).textContent = ''; return; }
@@ -5763,7 +6146,12 @@ function updateRecurSummary(scope) {
     }
   } else if (r.freq === 'monthly') {
     summary += r.interval === 1 ? 'month' : 'months';
-    summary += ' on day ' + r.dayOfMonth;
+    if (r.monthlyMode === 'nthWeekday') {
+      const posLabel = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th', '-1': 'last' }[r.position] || (r.position + 'th');
+      summary += ' on the ' + posLabel + ' ' + DOW_NAMES_FULL[r.weekday];
+    } else {
+      summary += ' on day ' + (r.dayOfMonth === -1 ? '(last)' : r.dayOfMonth);
+    }
   } else if (r.freq === 'yearly') {
     summary += r.interval === 1 ? 'year' : 'years';
     summary += ' on ' + MONTH_NAMES[r.month - 1] + ' ' + r.day;
@@ -5800,6 +6188,30 @@ function describeRecur(recur) {
 }
 
 // Override nextDate to handle the new recur object format
+
+// Returns the Date for the Nth occurrence of `weekday` (0=Sun..6=Sat) in the given year/month (0-indexed month).
+// position: 1-4 for 1st-4th, -1 for "last"
+function nthWeekdayOfMonth(year, month, weekday, position) {
+  if (position === -1) {
+    // Start from the last day of the month and walk backward to the target weekday
+    const lastDay = new Date(year, month + 1, 0);
+    const diff = (lastDay.getDay() - weekday + 7) % 7;
+    lastDay.setDate(lastDay.getDate() - diff);
+    return lastDay;
+  }
+  // Find the first occurrence of the weekday in the month
+  const firstOfMonth = new Date(year, month, 1);
+  const diff = (weekday - firstOfMonth.getDay() + 7) % 7;
+  const firstOccurrence = 1 + diff;
+  const targetDate = firstOccurrence + (position - 1) * 7;
+  // If it overflows into the next month (e.g. asking for 5th Thursday when there are only 4), clamp to the last occurrence
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  if (targetDate > daysInMonth) {
+    return new Date(year, month, targetDate - 7);
+  }
+  return new Date(year, month, targetDate);
+}
+
 function nextDate(ds, recur) {
   if (!ds || !recur || recur === 'none') return null;
   // Backward compat: string recur
@@ -5836,7 +6248,16 @@ function nextDate(ds, recur) {
     }
   } else if (recur.freq === 'monthly') {
     dt.setMonth(dt.getMonth() + interval);
-    if (recur.dayOfMonth) dt.setDate(recur.dayOfMonth);
+    if (recur.monthlyMode === 'nthWeekday' && recur.weekday !== undefined && recur.weekday !== null) {
+      dt = nthWeekdayOfMonth(dt.getFullYear(), dt.getMonth(), recur.weekday, recur.position || 1);
+    } else if (recur.dayOfMonth === -1) {
+      // Last day of the (new) month
+      dt = new Date(dt.getFullYear(), dt.getMonth() + 1, 0);
+    } else if (recur.dayOfMonth) {
+      // Clamp to the last valid day if the month is shorter (e.g. day 31 in Feb)
+      const lastDay = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
+      dt.setDate(Math.min(recur.dayOfMonth, lastDay));
+    }
   } else if (recur.freq === 'yearly') {
     dt.setFullYear(dt.getFullYear() + interval);
     if (recur.month && recur.day) {
@@ -6046,7 +6467,7 @@ function renderCalDayDetail() {
     html += '<div class="section-label">To-Dos</div>';
     todos.forEach(t => {
       html += '<div class="card" style="margin-bottom:6px;cursor:pointer" onclick="closeCalendar();switchView(\'todos\');setTimeout(()=>openTodoModal(\'' + t.id + '\'),200)">'
-        + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(t.title) + '</div>'
+        + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(t.title,'todo',t.id) + '</div>'
         + (t.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(t.time) + '</div>' : '')
         + '</div>';
     });
@@ -6055,7 +6476,7 @@ function renderCalDayDetail() {
     html += '<div class="section-label">Reminders</div>';
     reminders.forEach(r => {
       html += '<div class="card" style="margin-bottom:6px;cursor:pointer" onclick="closeCalendar();switchView(\'reminders\');setTimeout(()=>openReminderModal(\'' + r.id + '\'),200)">'
-        + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(r.title) + '</div>'
+        + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(r.title,'reminder',r.id) + '</div>'
         + (r.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(r.time) + '</div>' : '')
         + '</div>';
     });
@@ -6371,6 +6792,22 @@ function initSwipeTabs() {
   </div>
 </div>
 
+
+
+
+<!-- SYNC STATUS INDICATOR -->
+<div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 86px);right:14px;z-index:200;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);display:none;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);">
+  <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ink-mute);transition:background .2s"></span>
+  <span id="sync-label">Sync</span>
+</div>
+
+<!-- MENTION NOTIFY POPOVER -->
+<div id="mention-popover" style="display:none;position:fixed;z-index:9500;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.25);overflow:hidden;min-width:160px;">
+  <button id="mention-popover-notify" class="mention-popover-btn" onclick="confirmNotifyMention()">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span id="mention-popover-label">Notify</span>
+  </button>
+</div>
 
 <!-- LIST ITEM MENU MODAL -->
 <div class="modal-backdrop" id="modal-list-item-menu">
