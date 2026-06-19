@@ -10,10 +10,10 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 window.FB_CONFIG = {
-  apiKey: "PASTE_APIKEY_HERE",
-  authDomain: "PASTE_AUTHDOMAIN_HERE",
-  projectId: "PASTE_PROJECTID_HERE",
-  storageBucket: "PASTE_STORAGEBUCKET_HERE",
-  messagingSenderId: "PASTE_SENDERID_HERE",
-  appId: "PASTE_APPID_HERE",
+  apiKey: "AIzaSyCSInvKwY-0myPn2UIeWZ_MJU5S1wzkIf8",
+  authDomain: "focus-app-46f92.firebaseapp.com",
+  projectId: "focus-app-46f92",
+  storageBucket: "focus-app-46f92.firebasestorage.app",
+  messagingSenderId: "795243510163",
+  appId: "1:795243510163:web:24da9f16342111b2dc9066",
 };
