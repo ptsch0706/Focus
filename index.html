@@ -5467,6 +5467,26 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.06',
+    date: 'Jun 18, 2026',
+    type: 'minor',
+    items: [
+      'Widget tweak: “Needs attention” now only counts to-dos whose date is TODAY (and today’s reminders). Future-dated to-dos are no longer pulled into the count — a to-do due next month no longer shows as needing attention. Overdue items remain surfaced separately at the bottom of the widget.',
+    ]
+  },
+  {
+    version: '0.04.05',
+    date: 'Jun 18, 2026',
+    type: 'minor',
+    items: [
+      'Companion iOS widget: focus-widget.js is a Scriptable script that displays your live stats on the home screen — items needing attention, completed today, overdue, and unread @-mentions',
+      'Widget uses the same privacy filter as the app: only your own items + items shared with you',
+      'Two sizes supported: small (single-stat focus) and medium (split layout with date and detail)',
+      'Tap the widget to open the PWA. Refreshes ~every 15 minutes (iOS controls actual cadence)',
+      'See SETUP-WIDGET.md for installation instructions'
+    ]
+  },
+  {
     version: '0.04.04',
     date: 'Jun 17, 2026',
     type: 'major',
