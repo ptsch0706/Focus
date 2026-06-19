@@ -3116,12 +3116,19 @@ function pushDebounced(){
   _pushTimer=setTimeout(push, 800);
 }
 
+// _syncReady becomes true ONLY after we've successfully received the first snapshot
+// from Firestore for this sync code. Until then, push() refuses to run.
+let _syncReady = false;
+
 async function push(){
   if(!db||!S.syncCode){setSyncStatus('offline');return;}
+  if(!_syncReady){
+    console.info('Sync push deferred — waiting for initial pull to complete');
+    return;
+  }
   setSyncStatus('syncing');
   try{
     const{doc,setDoc}=window.__firebase;
-    // SHARED data (visible to everyone with this sync code)
     const payload = {
       todos:S.todos,
       lists:S.lists,
@@ -3144,12 +3151,55 @@ async function push(){
 function startSync(){
   if(!initFB()||!S.syncCode){setSyncStatus('offline');return;}
   if(unsub)unsub();
+  _syncReady = false;
   const{doc,onSnapshot}=window.__firebase;
   setSyncStatus('syncing');
+  let firstSnapshot = true;
   unsub=onSnapshot(doc(db,'focus',S.syncCode),snap=>{
-    if(!snap.exists()){push();return;}
+    if(!snap.exists()){
+      _syncReady = true;
+      push();
+      firstSnapshot = false;
+      return;
+    }
     const data=snap.data();
-    // Ignore our own writes echoing back
+    if(firstSnapshot){
+      firstSnapshot = false;
+      const cloudHasData = (data.todos&&data.todos.length) || (data.lists&&data.lists.length) ||
+                           (data.reminders&&data.reminders.length) || (data.notes&&data.notes.length) ||
+                           (data.streaks&&data.streaks.length);
+      const localHasData = (S.todos&&S.todos.length) || (S.lists&&S.lists.length) ||
+                           (S.reminders&&S.reminders.length) || (S.notes&&S.notes.length) ||
+                           (S.streaks&&S.streaks.length);
+      if(cloudHasData){
+        // Cloud has data — adopt cloud as source of truth for shared fields
+        S.todos=data.todos||[];
+        S.lists=data.lists||[];
+        S.reminders=data.reminders||[];
+        S.notes=data.notes||[];
+        S.streaks=data.streaks||[];
+        if(Array.isArray(data.notifications))S.notifications=data.notifications;
+        if(Array.isArray(data.knownUsernames)){
+          const merged=[...new Set([...(S.knownUsernames||[]),...data.knownUsernames])];
+          S.knownUsernames=merged;
+        }
+        S._lp=data.updatedAt;
+        try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){}
+        renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();tabs();
+        _syncReady = true;
+        setSyncStatus('ok');
+      } else if(localHasData){
+        // We have data, cloud is empty — push our local state up as initial
+        _syncReady = true;
+        push();
+      } else {
+        // Both empty — just mark ready
+        _syncReady = true;
+        setSyncStatus('ok');
+      }
+      return;
+    }
+    // Subsequent snapshots: normal merge
     if(data.updatedBy===S.myUsername && data.updatedAt<=(S._lp||0)){setSyncStatus('ok');return;}
     if(data.updatedAt>(S._lp||0)){
       S.todos=data.todos||[];
@@ -3159,7 +3209,6 @@ function startSync(){
       S.streaks=data.streaks||[];
       if(Array.isArray(data.notifications))S.notifications=data.notifications;
       if(Array.isArray(data.knownUsernames)){
-        // Merge: keep any local additions, then add any incoming additions
         const merged=[...new Set([...(S.knownUsernames||[]),...data.knownUsernames])];
         S.knownUsernames=merged;
       }
@@ -4250,6 +4299,7 @@ function saveUsernameSetup() {
   if (!u) { toast('Pick a username', 'err'); return; }
   S.myUsername = u;
   ensureKnownUsername(u);
+  const hadNoSyncCode = !S.syncCode;
   if (sc) {
     if (sc.length !== 6) { toast('Sync code must be 6 characters', 'err'); return; }
     if (!fbOk()) { toast('Set up Firebase to use sync', 'err'); S.syncCode = ''; }
@@ -4259,9 +4309,15 @@ function saveUsernameSetup() {
   ['todos','lists','reminders','notes','streaks'].forEach(k => {
     (S[k] || []).forEach(item => { if (!item.ownerUsername) item.ownerUsername = u; });
   });
-  save();
-  if (S.syncCode && fbOk()) tryStartSync();
+  // Save LOCALLY. Don't push to cloud until startSync() reconciles first.
+  try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){console.warn(e);}
+  // If we just connected a sync code for the first time, start the listener now —
+  // it will reconcile with the cloud before push() is allowed to fire.
+  if (hadNoSyncCode && S.syncCode && fbOk()) {
+    if (initFB()) startSync();
+  }
   renderSett();
+  updateSyncIndicator();
   toast('Welcome, @' + u, 'ok');
 }
 
@@ -5410,6 +5466,17 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.04',
+    date: 'Jun 17, 2026',
+    type: 'major',
+    items: [
+      'CRITICAL FIX: when a second person joined a household via sync code, their empty local data would overwrite the cloud (and therefore everyone\'s data) within ~800ms because push() ran before the listener had a chance to pull existing cloud data. Fixed by adding a _syncReady gate — push() now refuses to run until the listener has received and reconciled the first snapshot from the cloud',
+      'Added explicit first-snapshot reconciliation logic in startSync(): when a fresh device sees cloud has data and local is empty, it adopts cloud entirely. When both have data, cloud wins. When cloud is empty and local has data, local is pushed up. When both empty, nothing happens',
+      'Onboarding and Settings now start the sync listener IMMEDIATELY when a sync code is entered, instead of waiting for the next app reload. Also avoids triggering save() before the listener is wired up',
+      'Replaced a call to a never-defined tryStartSync() function in the Settings save path with the correct startSync() call'
+    ]
+  },
   {
     version: '0.04.03',
     date: 'Jun 17, 2026',
