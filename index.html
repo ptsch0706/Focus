@@ -185,7 +185,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .t-tag.high{background:var(--pri-high-soft);color:var(--pri-high);}
 .t-tag.med{background:var(--pri-med-soft);color:var(--pri-med);}
 .t-tag.rem{background:var(--reminder-soft);color:var(--reminder);}
-.todo-notes{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.todo-notes{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.4;white-space:pre-wrap;word-break:break-word;}
 .grp-hdr{display:flex;align-items:center;gap:8px;margin:16px 0 8px;padding:0 2px;}
 .grp-title{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);}
 .grp-count{font-size:11px;font-weight:600;color:var(--ink-mute);background:var(--bg-raised);border:1px solid var(--line);border-radius:20px;padding:1px 7px;}
@@ -504,7 +504,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 /* COMPACT MODE — global density toggle */
 html.compact .todo-item { padding: 10px 14px; }
 html.compact .todo-meta { margin-top: 2px; gap: 6px; }
-html.compact .todo-notes { display: none; }
+html.compact .todo-notes { -webkit-line-clamp: 1; font-size: 12px; margin-top: 2px; }
 html.compact .reminder-item, html.compact .rem-item { padding: 10px 14px; }
 html.compact .list-card-hdr { padding: 10px 14px; }
 html.compact .list-card-icon, html.compact .list-icon { width: 32px; height: 32px; }
@@ -4143,7 +4143,14 @@ function applyMentions(item, itemType) {
       n.itemType === itemType
     );
     if (exists) return;
-    const snippet = (item.title || item.name || (item.body || '').replace(/<[^>]*>/g, '')).substring(0, 80);
+    // Build snippet from title/name + notes (or body for notes). Include both for context.
+    const titlePart = item.title || item.name || '';
+    const notesPart = item.notes || '';
+    const bodyPart = (item.body || '').replace(/<[^>]*>/g, '');
+    let snippet = titlePart;
+    if (notesPart) snippet += (snippet ? ' — ' : '') + notesPart;
+    else if (bodyPart && !titlePart) snippet = bodyPart;
+    snippet = snippet.substring(0, 140);
     S.notifications.unshift({
       id: gid(),
       type: m === normalizeUsername(S.myUsername) ? 'self-mention' : 'mention',
@@ -4225,7 +4232,17 @@ function confirmNotifyMention() {
   const { username, itemType, itemId } = _mentionPopoverTarget;
   const collection = { todo: S.todos, list: S.lists, reminder: S.reminders, note: S.notes, streak: S.streaks }[itemType];
   const item = collection ? collection.find(x => x.id === itemId) : null;
-  const snippet = item ? (item.title || item.name || stripHTML(item.body || '')).substring(0, 80) : '';
+  // Build snippet from title/name + notes (same pattern as applyMentions)
+  let snippet = '';
+  if (item) {
+    const titlePart = item.title || item.name || '';
+    const notesPart = item.notes || '';
+    const bodyPart = stripHTML(item.body || '');
+    snippet = titlePart;
+    if (notesPart) snippet += (snippet ? ' — ' : '') + notesPart;
+    else if (bodyPart && !titlePart) snippet = bodyPart;
+    snippet = snippet.substring(0, 140);
+  }
 
   if (!Array.isArray(S.notifications)) S.notifications = [];
   S.notifications.unshift({
@@ -5524,6 +5541,25 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.13',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Notes on to-do and reminder cards now show in FULL, regardless of compact mode — no more 2-line truncation. Line breaks within notes are preserved (paragraph-style notes display properly)',
+      'Long unbroken strings (e.g. URLs) break properly instead of overflowing the card width'
+    ]
+  },
+  {
+    version: '0.04.12',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Notes on to-dos and reminders are now always visible in the cards (previously hidden in Compact mode). In Compact mode they show as a one-line preview; in normal mode they show up to two lines',
+      'Mention notifications now include notes content alongside the title — e.g. “Buy groceries — milk, eggs, and bread” instead of just “Buy groceries”. Applies to both automatic notifications from @-tagging and manual tap-to-notify pings',
+      'Notification snippet character limit raised from 80 to 140 to accommodate the extra context'
+    ]
+  },
   {
     version: '0.04.11',
     date: 'Jun 20, 2026',
