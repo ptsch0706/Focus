@@ -1645,7 +1645,7 @@ function svg(name, size) {
 
 // ── STATE ──
 const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
-let S=loadState(),db=null,unsub=null,view='home';
+let S=loadState(),db=null,unsub=null,unsubSteps=null,view='home';
 applyTheme(S.theme||'light');
 let tf='all',lf='all',rf='upcoming',noteFilter='all',doneOpen=false,listId=null;
 const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
@@ -3014,7 +3014,7 @@ function settSync(){
     <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="renderSett()">← Back</button>`;
 }
 function conn(){const c=document.getElementById('sc-input').value.trim().toUpperCase();if(c.length!==6){toast('Enter 6 characters','err');return;}if(!fbOk()){toast('Set up Firebase first','err');return;}S.syncCode=c;save();startSync();renderSett();toast('Connected to '+c,'ok');}
-function disc(){if(!confirm('Disconnect sync?'))return;S.syncCode='';if(unsub){unsub();unsub=null;}save();renderSett();toast('Disconnected');}
+function disc(){if(!confirm('Disconnect sync?'))return;S.syncCode='';if(unsub){unsub();unsub=null;}if(unsubSteps){unsubSteps();unsubSteps=null;}save();renderSett();toast('Disconnected');}
 function settGrace(){
   document.getElementById('sett-title').textContent='Grace Window';
   document.getElementById('sett-body').innerHTML=`
@@ -3148,10 +3148,61 @@ async function push(){
     setSyncStatus('error');
   }
 }
+
+// ─── HEALTH STEPS SIDE-DOC SYNC ─────────────────────────────────────────
+// Reads from /focus-steps/{syncCode} where Apple Shortcuts writes step counts.
+// When the doc changes, merges the value into the "Steps" streak.
+// This pattern avoids the limitation that iOS Shortcuts can't open the PWA
+// to log via the URL handler (URLs route to Safari, not the installed PWA).
+
+function startStepsSync() {
+  if (!db || !S.syncCode) return;
+  if (unsubSteps) { unsubSteps(); unsubSteps = null; }
+  const { doc, onSnapshot } = window.__firebase;
+  unsubSteps = onSnapshot(doc(db, 'focus-steps', S.syncCode), snap => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    // Expected shape: { date: 'YYYY-MM-DD', value: 8432, updatedAt: 1234567890 }
+    if (!data || !data.date || data.value == null) return;
+    applyStepsFromSideDoc(data.date, parseInt(data.value) || 0);
+  }, e => console.warn('Steps side-doc listener error:', e));
+}
+
+function applyStepsFromSideDoc(dateStr, stepValue) {
+  if (!Array.isArray(S.streaks)) return;
+  // Find the "Steps" streak (case-insensitive match)
+  const stepsStreak = S.streaks.find(s => normalizeUsername(s.name) === 'steps');
+  if (!stepsStreak) {
+    console.info('Side-doc step value received but no "Steps" streak exists yet');
+    return;
+  }
+  // Only log to today's date — ignore historical writes
+  if (dateStr !== td()) {
+    console.info('Side-doc step value is for ' + dateStr + ', but today is ' + td() + ' — skipping');
+    return;
+  }
+  if (!stepsStreak.values) stepsStreak.values = {};
+  const current = stepsStreak.values[dateStr] || 0;
+  // Only update if the new value is different (avoid no-op writes triggering sync churn)
+  if (current === stepValue) return;
+  stepsStreak.values[dateStr] = stepValue;
+  // Also mark as logged today
+  if (!Array.isArray(stepsStreak.logs)) stepsStreak.logs = [];
+  if (!stepsStreak.logs.includes(dateStr)) stepsStreak.logs.push(dateStr);
+  save();
+  renderStreaks();
+  renderDash();
+  // No toast here — this can happen silently in the background
+}
+
 function startSync(){
   if(!initFB()||!S.syncCode){setSyncStatus('offline');return;}
   if(unsub)unsub();
   _syncReady = false;
+  // NOTE: startStepsSync() is called only AFTER main sync has reconciled —
+  // see _syncReady=true branches below. Calling it earlier creates a race where
+  // the side-doc listener could apply step values that are then overwritten by
+  // the main listener's first snapshot.
   const{doc,onSnapshot}=window.__firebase;
   setSyncStatus('syncing');
   let firstSnapshot = true;
@@ -3160,6 +3211,7 @@ function startSync(){
       _syncReady = true;
       push();
       firstSnapshot = false;
+      startStepsSync();
       return;
     }
     const data=snap.data();
@@ -3188,14 +3240,17 @@ function startSync(){
         renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();tabs();
         _syncReady = true;
         setSyncStatus('ok');
+        startStepsSync();
       } else if(localHasData){
         // We have data, cloud is empty — push our local state up as initial
         _syncReady = true;
         push();
+        startStepsSync();
       } else {
         // Both empty — just mark ready
         _syncReady = true;
         setSyncStatus('ok');
+        startStepsSync();
       }
       return;
     }
@@ -5466,6 +5521,25 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.08',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: race condition where Health Steps (written by Shortcut to /focus-steps/) could be overwritten by the main listener\'s first snapshot. Now the side-doc listener starts AFTER the main listener has finished its initial reconciliation. Step values from your Shortcut now reliably persist when the PWA opens.'
+    ]
+  },
+  {
+    version: '0.04.07',
+    date: 'Jun 19, 2026',
+    type: 'medium',
+    items: [
+      'Health Steps integration via Firestore side-doc: iOS Shortcut writes step counts to /focus-steps/{syncCode} in Firestore directly. The PWA picks them up the next time it\'s open via a new listener, merges into the "Steps" streak (must exist by that name), and syncs to your widget normally',
+      'Avoids the iOS limitation that PWAs can\'t be opened from a Shortcut\'s URL action (which would route to Safari and bypass the PWA\'s URL handler). Now the Shortcut writes data directly to Firestore and the PWA reads it asynchronously',
+      'Added unsubSteps global to track the new listener; disc() cleans it up properly. No personal data leaks via the side-doc — only the writer (your Shortcut) and the household (via sync code) can write/read',
+      'See SETUP-STEPS-SHORTCUT.md for the updated shortcut build (writes to Firestore via HTTPS PATCH instead of opening a URL)'
+    ]
+  },
   {
     version: '0.04.06',
     date: 'Jun 18, 2026',
