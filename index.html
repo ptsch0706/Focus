@@ -3156,10 +3156,13 @@ async function push(){
 // to log via the URL handler (URLs route to Safari, not the installed PWA).
 
 function startStepsSync() {
-  if (!db || !S.syncCode) return;
+  if (!db || !S.syncCode || !S.myUsername) return;
   if (unsubSteps) { unsubSteps(); unsubSteps = null; }
   const { doc, onSnapshot } = window.__firebase;
-  unsubSteps = onSnapshot(doc(db, 'focus-steps', S.syncCode), snap => {
+  // Per-user document path: each household member has their own steps doc
+  // so step values from one person don't overwrite another's.
+  const docId = S.syncCode + '-' + normalizeUsername(S.myUsername);
+  unsubSteps = onSnapshot(doc(db, 'focus-steps', docId), snap => {
     if (!snap.exists()) return;
     const data = snap.data();
     // Expected shape: { date: 'YYYY-MM-DD', value: 8432, updatedAt: 1234567890 }
@@ -5521,6 +5524,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.09',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Health Steps side-doc is now per-user: PWA reads from /focus-steps/{syncCode}-{username} instead of /focus-steps/{syncCode}. This prevents household members from overwriting each other\'s step counts. Each person\'s Shortcut needs to write to their own path — see updated SETUP-STEPS-SHORTCUT.md for the URL pattern.'
+    ]
+  },
   {
     version: '0.04.08',
     date: 'Jun 20, 2026',
