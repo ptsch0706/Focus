@@ -5525,6 +5525,17 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.10',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Companion widget (focus-widget.js) updated: small widget now shows a steps progress bar with current/target numbers above it, e.g. “9,142 / 10,000” with a colored bar below. Bar turns green when you hit your goal',
+      'Widget fetches the per-user steps side-doc directly so it shows live values even before you’ve opened the PWA today — useful for tracking morning progress without re-opening the app',
+      'Big “needs attention” number shrunk slightly (46pt → 32pt) to make room for the steps section',
+      'Steps section hides automatically if no “Steps” streak exists in your data'
+    ]
+  },
+  {
     version: '0.04.09',
     date: 'Jun 20, 2026',
     type: 'minor',
