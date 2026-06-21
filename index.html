@@ -198,6 +198,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 /* REMINDER ITEMS */
 .rem-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;position:relative;overflow:hidden;cursor:pointer;transition:background .15s;}
+.rem-today-right{font-size:12px;color:var(--cyan);font-weight:600;flex-shrink:0;align-self:flex-start;padding-top:2px;}
 .rem-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--reminder);border-radius:3px 0 0 3px;}
 .rem-item:active{background:var(--bg-raised);}
 .rem-item.done{opacity:.45;}
@@ -279,6 +280,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .di-text{flex:1;font-size:14px;color:var(--ink);min-width:0;}
 .di-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
 .di-time{font-size:12px;color:var(--ink-soft);flex-shrink:0;}
+.di-text-wrap{flex:1;min-width:0;}
 .di-text.ov{color:var(--pri-high);}
 .nudge-card{background:var(--streak-soft);border:1.5px solid #f43f5e40;border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
 .nudge-title{font-size:13px;font-weight:600;color:var(--streak);display:flex;align-items:center;gap:6px;margin-bottom:6px;}
@@ -1658,7 +1660,7 @@ function svg(name, size) {
 
 // ── STATE ──
 const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
-let S=loadState(),db=null,unsub=null,unsubSteps=null,view='home';
+let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 applyTheme(S.theme||'light');
 let tf='all',lf='all',rf='today',noteFilter='all',doneOpen=false,listId=null;
 const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
@@ -2938,11 +2940,11 @@ function rHTML(r){
   <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   <div class="todo-meta">
     ${r.time?`<span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtT(r.time)}</span>`:''}
-    ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':t2?'<span class="t-tag rem" style="background:var(--cyan-soft);color:var(--cyan)">Today</span>':''}
+    ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':''}
     ${r.recur&&r.recur!=='none'?`<span class="t-tag rem">↻ ${describeRecur(r.recur)}</span>`:''}
   </div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
-  ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>
+  ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div>${t2?'<div class="rem-today-right">Today</div>':''}</div>
   </div>
   </div>`;
 }
@@ -3033,7 +3035,7 @@ function renderDash(){
       const isOv=ov(item.date);
       const dot=item._k==='rem'?'var(--reminder)':(item.priority==='high'?'var(--pri-high)':item.priority==='med'?'var(--pri-med)':'var(--cyan)');
       const nav=item._k==='rem'?`switchView('reminders');openReminderModal('${item.id}')`:`switchView('todos');openTodoModal('${item.id}')`;
-      return`<div class="dash-item" onclick="${nav}"><div class="di-dot" style="background:${dot}"></div><div><div class="di-text ${isOv?'ov':''}">${item._k==='rem'?'<span style="display:inline-flex;align-items:center;color:var(--reminder);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>':'<span style="display:inline-flex;align-items:center;color:var(--cyan);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'}${esc(item.title)}</div>${item.time?`<div class="di-sub">${fmtT(item.time)}</div>`:''}</div><div class="di-time">${esc(fmtD(item.date))}</div></div>`;
+      return`<div class="dash-item" onclick="${nav}"><div class="di-dot" style="background:${dot}"></div><div class="di-text-wrap"><div class="di-text ${isOv?'ov':''}">${item._k==='rem'?'<span style="display:inline-flex;align-items:center;color:var(--reminder);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>':'<span style="display:inline-flex;align-items:center;color:var(--cyan);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'}${esc(item.title)}</div>${item.time?`<div class="di-sub">${fmtT(item.time)}</div>`:''}</div><div class="di-time">${esc(fmtD(item.date))}</div></div>`;
     }).join('');
     const more=(todT.length+ovT.length+todR.length+ovR.length)-6;
     if(more>0)out+=`<div class="dash-item" onclick="switchView('todos')"><div class="di-dot" style="background:var(--ink-mute)"></div><div class="di-text" style="color:var(--ink-soft)">+${more} more</div></div>`;
@@ -3264,7 +3266,7 @@ function settSync(){
     <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="renderSett()">← Back</button>`;
 }
 function conn(){const c=document.getElementById('sc-input').value.trim().toUpperCase();if(c.length!==6){toast('Enter 6 characters','err');return;}if(!fbOk()){toast('Set up Firebase first','err');return;}S.syncCode=c;save();startSync();renderSett();toast('Connected to '+c,'ok');}
-function disc(){if(!confirm('Disconnect sync?'))return;S.syncCode='';if(unsub){unsub();unsub=null;}if(unsubSteps){unsubSteps();unsubSteps=null;}save();renderSett();toast('Disconnected');}
+function disc(){if(!confirm('Disconnect sync?'))return;S.syncCode='';if(unsub){unsub();unsub=null;}if(unsubSteps){unsubSteps();unsubSteps=null;}if(unsubRings){unsubRings();unsubRings=null;}save();renderSett();toast('Disconnected');}
 function settGrace(){
   document.getElementById('sett-title').textContent='Grace Window';
   document.getElementById('sett-body').innerHTML=`
@@ -3448,6 +3450,54 @@ function applyStepsFromSideDoc(dateStr, stepValue) {
   // No toast here — this can happen silently in the background
 }
 
+// ─── ACTIVITY RINGS SIDE-DOC SYNC ───────────────────────────────────────
+// Reads from /focus-rings/{syncCode}-{username} where Apple Shortcuts writes
+// whether all 3 Activity Rings (Move, Exercise, Stand) were closed for the day.
+// Unlike Steps (a value-based streak), this is a boolean streak — either all
+// three rings closed (counts as logged) or they didn't (not logged).
+function startRingsSync() {
+  if (!db || !S.syncCode || !S.myUsername) return;
+  if (unsubRings) { unsubRings(); unsubRings = null; }
+  const { doc, onSnapshot } = window.__firebase;
+  const docId = S.syncCode + '-' + normalizeUsername(S.myUsername);
+  unsubRings = onSnapshot(doc(db, 'focus-rings', docId), snap => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    // Expected shape: { date: 'YYYY-MM-DD', allClosed: true/false, updatedAt: 1234567890 }
+    if (!data || !data.date) return;
+    applyRingsFromSideDoc(data.date, !!data.allClosed);
+  }, e => console.warn('Rings side-doc listener error:', e));
+}
+
+function applyRingsFromSideDoc(dateStr, allClosed) {
+  if (!Array.isArray(S.streaks)) return;
+  // Find the "Activity Rings" streak (case-insensitive match)
+  const ringsStreak = S.streaks.find(s => normalizeUsername(s.name) === 'activity rings');
+  if (!ringsStreak) {
+    console.info('Side-doc rings value received but no "Activity Rings" streak exists yet');
+    return;
+  }
+  // Only apply to today's date — ignore historical writes
+  if (dateStr !== td()) {
+    console.info('Side-doc rings value is for ' + dateStr + ', but today is ' + td() + ' — skipping');
+    return;
+  }
+  if (!Array.isArray(ringsStreak.logs)) ringsStreak.logs = [];
+  const alreadyLogged = ringsStreak.logs.includes(dateStr);
+  if (allClosed && !alreadyLogged) {
+    ringsStreak.logs.push(dateStr);
+  } else if (!allClosed && alreadyLogged) {
+    // Rings were previously marked closed but a later same-day check found they're not
+    // (e.g. ran twice in one day, or recalculated) — un-log to stay accurate.
+    ringsStreak.logs = ringsStreak.logs.filter(d => d !== dateStr);
+  } else {
+    return; // no change needed
+  }
+  save();
+  renderStreaks();
+  renderDash();
+}
+
 function startSync(){
   if(!initFB()||!S.syncCode){setSyncStatus('offline');return;}
   if(unsub)unsub();
@@ -3465,6 +3515,7 @@ function startSync(){
       push();
       firstSnapshot = false;
       startStepsSync();
+      startRingsSync();
       return;
     }
     const data=snap.data();
@@ -3494,16 +3545,19 @@ function startSync(){
         _syncReady = true;
         setSyncStatus('ok');
         startStepsSync();
+        startRingsSync();
       } else if(localHasData){
         // We have data, cloud is empty — push our local state up as initial
         _syncReady = true;
         push();
         startStepsSync();
+        startRingsSync();
       } else {
         // Both empty — just mark ready
         _syncReady = true;
         setSyncStatus('ok');
         startStepsSync();
+        startRingsSync();
       }
       return;
     }
@@ -5910,6 +5964,32 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.27',
+    date: 'Jun 20, 2026',
+    type: 'medium',
+    items: [
+      'Added Activity Rings sync support: a new Firestore side-doc path (/focus-rings/{syncCode}-{username}) lets a Shortcut report whether all 3 iOS Activity Rings (Move, Exercise, Stand) closed for the day. The PWA listens for this and logs/unlogs a streak named "Activity Rings" accordingly.',
+      'This mirrors the existing Steps side-doc pattern but is boolean (all-3-closed yes/no) rather than value-based, since Activity Rings either complete for the day or they don\'t.',
+      'Requires a Firestore security rules update to allow the new focus-rings collection — see SETUP-STEPS-SHORTCUT.md for the updated rules.'
+    ]
+  },
+  {
+    version: '0.04.26',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: dashboard "Today" section items with a time set were not reliably right-aligning their date label — the title+time wrapper div was missing flex:1, so it didn\'t expand to push the date to the far right like the "Coming Up" section does. Added .di-text-wrap with flex:1 to fix.'
+    ]
+  },
+  {
+    version: '0.04.25',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Reminders tab: the "Today" badge on cards due today moved from the inline meta row to the right side of the card, matching the dashboard\'s right-aligned date pattern (like the Coming Up section). "Overdue" and recurrence badges stay in their original spot.'
+    ]
+  },
   {
     version: '0.04.24',
     date: 'Jun 20, 2026',
