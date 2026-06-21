@@ -262,6 +262,15 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .ring-stat{font-size:22px;font-weight:800;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;}
 .ring-desc{font-size:13px;color:var(--ink-soft);margin-top:2px;}
 .ring-bk{font-size:12px;color:var(--ink-mute);margin-top:6px;}
+
+/* Multi-ring dashboard layout: 3 small rings in a grid */
+.rings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.ring-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;}
+.ring-card .ring{width:56px;height:56px;}
+.ring-card .ring svg{width:56px;height:56px;}
+.ring-card .ring-pct{font-size:13px;}
+.ring-card-label{font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;}
+.ring-card-sub{font-size:10px;color:var(--ink-mute);line-height:1.2;}
 .dash-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft);cursor:pointer;transition:opacity .15s;}
 .dash-item:last-child{border-bottom:none;}
 .dash-item:active{opacity:.7;}
@@ -1236,6 +1245,8 @@ input.has-mention, .note-title-input.has-mention {
 }
 .mention-popover-btn:active { background: var(--cyan-soft); color: var(--cyan); }
 
+
+.t-tag.linked-note-chip{color:var(--note);background:var(--note-soft);display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 6px;border-radius:6px;}
 </style>
 </head>
 <body>
@@ -1298,7 +1309,7 @@ input.has-mention, .note-title-input.has-mention {
 <div id="view-todos" class="view">
   <div class="page-header">
     <div><div class="page-title display">To-Dos</div><div class="page-subtitle" id="todo-sub"></div></div>
-    <button class="header-btn" onclick="openTodoModal()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    
   </div>
   <div style="padding:0 16px">
     <div class="filter-bar">
@@ -1316,7 +1327,7 @@ input.has-mention, .note-title-input.has-mention {
 <div id="view-lists" class="view">
   <div class="page-header">
     <div><div class="page-title display">Lists</div><div class="page-subtitle" id="list-sub"></div></div>
-    <button class="header-btn" onclick="openListModal()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    
   </div>
   <div style="padding:0 16px">
     <div id="list-grid"></div>
@@ -1327,14 +1338,15 @@ input.has-mention, .note-title-input.has-mention {
 <div id="view-reminders" class="view">
   <div class="page-header">
     <div><div class="page-title display">Reminders</div><div class="page-subtitle" id="rem-sub"></div></div>
-    <button class="header-btn" onclick="openReminderModal()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    
   </div>
   <div style="padding:0 16px">
     <div class="filter-bar">
-      <button class="filter-chip act-violet" onclick="setFilter('rem','upcoming',this)">Upcoming</button>
-      <button class="filter-chip" onclick="setFilter('rem','today',this)">Today</button>
-      <button class="filter-chip" onclick="setFilter('rem','all',this)">All Active</button>
+      <button class="filter-chip act-violet" onclick="setFilter('rem','today',this)">Today</button>
+      <button class="filter-chip" onclick="setFilter('rem','overdue',this)">Overdue</button>
+      <button class="filter-chip" onclick="setFilter('rem','upcoming',this)">Upcoming</button>
       <button class="filter-chip" onclick="setFilter('rem','completed',this)">Completed</button>
+      <button class="filter-chip" onclick="setFilter('rem','all',this)">All</button>
     </div>
     <div id="rem-list"></div>
   </div>
@@ -1358,7 +1370,7 @@ input.has-mention, .note-title-input.has-mention {
 <div id="view-streaks" class="view">
   <div class="page-header">
     <div><div class="page-title display">Streaks</div><div class="page-subtitle" id="streak-sub"></div></div>
-    <button class="header-btn" onclick="openStreakModal()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    
   </div>
   <div style="padding:0 16px" id="streak-list"></div>
 </div>
@@ -1644,10 +1656,10 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,view='home';
 applyTheme(S.theme||'light');
-let tf='all',lf='all',rf='upcoming',noteFilter='all',doneOpen=false,listId=null;
+let tf='all',lf='all',rf='today',noteFilter='all',doneOpen=false,listId=null;
 const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
 
 function loadState(){
@@ -1669,6 +1681,7 @@ function loadState(){
       if(!loaded.dashSections||typeof loaded.dashSections!=='object'){loaded.dashSections={mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true};}
       if(!Array.isArray(loaded.templates))loaded.templates=[];
       if(!Array.isArray(loaded.quickTags))loaded.quickTags=['Kids','Everyone'];
+      if(!loaded.dailyStats||typeof loaded.dailyStats!=='object')loaded.dailyStats={};
       if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
       return loaded;
     }
@@ -1750,7 +1763,7 @@ function openTodoModal(id=null){
   document.getElementById('todo-eid').value=id||'';
   document.getElementById('todo-title').value=t?t.title:'';
   document.getElementById('todo-notes').value=t?t.notes||'':'';
-  document.getElementById('todo-date').value=t?t.date||td():td();
+  document.getElementById('todo-date').value=t?(t.date||td()):(new Date().getHours()>=21?tomorrowStr():td());
   document.getElementById('todo-time').value=t?(t.time||''):defaultNextHourTime();
   document.getElementById('todo-del-btn').style.display=t?'':'none';
   resetPills('priority',t?t.priority||'low':'low');
@@ -1794,7 +1807,13 @@ function checkTodo(id){
   const t=S.todos.find(t=>t.id===id);if(!t)return;
   if(!t.completed){
     t.completed=true;t.completedAt=Date.now();
-    if(t.recur&&t.recur!=='none'){const nextT={id:gid(),title:t.title,date:nextDate(t.date,t.recur),time:t.time||'',notes:t.notes||'',priority:t.priority,recur:t.recur,completed:false,createdAt:Date.now(),ownerUsername:t.ownerUsername||S.myUsername||'',sharedWith:[...(t.sharedWith||[])]};S.todos.push(nextT);toast('Done! Next one scheduled ↻','ok');}
+    if(t.recur&&t.recur!=='none'){
+      const nextT={id:gid(),title:t.title,date:nextDate(t.date,t.recur),time:t.time||'',notes:t.notes||'',priority:t.priority,recur:t.recur,completed:false,createdAt:Date.now(),ownerUsername:t.ownerUsername||S.myUsername||'',sharedWith:[...(t.sharedWith||[])]};
+      S.todos.push(nextT);
+      // Transfer any linked notes from the old instance to the new one so they keep working
+      (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='todo'&&n.linkedTo.id===t.id){n.linkedTo.id=nextT.id;}});
+      toast('Done! Next one scheduled ↻','ok');
+    }
     else toast('Done! ✓','ok');
   }else{t.completed=false;t.completedAt=null;toast('Marked incomplete');}
   save();renderTodos();renderDash();tabs();
@@ -1965,14 +1984,23 @@ function swipeDeferTodo(id) {
 function swipeDeferRem(id) {
   const r = S.reminders.find(x => x.id === id);
   if (!r) return;
-  const dt = new Date(r.date || td());
-  if (isNaN(dt.getTime())) return;
-  dt.setDate(dt.getDate() + 1);
-  r.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  const today = td();
+  let newDate, toastMsg;
+  if (r.date && r.date < today) {
+    newDate = today;
+    toastMsg = 'Moved to today';
+  } else {
+    const dt = new Date(r.date || today);
+    if (isNaN(dt.getTime())) return;
+    dt.setDate(dt.getDate() + 1);
+    newDate = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+    toastMsg = 'Deferred to tomorrow';
+  }
+  r.date = newDate;
   save();
   renderRem();
   renderDash();
-  toast('Deferred to tomorrow', 'ok');
+  toast(toastMsg, 'ok');
 }
 function swipeDeleteTodo(id) {
   if (!confirm('Delete this to-do?')) return;
@@ -2002,7 +2030,8 @@ function attachItemSwipes() {
       itemId, itemType,
       onComplete: () => {
         if (itemType === 'todo') swipeCompleteTodo(itemId);
-        else swipeCompleteRem(itemId);
+        else if (itemType === 'rem') swipeCompleteRem(itemId);
+        else if (itemType === 'listitem') toggleLI(itemId);
       },
     });
   });
@@ -2018,7 +2047,7 @@ function tHTML(t){
   <button class="todo-chk checked" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
   <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
-  ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}</div>
+  ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${(()=>{const ln=getLinkedNotes('todo',t.id);return ln.length?`<span class="t-tag linked-note-chip" title="${ln.length} linked note${ln.length>1?'s':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:11px;height:11px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ${ln.length}</span>`:'';})()}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
   ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>`;
   }
@@ -2131,12 +2160,76 @@ function renderLists(){
     const tot=regularItemsCard.length,chk=regularItemsCard.filter(i=>i.checked).length;
     const lHasChks=(l.type==='checklist')||(l.type==='nested'&&l.showCheckboxes);
     const meta=lHasChks?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
+    const lastRefreshedTxt = l.recurrence && l.recurrence.lastRefreshedDate
+      ? ' · refreshed ' + new Date(l.recurrence.lastRefreshedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
+      : '';
     return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'}">
     <div class="list-card-hdr">
-      <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name,'list',l.id)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
-      <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListModal('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
+      <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name,'list',l.id)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}${lastRefreshedTxt}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
+      <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListCardMenu('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
     </div></div>`;
   }).join('');
+}
+
+// REC D: duplicate an entire list (name gets " Copy" suffix, items copied fresh/unchecked)
+function duplicateList(listIdToCopy) {
+  const orig = S.lists.find(l => l.id === listIdToCopy);
+  if (!orig) return;
+  const copy = JSON.parse(JSON.stringify(orig));
+  copy.id = gid();
+  copy.name = orig.name + ' Copy';
+  copy.createdAt = Date.now();
+  copy.sharedWith = [];  // duplicates start private; re-share explicitly
+  delete copy.recurrence; // duplicated lists don't inherit the recurrence schedule
+  (copy.items || []).forEach(i => { i.id = gid(); i.checked = false; delete i.checkedAt; i.sharedWith = []; });
+  stampOwner(copy);
+  S.lists.push(copy);
+  save();
+  renderLists();
+  toast('List duplicated', 'ok');
+}
+
+// REC C: move a list up/down in the grid order
+function moveListCard(listIdToMove, dir) {
+  const idx = S.lists.findIndex(l => l.id === listIdToMove);
+  if (idx < 0) return;
+  const swapIdx = idx + dir;
+  if (swapIdx < 0 || swapIdx >= S.lists.length) return;
+  const tmp = S.lists[idx];
+  S.lists[idx] = S.lists[swapIdx];
+  S.lists[swapIdx] = tmp;
+  save();
+  renderLists();
+}
+
+// Card-level ⋯ menu: Edit, Duplicate, Move Up/Down, Delete
+function openListCardMenu(listIdForMenu) {
+  const l = S.lists.find(x => x.id === listIdForMenu);
+  if (!l) return;
+  const idx = S.lists.findIndex(x => x.id === listIdForMenu);
+  const canMoveUp = idx > 0;
+  const canMoveDown = idx < S.lists.length - 1;
+  let html = '';
+  const icoEdit = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  const icoCopy = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const icoUp = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+  const icoDown = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+  html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');openListModal(\''+listIdForMenu+'\')">'+icoEdit+'Edit</button>';
+  html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');duplicateList(\''+listIdForMenu+'\')">'+icoCopy+'Duplicate</button>';
+  if (canMoveUp) html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');moveListCard(\''+listIdForMenu+'\',-1)">'+icoUp+'Move up</button>';
+  if (canMoveDown) html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');moveListCard(\''+listIdForMenu+'\',1)">'+icoDown+'Move down</button>';
+  html += '<button class="btn btn-block" style="margin-top:6px;justify-content:flex-start;gap:12px;color:var(--pri-high);border-color:var(--pri-high)" onclick="closeModal(\'modal-list-card-menu\');deleteListFromMenu(\''+listIdForMenu+'\')">'+svg('trash',18)+'Delete</button>';
+  document.getElementById('list-card-menu-title').textContent = l.name || 'List';
+  document.getElementById('list-card-menu-body').innerHTML = html;
+  openModal('modal-list-card-menu');
+}
+
+function deleteListFromMenu(listIdToDelete) {
+  if (!confirm('Delete this list? This cannot be undone.')) return;
+  S.lists = S.lists.filter(l => l.id !== listIdToDelete);
+  save();
+  renderLists();
+  toast('List deleted', 'ok');
 }
 function openListDetail(id){
   listId=id;const l=S.lists.find(l=>l.id===id);if(!l)return;
@@ -2146,7 +2239,12 @@ function openListDetail(id){
 function closeListDetail(){document.getElementById('list-detail-view').classList.remove('show');document.body.style.overflow='';listId=null;renderLists();}
 function renderListDet(){
   const l=S.lists.find(l=>l.id===listId);if(!l)return;
-  const items=l.items||[];
+  // Filter items by visibility: section/subsection headers always show (structural);
+  // regular items only show if owned by me or shared with me (same pattern as canSeeItem)
+  const items=(l.items||[]).filter(i=>{
+    if(i.isSection||i.isSubsection)return true;
+    return canSeeItem(i);
+  });
   const regularItems=items.filter(i=>!i.isSection&&!i.isSubsection);
   const unc=regularItems.filter(i=>!i.checked);
   const chk=regularItems.filter(i=>i.checked);
@@ -2210,6 +2308,7 @@ function renderListDet(){
   const lnHTML=renderLinkedNotes('list', listId);
   const attachHTML=renderListAttachmentsHTML(l);
   document.getElementById('det-items').innerHTML=attachHTML + h + (lnHTML?'<div style="padding:0 16px">'+lnHTML+'</div>':'');
+  attachItemSwipes();
 }
 function liHTML(item,type,listColor){
   const isC=type==='checklist'||type==='nested';
@@ -2237,11 +2336,22 @@ function liHTML(item,type,listColor){
   // Nested lists default to bullet (no checkbox) unless showCheckboxes is enabled on the list
   // We need access to the list for showCheckboxes — passed via the 4th arg, fallback false
   const showChk = (type === 'checklist') || (type === 'nested' && arguments[3] === true);
-  return`<div class="li-row${indentClass} ${item.checked?'checked':''}">
+  const liChips=shareChipsHTML(item);
+  return`<div class="swipe-wrap" data-item-type="listitem" data-item-id="${item.id}">
+  <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+  <div class="swipe-actions">
+    <button class="swipe-action complete" onclick="event.stopPropagation();toggleLI('${item.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>${item.checked?'Undo':'Done'}</button>
+    <button class="swipe-action delete" onclick="event.stopPropagation();deleteLI('${item.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>
+  </div>
+  <div class="swipe-content">
+  <div class="li-row${indentClass} ${item.checked?'checked':''}">
   ${showChk?`<button class="li-chk ${item.checked?'checked':''}" onclick="toggleLI('${item.id}')"></button>`:'<div style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin:0 7px"></div>'}
+  <div style="flex:1;min-width:0">
   <div class="li-text" contenteditable="true" onfocus="liTextFocus(this,'${item.id}')" onblur="liTextBlur(this,'${item.id}')" style="outline:none">${renderMentionsHTML(item.text)}</div>
+  ${liChips?`<div class="shared-with-row" style="margin-top:2px">${liChips}</div>`:''}
+  </div>
   <button class="btn-icon" onclick="openListItemMenu('${item.id}')" style="color:var(--ink-mute);padding:4px" title="Item options"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
-  </div>`;
+  </div></div></div>`;
 }
 function toggleCS(lid){const l=S.lists.find(l=>l.id===lid);if(!l)return;l._co=!l._co;save();renderListDet();}
 
@@ -2407,6 +2517,7 @@ function openListItemMenu(itemId) {
   // For regular items only: Duplicate, Promote to section/subsection
   if (isRegular) {
     html += menuBtn('Duplicate', 'M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1', () => 'duplicateListItem(\'' + itemId + '\')');
+    html += menuBtn('Share with\u2026', 'M18 8a3 3 0 1 0-2.83-4H15a3 3 0 0 0 0 6h.17A3 3 0 0 0 18 8zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm12 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49', () => 'closeModal(\'modal-list-item-menu\');openSharePicker(\'listitem\', \'' + itemId + '\')');
     if (l.type === 'nested') {
       html += menuBtn('Promote to section', 'M12 19V5 M5 12l7-7 7 7', () => 'promoteListItem(\'' + itemId + '\', \'section\')');
       html += menuBtn('Promote to subsection', 'M8 12h13 M3 12h.01 M8 6h13 M3 6h.01 M8 18h13 M3 18h.01', () => 'promoteListItem(\'' + itemId + '\', \'subsection\')');
@@ -2675,7 +2786,7 @@ function openReminderModal(id=null){
   document.getElementById('rem-eid').value=id||'';
   document.getElementById('rem-title').value=r?r.title:'';
   document.getElementById('rem-notes').value=r?r.notes||'':'';
-  document.getElementById('rem-date').value=r?r.date||td():td();
+  document.getElementById('rem-date').value=r?(r.date||td()):(new Date().getHours()>=21?tomorrowStr():td());
   document.getElementById('rem-time').value=r?(r.time||''):defaultNextHourTime();
   P.rpriority=r?(r.priority||'none'):'none';
   document.querySelectorAll('#modal-reminder .pill').forEach(p=>{if(p.closest('#pr-rpriority'))p.classList.toggle('sel',p.dataset.val===P.rpriority);});
@@ -2718,7 +2829,12 @@ function checkRem(id){
   const r=S.reminders.find(r=>r.id===id);if(!r)return;
   if(!r.completed){
     r.completed=true;r.completedAt=Date.now();
-    if(r.recur&&r.recur!=='none'){const nextR={id:gid(),title:r.title,date:nextDate(r.date,r.recur),time:r.time||'',notes:r.notes||'',recur:r.recur,completed:false,createdAt:Date.now(),ownerUsername:r.ownerUsername||S.myUsername||'',sharedWith:[...(r.sharedWith||[])]};S.reminders.push(nextR);toast('Acknowledged · Next scheduled ↻','ok');}
+    if(r.recur&&r.recur!=='none'){
+      const nextR={id:gid(),title:r.title,date:nextDate(r.date,r.recur),time:r.time||'',notes:r.notes||'',recur:r.recur,completed:false,createdAt:Date.now(),ownerUsername:r.ownerUsername||S.myUsername||'',sharedWith:[...(r.sharedWith||[])]};
+      S.reminders.push(nextR);
+      (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='reminder'&&n.linkedTo.id===r.id){n.linkedTo.id=nextR.id;}});
+      toast('Acknowledged · Next scheduled ↻','ok');
+    }
     else toast('Acknowledged ✓','ok');
   }else{r.completed=false;r.completedAt=null;toast('Marked active');}
   save();renderRem();renderDash();tabs();
@@ -2728,27 +2844,74 @@ function deleteReminder(){
   S.reminders=S.reminders.filter(r=>r.id!==id);save();closeModal('modal-reminder');renderRem();renderDash();tabs();toast('Deleted');
 }
 function renderRem(){
-  const today=td();let items=S.reminders.filter(canSeeItem);
-  if(rf==='upcoming')items=items.filter(r=>!r.completed&&r.date>=today);
-  else if(rf==='today')items=items.filter(r=>!r.completed&&r.date===today);
-  else if(rf==='all')items=items.filter(r=>!r.completed);
-  else if(rf==='completed')items=items.filter(r=>r.completed);
-  items=[...items].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-  const act=S.reminders.filter(r=>!r.completed),oc=act.filter(r=>r.date<today).length;
-  document.getElementById('rem-sub').textContent=`${act.length} active${oc?' · '+oc+' overdue':''}`;
-  const el=document.getElementById('rem-list');
-  if(!items.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon" style="background:var(--reminder-soft);border-color:var(--reminder);color:var(--reminder)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div class="empty-title">No reminders</div><div class="empty-sub">Tap + to add something to remember.</div></div>`;return;}
-  let h='',lastD='';
-  items.forEach(r=>{
-    if(r.date!==lastD){
-      const isOv=ov(r.date)&&!r.completed;
-      h+=`<div class="grp-hdr ${isOv?'ov':''}"><span class="grp-title" ${isOv?'style="color:var(--pri-high)"':''}>${fmtD(r.date)||r.date}</span></div>`;
-      lastD=r.date;
+  const today=td();
+  const visible = S.reminders.filter(canSeeItem);
+  const act = visible.filter(r => !r.completed);
+
+  const oc = act.filter(r => r.date < today).length;
+  document.getElementById('rem-sub').textContent = act.length + ' active' + (oc ? ' · ' + oc + ' overdue' : '');
+
+  const el = document.getElementById('rem-list');
+
+  if (rf === 'today') {
+    const todayItems = act.filter(r => r.date === today).sort((a,b) => a.date < b.date ? -1 : 1);
+    const overdueItems = act.filter(r => r.date < today).sort((a,b) => a.date < b.date ? -1 : 1);
+    if (!todayItems.length && !overdueItems.length) {
+      el.innerHTML = remEmpty('Nothing today', 'You have no reminders for today.');
+      return;
     }
-    h+=rHTML(r);
+    let h = '';
+    if (todayItems.length) {
+      h += '<div class="grp-hdr"><span class="grp-title">Today</span></div>';
+      h += todayItems.map(rHTML).join('');
+    }
+    if (overdueItems.length) {
+      h += '<div class="grp-hdr ov" style="margin-top:14px"><span class="grp-title" style="color:var(--pri-high)">Overdue</span></div>';
+      h += overdueItems.map(rHTML).join('');
+    }
+    el.innerHTML = h;
+    attachItemSwipes();
+    return;
+  }
+
+  let items;
+  if (rf === 'overdue') items = act.filter(r => r.date < today);
+  else if (rf === 'upcoming') items = act.filter(r => r.date > today);
+  else if (rf === 'completed') items = visible.filter(r => r.completed);
+  else items = act.slice();
+  if (rf === 'completed') {
+    items = items.sort((a,b) => (b.completedAt||0) - (a.completedAt||0));
+  } else {
+    items = items.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  }
+
+  if (!items.length) {
+    el.innerHTML = remEmpty(remEmptyTitle(rf), remEmptySub(rf));
+    return;
+  }
+  let h = '', lastD = '';
+  items.forEach(r => {
+    if (r.date !== lastD) {
+      const isOv = ov(r.date) && !r.completed;
+      h += '<div class="grp-hdr ' + (isOv ? 'ov' : '') + '"><span class="grp-title" ' + (isOv ? 'style="color:var(--pri-high)"' : '') + '>' + (fmtD(r.date) || r.date) + '</span></div>';
+      lastD = r.date;
+    }
+    h += rHTML(r);
   });
-  el.innerHTML=h;
+  el.innerHTML = h;
   attachItemSwipes();
+}
+
+function remEmpty(title, sub) {
+  return '<div class="empty-state"><div class="empty-icon" style="background:var(--reminder-soft);border-color:var(--reminder);color:var(--reminder)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div class="empty-title">' + title + '</div><div class="empty-sub">' + sub + '</div></div>';
+}
+
+function remEmptyTitle(filter) {
+  return { today: 'Nothing today', overdue: 'No overdue', upcoming: 'Nothing upcoming', completed: 'No completed reminders', all: 'No reminders' }[filter] || 'No reminders';
+}
+
+function remEmptySub(filter) {
+  return { today: 'You have no reminders for today.', overdue: 'Nothing past due — nice.', upcoming: 'No upcoming reminders scheduled.', completed: 'Reminders you complete will appear here for 24 hours.', all: 'Tap + to add a reminder.' }[filter] || 'Tap + to add a reminder.';
 }
 function rHTML(r){
   const o=!r.completed&&ov(r.date),t2=!r.completed&&isToday(r.date);
@@ -2784,6 +2947,27 @@ function rHTML(r){
 }
 
 // ── DASHBOARD ──
+function renderRingCard(label, pct, color, sub) {
+  const C = 2 * Math.PI * 24;
+  const off = C - (pct / 100) * C;
+  return '<div class="ring-card">'
+    + '<div class="ring-card-label">' + label + '</div>'
+    + '<div class="ring"><svg viewBox="0 0 56 56">'
+    + '<circle class="ring-bg" cx="28" cy="28" r="24"/>'
+    + '<circle class="ring-fill" cx="28" cy="28" r="24" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" style="stroke:' + color + '"/>'
+    + '</svg><div class="ring-lbl"><div class="ring-pct">' + pct + '%</div></div></div>'
+    + '<div class="ring-card-sub">' + sub + '</div>'
+    + '</div>';
+}
+
+function formatStepsShort(n) {
+  if (n == null) return '0';
+  n = parseInt(n) || 0;
+  if (n >= 10000) return Math.round(n / 1000) + 'k';
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return String(n);
+}
+
 function renderDash(){
   const now=new Date(),today=td(),h=now.getHours();
   const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -2795,15 +2979,48 @@ function renderDash(){
   const totT=todT.length+compToday.length,pct=totT>0?Math.round((compToday.length/totT)*100):0;
   const actR=S.reminders.filter(r=>!r.completed),todR=actR.filter(r=>r.date===today),ovR=actR.filter(r=>r.date<today);
   let out='';
-  // alert card
-  if(hiOv.length){
-    out+=`<div class="alert-card"><div class="alert-label"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Needs attention now</div>
-    ${hiOv.map(t=>`<div class="dash-item" onclick="switchView('todos');openTodoModal('${t.id}')"><div class="di-dot" style="background:var(--pri-high)"></div><div class="di-text ov">${esc(t.title)}</div><div class="di-time" style="color:var(--pri-high)">${esc(fmtD(t.date))}</div></div>`).join('')}</div>`;
+
+  // ─── ALERT CARD: high-priority overdue todos AND any overdue reminders ───
+  const overdueAlerts = [
+    ...hiOv.map(t => Object.assign({}, t, {_k:'todo'})),
+    ...ovR.map(r => Object.assign({}, r, {_k:'rem'}))
+  ];
+  if (overdueAlerts.length) {
+    out += '<div class="alert-card"><div class="alert-label"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Needs attention now</div>';
+    overdueAlerts.forEach(item => {
+      const nav = item._k === 'rem' ? "switchView('reminders');openReminderModal('" + item.id + "')" : "switchView('todos');openTodoModal('" + item.id + "')";
+      let dotColor = 'var(--pri-high)';
+      if (item._k === 'rem') {
+        dotColor = item.priority === 'high' ? 'var(--pri-high)' : item.priority === 'medium' ? 'var(--pri-med)' : 'var(--reminder)';
+      }
+      out += '<div class="dash-item" onclick="' + nav + '"><div class="di-dot" style="background:' + dotColor + '"></div><div class="di-text ov">' + esc(item.title) + '</div><div class="di-time" style="color:var(--pri-high)">' + esc(fmtD(item.date)) + '</div></div>';
+    });
+    out += '</div>';
   }
-  // ring
-  const C=2*Math.PI*28,off=C-(pct/100)*C;
-  out+=`<div class="ring-wrap"><div class="ring"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fill" cx="32" cy="32" r="28" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/></svg><div class="ring-lbl"><div class="ring-pct">${pct}%</div><div class="ring-sub">done</div></div></div>
-  <div class="ring-info"><div class="ring-stat">${todT.length+ovT.length+todR.length+ovR.length}</div><div class="ring-desc">items need attention</div><div class="ring-bk">${compToday.length} completed · ${ovT.length+ovR.length} overdue</div></div></div>`;
+
+  // ─── MULTI-RING: To-Dos, Steps, Streaks ───
+  const todoLoad = todT.length + ovT.length + ovR.length + compToday.length;
+  const todoPct = todoLoad > 0 ? Math.round((compToday.length / todoLoad) * 100) : 0;
+  const todoSub = compToday.length + '/' + todoLoad + ' done';
+
+  let stepsPct = 0, stepsLabel = 'No goal';
+  const stepsStreak = (S.streaks || []).filter(canSeeItem).find(s => normalizeUsername(s.name || '') === 'steps');
+  if (stepsStreak && stepsStreak.target > 0) {
+    const stepValue = (stepsStreak.values && stepsStreak.values[today]) || 0;
+    stepsPct = Math.min(100, Math.round((stepValue / stepsStreak.target) * 100));
+    stepsLabel = formatStepsShort(stepValue) + '/' + formatStepsShort(stepsStreak.target);
+  }
+
+  const scheduledStreaks = (S.streaks || []).filter(canSeeItem).filter(s => isScheduledToday(s));
+  const loggedStreaks = scheduledStreaks.filter(s => isLoggedToday(s));
+  const streaksPct = scheduledStreaks.length > 0 ? Math.round((loggedStreaks.length / scheduledStreaks.length) * 100) : 0;
+  const streaksSub = scheduledStreaks.length > 0 ? loggedStreaks.length + '/' + scheduledStreaks.length + ' logged' : 'none today';
+
+  out += '<div class="rings-grid">';
+  out += renderRingCard('TO-DOS', todoPct, 'var(--cyan)', todoSub);
+  out += renderRingCard('STEPS', stepsPct, stepsPct >= 100 ? 'var(--note)' : 'var(--violet)', stepsLabel);
+  out += renderRingCard('STREAKS', streaksPct, 'var(--streak)', streaksSub);
+  out += '</div>';
   // today list
   const todayAll=[...ovT.map(t=>({...t,_k:'todo'})),...todT.map(t=>({...t,_k:'todo'})),...ovR.map(r=>({...r,_k:'rem'})),...todR.map(r=>({...r,_k:'rem'}))].slice(0,6);
   if(todayAll.length){
@@ -2818,12 +3035,33 @@ function renderDash(){
     if(more>0)out+=`<div class="dash-item" onclick="switchView('todos')"><div class="di-dot" style="background:var(--ink-mute)"></div><div class="di-text" style="color:var(--ink-soft)">+${more} more</div></div>`;
     out+=`</div>`;
   }else if(h>=6){out+=`<div class="section-label">Today</div><div class="card" style="text-align:center;padding:20px;color:var(--ink-soft);font-size:14px">✓ All clear for today</div>`;}
-  // weekly summary Sunday evening
+  // weekly summary Sunday evening — archive-aware (Bugs 1 + 6 fix)
   if(now.getDay()===0&&h>=17){
-    const wAgo=new Date(now);wAgo.setDate(wAgo.getDate()-7);
-    const wDone=S.todos.filter(t=>t.completed&&t.completedAt&&new Date(t.completedAt)>=wAgo).length;
-    out+=`<div class="week-card"><div class="week-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>This week</div>
-    <div class="week-stats"><div class="week-stat"><div class="week-num">${wDone}</div><div class="week-lbl">Tasks done</div></div><div class="week-stat"><div class="week-num">—</div><div class="week-lbl">Streaks kept</div></div><div class="week-stat"><div class="week-num">—</div><div class="week-lbl">Notes added</div></div></div></div>`;
+    // Compute the week range: 7 days back to today, inclusive (as YYYY-MM-DD)
+    const wAgoDate = new Date(now);
+    wAgoDate.setDate(wAgoDate.getDate() - 7);
+    const wAgoStr = wAgoDate.getFullYear() + '-' + String(wAgoDate.getMonth()+1).padStart(2,'0') + '-' + String(wAgoDate.getDate()).padStart(2,'0');
+    const weekMs = wAgoDate.getTime();
+
+    // Tasks done: use archive-aware count (handles items already purged by 24h cleanup)
+    const weekCounts = countCompletedInRange(wAgoStr, today);
+    const wDone = weekCounts.todoCount + weekCounts.remCount;
+
+    // Streaks kept: count of streaks whose chain length matches or exceeds 7 (kept all week)
+    const weekStreaks = (S.streaks || []).filter(canSeeItem).filter(s => {
+      if (typeof getStreakChain !== 'function') return false;
+      return getStreakChain(s) >= 7;
+    }).length;
+
+    // Notes added: notes whose createdAt falls in the past 7 days
+    const wNotes = (S.notes || []).filter(n => n && canSeeItem(n) && n.createdAt && n.createdAt >= weekMs).length;
+
+    out+='<div class="week-card"><div class="week-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>This week</div>'
+      + '<div class="week-stats">'
+      + '<div class="week-stat"><div class="week-num">' + wDone + '</div><div class="week-lbl">Tasks done</div></div>'
+      + '<div class="week-stat"><div class="week-num">' + weekStreaks + '</div><div class="week-lbl">Streaks kept</div></div>'
+      + '<div class="week-stat"><div class="week-num">' + wNotes + '</div><div class="week-lbl">Notes added</div></div>'
+      + '</div></div>';
   }
   // upcoming
   const upT=actT.filter(t=>t.date>today).sort((a,b)=>a.date<b.date?-1:1).slice(0,4);
@@ -2842,7 +3080,7 @@ function renderDash(){
   if((!S.dashSections||S.dashSections.streakNudge!==false)&&typeof getStreakChain==='function'&&S.streaks&&S.streaks.length&&h>=20){
     const ar=S.streaks.filter(s=>isScheduledToday(s)&&!isLoggedToday(s));
     if(ar.length)out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>'
-      +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:'+(s.color||'#f43f5e')+'"></span>'+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
+      +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:'+(s.color||'var(--pri-high)')+'"></span>'+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
   } else if(h>=20&&(!S.dashSections||S.dashSections.streakNudge!==false)){
     out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">Tap the Streaks tab to set up your habits.</div></div>';
   }
@@ -2918,6 +3156,7 @@ function renderSett(){
       +(t==='dark'?'Dark':t==='light'?'Light':'System')+'</button>';
   }).join('');
   document.getElementById('sett-body').innerHTML=
+    // ═══ MY PROFILE: Sync & Username, Household Members, Firebase ═══
     '<div class="section-label">My Profile</div>'
     +'<div class="sett-group"><button class="sett-row" onclick="openUsernameSetup()">'
     +'<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)">'+svg('user',18)+'</div>'
@@ -2928,40 +3167,22 @@ function renderSett(){
     +'<div class="sett-icon" style="background:var(--reminder-soft);color:var(--reminder)">'+svg('users',18)+'</div>'
     +'<div class="sett-text"><div class="sett-label">Household Members</div><div class="sett-sub">'+(S.knownUsernames||[]).length+' member'+(((S.knownUsernames||[]).length)!==1?'s':'')+' · Switch identity</div></div>'
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button>'
+    +'<button class="sett-row" onclick="settFB()">'
+    +'<div class="sett-icon" style="background:#f59e0b20;color:#f59e0b"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Firebase</div><div class="sett-sub">'+(fbOk()?'Configured':'Not configured')+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
-    +'<div class="section-label">Display</div>'
+
+    // ═══ CUSTOMIZE VIEW: Compact Mode, Theme, Dashboard toggles, Templates, Grace Window ═══
+    +'<div class="section-label">Customize View</div>'
     +'<div class="sett-group"><div class="sett-row" style="cursor:default">'
     +'<div class="sett-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>'
     +'<div class="sett-text"><div class="sett-label">Compact Mode</div><div class="sett-sub">'+(S.compactMode?'On — smaller, denser layout':'Off — comfortable spacing')+'</div></div>'
     +'<label class="switch"><input type="checkbox" id="compact-toggle" '+(S.compactMode?'checked':'')+' onchange="toggleCompactMode()"><span class="slider"></span></label>'
     +'</div></div>'
-    +'<div class="section-label">Streaks</div>'
-    +'<div class="sett-group"><button class="sett-row" onclick="settGrace()">'
-    +'<div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
-    +'<div class="sett-text"><div class="sett-label">Late Log Grace Window</div><div class="sett-sub">Log yesterday before '+S.graceWindowHour+':00 AM</div></div>'
-    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
-    +'</button></div>'
-    +'<div class="section-label">Firebase</div>'
-    +'<div class="sett-group"><button class="sett-row" onclick="settFB()">'
-    +'<div class="sett-icon" style="background:#f59e0b20;color:#f59e0b"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>'
-    +'<div class="sett-text"><div class="sett-label">Firebase</div><div class="sett-sub">'+(fbOk()?'Configured':'Not configured')+'</div></div>'
-    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
-    +'</button></div>'
-    +'<div class="section-label">Data</div>'
-    +'<div class="sett-group"><button class="sett-row" onclick="clearAll()" style="color:var(--pri-high)">'
-    +'<div class="sett-icon" style="background:var(--pri-high-soft);color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>'
-    +'<div class="sett-text"><div class="sett-label">Clear All Data</div><div class="sett-sub">Permanently delete everything</div></div>'
-    +'</button></div>'
-    +'<div class="section-label">Appearance</div>'
-    +'<div class="sett-group" style="padding:14px 16px"><div class="theme-toggle-wrap">'+tbHTML+'</div></div>'
-    +'<div class="section-label">Inbox</div>'
-    +'<div class="sett-group"><button class="sett-row" onclick="openInbox()">'
-    +'<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)">'+svg('inbox',18)+'</div>'
-    +'<div class="sett-text"><div class="sett-label">Email Forwarding</div><div class="sett-sub">Forward emails as to-dos or notes</div></div>'
-    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
-    +'</button></div>'
-    +'<div class="section-label">Dashboard Sections</div>'
-    +'<div class="sett-group" style="padding:14px 16px">'
+    +'<div class="sett-group" style="padding:14px 16px;margin-top:10px"><div class="theme-toggle-wrap">'+tbHTML+'</div></div>'
+    +'<div class="sett-group" style="padding:14px 16px;margin-top:10px">'
     +(function(){
       const sections=[
         {key:'mentions',label:'Tag notifications'},
@@ -2974,7 +3195,8 @@ function renderSett(){
         {key:'sundayReview',label:'Sunday review prompt'},
       ];
       const ds=S.dashSections||{};
-      return sections.map(s=>{
+      return '<div style="font-size:11px;font-weight:600;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Dashboard Sections</div>'
+        + sections.map(s=>{
         const on=ds[s.key]!==false;
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">'
           +'<div style="font-size:14px;color:var(--ink)">'+s.label+'</div>'
@@ -2983,7 +3205,19 @@ function renderSett(){
       }).join('');
     })()
     +'</div>'
-    +'<div class="section-label">Templates</div>'+'<div class="sett-group"><button class="sett-row" onclick="openTemplatesManager()">'+'<div class="sett-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><line x1=\'8\' y1=\'9\' x2=\'16\' y2=\'9\'/><line x1=\'8\' y1=\'13\' x2=\'16\' y2=\'13\'/><line x1=\'8\' y1=\'17\' x2=\'13\' y2=\'17\'/></svg></div>'+'<div class="sett-text"><div class="sett-label">List Templates</div><div class="sett-sub">'+((S.templates||[]).length)+' saved</div></div>'+'<div class="sett-chev"><svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'><polyline points=\'9 18 15 12 9 6\'/></svg></div>'+'</button></div>'+'<div class="section-label">Backup</div>'
+    +'<div class="sett-group" style="margin-top:10px"><button class="sett-row" onclick="openTemplatesManager()">'
+    +'<div class="sett-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">List Templates</div><div class="sett-sub">'+((S.templates||[]).length)+' saved</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button>'
+    +'<button class="sett-row" onclick="settGrace()">'
+    +'<div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Late Log Grace Window</div><div class="sett-sub">Log yesterday before '+S.graceWindowHour+':00 AM</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
+
+    // ═══ DATA: Export, Import, Email Forwarding, then Clear All (destructive, last) ═══
+    +'<div class="section-label">Data</div>'
     +'<div class="sett-group"><button class="sett-row" onclick="exportData()">'
     +'<div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>'
     +'<div class="sett-text"><div class="sett-label">Export Backup</div><div class="sett-sub">Download JSON of all your data</div></div>'
@@ -2991,7 +3225,18 @@ function renderSett(){
     +'<button class="sett-row" onclick="importData()">'
     +'<div class="sett-icon" style="background:var(--reminder-soft);color:var(--reminder)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>'
     +'<div class="sett-text"><div class="sett-label">Import Backup</div><div class="sett-sub">Restore from a JSON file</div></div>'
+    +'</button>'
+    +'<button class="sett-row" onclick="openInbox()">'
+    +'<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)">'+svg('inbox',18)+'</div>'
+    +'<div class="sett-text"><div class="sett-label">Email Forwarding</div><div class="sett-sub">Forward emails as to-dos or notes</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
+    +'<div class="sett-group" style="margin-top:10px"><button class="sett-row" onclick="clearAll()" style="color:var(--pri-high)">'
+    +'<div class="sett-icon" style="background:var(--pri-high-soft);color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Clear All Data</div><div class="sett-sub">Permanently delete everything</div></div>'
+    +'</button></div>'
+
+    // ═══ ABOUT (unchanged) ═══
     +'<div class="section-label">About</div>'
     +'<div class="sett-group"><button class="sett-row" onclick="openChangelog()">'
     +'<div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>'
@@ -3000,6 +3245,7 @@ function renderSett(){
     +'</button></div>'
     +'<div style="text-align:center;padding:20px 0 4px"><div class="version-pill" onclick="openChangelog()"><div class="vdot"></div>'+ver+'</div></div>';
 }
+
 
 function settSync(){
   document.getElementById('sett-title').textContent='Sync Code';
@@ -3287,6 +3533,7 @@ function init(){
   autoRefreshIfDue();
   applyCompactMode();
   cleanupAllMentions();
+  cleanupOldCompleted();
   initSwipeDismiss();
   initSwipeTabs();
   initItemSwipes();
@@ -3296,7 +3543,7 @@ function init(){
   updateSyncIndicator();
   if(window.__firebase){if(initFB()&&S.syncCode)startSync();}
   else window.addEventListener('firebase-ready',()=>{if(initFB()&&S.syncCode)startSync();});
-  setInterval(()=>{if(view==='home')renderDash();tabs();},60000);
+  setInterval(()=>{cleanupOldCompleted();if(view==='home')renderDash();tabs();},60000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;if(view==='home')renderDash();if(db&&S.syncCode)startSync();});
 }
 // Apply theme immediately before render
@@ -3810,6 +4057,7 @@ function openStreakModal(id=null) {
   document.querySelectorAll('#streak-color-picker .color-swatch').forEach(sw => sw.classList.toggle('selected', sw.dataset.color === selectedStreakColor));
   document.getElementById('streak-target').value = s && s.target ? s.target : '';
   document.getElementById('streak-unit').value = s && s.unit ? s.unit : '';
+  document.getElementById('streak-reminder-hour').value = (s && s.reminderHour!=null) ? String(s.reminderHour) : '';
   document.getElementById('streak-del-btn').style.display = s ? '' : 'none';
   P2.sfreq = s ? s.freq||'daily' : 'daily';
   streakDays = s ? (s.days||[0,1,2,3,4,5,6]) : [0,1,2,3,4,5,6];
@@ -3853,16 +4101,18 @@ function saveStreak() {
   const color = selectedStreakColor;
   const freq = P2.sfreq;
   const days = freq==='custom' ? streakDays : freq==='mon-fri' ? [1,2,3,4,5] : [0,1,2,3,4,5,6];
+  const reminderHourRaw = document.getElementById('streak-reminder-hour').value;
+  const reminderHour = reminderHourRaw === '' ? null : parseInt(reminderHourRaw);
   if (id) {
     const i = S.streaks.findIndex(s=>s.id===id);
     const target_e = parseInt(document.getElementById('streak-target').value) || null;
     const unit_e = document.getElementById('streak-unit').value.trim() || '';
-    if (i!==-1) { S.streaks[i] = {...S.streaks[i],name,color,freq,days,target:target_e,unit:unit_e}; stampOwner(S.streaks[i]); applyMentions(S.streaks[i],'streak'); }
+    if (i!==-1) { S.streaks[i] = {...S.streaks[i],name,color,freq,days,target:target_e,unit:unit_e,reminderHour}; stampOwner(S.streaks[i]); applyMentions(S.streaks[i],'streak'); }
     toast('Streak updated','ok');
   } else {
     const target = parseInt(document.getElementById('streak-target').value) || null;
   const unit = document.getElementById('streak-unit').value.trim() || '';
-  const newS={id:gid(),name,color,freq,days,target,unit,logs:[],values:{},_expanded:false,createdAt:Date.now()};stampOwner(newS);applyMentions(newS,'streak');if(window._pendingShareWith&&window._pendingShareWith.length){newS.sharedWith=[...new Set([...(newS.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.streaks.push(newS);
+  const newS={id:gid(),name,color,freq,days,target,unit,reminderHour,logs:[],values:{},_expanded:false,createdAt:Date.now()};stampOwner(newS);applyMentions(newS,'streak');if(window._pendingShareWith&&window._pendingShareWith.length){newS.sharedWith=[...new Set([...(newS.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.streaks.push(newS);
     toast('Streak created','ok');
   }
   save(); closeModal('modal-streak'); renderStreaks();
@@ -3878,28 +4128,38 @@ function deleteStreak() {
 function getStreakChain(streak) {
   const today = td(), logs = new Set(streak.logs||[]);
   const now = new Date(), graceHour = S.graceWindowHour||9;
-  let chain = 0, date = new Date();
-  // Check if today is a scheduled day
+  let chain = 0;
   const scheduled = d => {
     const day = new Date(d.getFullYear(),d.getMonth(),d.getDate()).getDay();
     return (streak.days||[]).includes(day);
   };
   const dStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  // Start from today (or yesterday if within grace window)
-  let checkDate = new Date(date);
-  // If not yet logged today and within grace, also check yesterday
+  let checkDate = new Date();
+  // Grace window (Option 1): if it's before graceHour and yesterday has no log,
+  // forgive that ONE gap exactly once and keep walking back — this lets a log made
+  // before graceHour count as "covering" yesterday, matching the Settings description
+  // ("Log yesterday before X:00 AM"). Once used, grace cannot apply again further back —
+  // a real second gap still breaks the chain. After graceHour passes, an unlogged
+  // yesterday is a real miss with no forgiveness.
+  let usedGraceForYesterday = false;
   for (let i = 0; i < 365; i++) {
     const ds = dStr(checkDate);
     if (!scheduled(checkDate)) { checkDate.setDate(checkDate.getDate()-1); continue; }
-    if (logs.has(ds)) { chain++; checkDate.setDate(checkDate.getDate()-1); }
-    else {
-      // Allow missing today if we haven't passed deadline, or grace window for yesterday
-      const isToday2 = ds === today;
-      const isYesterday = (() => { const y=new Date();y.setDate(y.getDate()-1);return ds===dStr(y); })();
-      if (isToday2) { checkDate.setDate(checkDate.getDate()-1); continue; } // Today not yet logged, skip
-      if (isYesterday && now.getHours() < graceHour) { checkDate.setDate(checkDate.getDate()-1); continue; } // Grace window
-      break; // Chain broken
+    if (logs.has(ds)) { chain++; checkDate.setDate(checkDate.getDate()-1); continue; }
+    const isToday2 = ds === today;
+    if (isToday2) {
+      // Today not yet logged — don't break, don't count, keep walking back
+      checkDate.setDate(checkDate.getDate()-1);
+      continue;
     }
+    const y = new Date(); y.setDate(y.getDate()-1);
+    const isYesterday = ds === dStr(y);
+    if (isYesterday && now.getHours() < graceHour && !usedGraceForYesterday) {
+      usedGraceForYesterday = true;
+      checkDate.setDate(checkDate.getDate()-1);
+      continue;
+    }
+    break; // Real miss — chain ends here
   }
   return chain;
 }
@@ -3917,6 +4177,7 @@ function canLogYesterday(streak) {
 }
 
 function isScheduledToday(streak) {
+  if (streak.paused) return false;
   return (streak.days||[]).includes(new Date().getDay());
 }
 
@@ -4000,9 +4261,10 @@ function renderStreaks() {
     const scheduled = isScheduledToday(s);
     const atRisk = scheduled && !logged && hour >= 20;
     const inGrace = canLogYesterday(s);
-    // Build 91-day dot grid (13 weeks)
+    // Build dot grid: 91 days (13 weeks) by default, or 182 days (26 weeks) in extended view
+    const rangeDays = s._extendedView ? 181 : 90;
     const dots = [];
-    for (let i = 90; i >= 0; i--) {
+    for (let i = rangeDays; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate()-i);
       const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const isSchd = (s.days||[]).includes(d.getDay());
@@ -4019,7 +4281,7 @@ function renderStreaks() {
     const color = s.color || '#f43f5e';
     const expanded = !!s._expanded;
     const linkedNotesHTML = renderLinkedNotes('streak', s.id);
-    return '<div class="streak-card ' + (atRisk?'at-risk ':'') + (expanded?'expanded':'') + '" id="sc-' + s.id + '" onclick="toggleStreakExpand(\''+s.id+'\',event)" style="border-left:3px solid '+color+'">'
+    return '<div class="streak-card ' + (atRisk?'at-risk ':'') + (expanded?'expanded':'') + '" id="sc-' + s.id + '" onclick="toggleStreakExpand(\''+s.id+'\',event)" style="border-left:3px solid '+color+';' + (s.paused?'opacity:.55':'') + '">'
       + '<div class="streak-top">'
         + '<div class="streak-color-dot" style="background:'+color+';color:'+color+'"></div>'
         + '<div class="streak-info">'
@@ -4034,6 +4296,9 @@ function renderStreaks() {
         + '<div class="streak-actions">'
           + (inGrace ? '<span class="streak-grace-badge">Grace</span>' : '')
           + '<span class="streak-freq-badge">' + freqLabel + '</span>'
+          + '<button class="btn-icon btn-xs" onclick="event.stopPropagation();toggleStreakPause(\''+s.id+'\')" style="color:var(--ink-mute)" title="' + (s.paused?'Resume':'Pause') + '">' + (s.paused
+            ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>') + '</button>'
           + '<button class="btn-icon btn-xs" onclick="event.stopPropagation();openStreakModal(\''+s.id+'\')" style="color:var(--ink-mute)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>'
           + '<span style="color:var(--ink-mute);transition:transform .2s;display:inline-flex;transform:rotate('+(expanded?'180':'0')+'deg)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2.5"><polyline points="6 9 12 15 18 9"/></svg></span>'
         + '</div>'
@@ -4041,12 +4306,13 @@ function renderStreaks() {
       + (s.target ? ('<div style="padding:0 16px 6px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:11px;color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Today</div><div style="font-size:13px;color:var(--ink)"><strong style="font-family:Plus Jakarta Sans,sans-serif;color:'+color+';font-size:16px">'+getTodayValue(s)+'</strong> <span style="color:var(--ink-mute)">/ '+s.target+' '+esc(s.unit||'')+'</span></div></div><div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,getTodayValue(s)/s.target*100)+'%;background:'+color+'"></div></div>') : ('<div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,chain/7*100)+'%;background:'+color+'"></div></div>'))
       + '<div class="streak-expand-area">'
         + (s.target ? streakBarChartHTML(s) : '')
-        + '<div class="dot-grid">' + dots.map(d => d.replace('background:var(--streak)', 'background:'+color)).join('') + '</div>'
+        + '<div class="dot-grid" style="' + (s._extendedView?'grid-template-columns:repeat(26,1fr)':'') + '">' + dots.map(d => d.replace('background:var(--streak)', 'background:'+color)).join('') + '</div>'
+      + '<div style="padding:0 16px 8px;text-align:right"><button class="btn-ghost btn-xs" onclick="event.stopPropagation();toggleStreakViewRange(\''+s.id+'\')" style="font-size:11px;color:var(--ink-mute)">' + (s._extendedView?'Show 3 months':'Show 6 months') + '</button></div>'
       + '</div>'
       + '<div style="padding:14px 16px 14px;display:flex;align-items:center;justify-content:space-between">'
         + '<div style="font-size:12px;color:var(--ink-mute)">' + (scheduled?(logged?'Logged today':'Not yet logged today'):'Rest day') + '</div>'
         + '<button class="streak-log-btn ' + (logged?'logged':'') + '" id="slb-' + s.id + '" style="border-color:'+color+';' + (logged?'background:'+color:'') + '"'
-          + ' onclick="event.stopPropagation();logStreak(\''+s.id+'\')"'
+          + ' onclick="event.stopPropagation();' + (s.target ? ('openValueLogPrompt(\''+s.id+'\')') : ('logStreak(\''+s.id+'\')')) + '"'
           + ' oncontextmenu="return false">'
           + (logged
             ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>'
@@ -4080,6 +4346,13 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 
 
 
+
+
+function tomorrowStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 
 function defaultNextHourTime() {
   const n = new Date();
@@ -4231,7 +4504,14 @@ function confirmNotifyMention() {
   if (!_mentionPopoverTarget) return;
   const { username, itemType, itemId } = _mentionPopoverTarget;
   const collection = { todo: S.todos, list: S.lists, reminder: S.reminders, note: S.notes, streak: S.streaks }[itemType];
-  const item = collection ? collection.find(x => x.id === itemId) : null;
+  // 'listitem' is special: it's nested inside the currently-open list, not a top-level collection
+  let item = null;
+  if (itemType === 'listitem') {
+    const parentList = S.lists.find(l => l.id === listId);
+    item = parentList ? (parentList.items || []).find(x => x.id === itemId) : null;
+  } else {
+    item = collection ? collection.find(x => x.id === itemId) : null;
+  }
   // Build snippet from title/name + notes (same pattern as applyMentions)
   let snippet = '';
   if (item) {
@@ -4452,6 +4732,82 @@ function toggleCompactMode() {
 }
 
 
+// ─── AUTO-PURGE COMPLETED ITEMS AFTER 24 HOURS ─────────────────────────
+// Both todos and reminders are automatically removed from local state once
+// their completedAt timestamp is more than 24 hours old. This runs on init
+// and on a 60-second interval, so the cleanup happens in real time.
+function cleanupOldCompleted() {
+  const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+  let removedCount = 0;
+  const beforeTodos = (S.todos || []).length;
+  const beforeReminders = (S.reminders || []).length;
+  // BEFORE deleting, archive what we're about to lose into S.dailyStats per date.
+  // This way the weekly/monthly summary can still count items that were completed
+  // and then auto-purged.
+  if (!S.dailyStats || typeof S.dailyStats !== 'object') S.dailyStats = {};
+  const toRemoveTodos = (S.todos || []).filter(t => t.completed && t.completedAt && t.completedAt < cutoff);
+  const toRemoveReminders = (S.reminders || []).filter(r => r.completed && r.completedAt && r.completedAt < cutoff);
+  toRemoveTodos.forEach(t => recordDailyCompletion('todo', t.completedAt));
+  toRemoveReminders.forEach(r => recordDailyCompletion('reminder', r.completedAt));
+
+  S.todos = (S.todos || []).filter(t => {
+    if (!t.completed) return true;
+    if (!t.completedAt) return true;
+    return t.completedAt >= cutoff;
+  });
+  S.reminders = (S.reminders || []).filter(r => {
+    if (!r.completed) return true;
+    if (!r.completedAt) return true;
+    return r.completedAt >= cutoff;
+  });
+  removedCount = (beforeTodos - S.todos.length) + (beforeReminders - S.reminders.length);
+  if (removedCount > 0) {
+    save();
+    if (view === 'home') renderDash();
+    renderTodos();
+    renderRem();
+  }
+}
+
+// Record a completion into S.dailyStats[YYYY-MM-DD]. Idempotent per-item is
+// hard to guarantee (we don't track which items are already counted), so we
+// only call this from cleanupOldCompleted BEFORE actual removal. That gives
+// us an accurate per-day archive: each completed-and-purged item contributes
+// exactly once to the count for its completion date.
+function recordDailyCompletion(kind, completedAtMs) {
+  if (!S.dailyStats) S.dailyStats = {};
+  const d = new Date(completedAtMs);
+  const dateKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  if (!S.dailyStats[dateKey]) S.dailyStats[dateKey] = { todosCompleted: 0, remindersCompleted: 0 };
+  if (kind === 'todo') S.dailyStats[dateKey].todosCompleted = (S.dailyStats[dateKey].todosCompleted || 0) + 1;
+  else if (kind === 'reminder') S.dailyStats[dateKey].remindersCompleted = (S.dailyStats[dateKey].remindersCompleted || 0) + 1;
+}
+
+// Counts items completed within a date range. Uses live items (within 24h) +
+// dailyStats archive (anything older than 24h). Pass two YYYY-MM-DD strings.
+function countCompletedInRange(startDate, endDate) {
+  const startMs = new Date(startDate + 'T00:00:00').getTime();
+  const endMs = new Date(endDate + 'T23:59:59').getTime();
+  let todoCount = 0, remCount = 0;
+  // Live items still in arrays
+  (S.todos || []).forEach(t => {
+    if (t.completed && t.completedAt && t.completedAt >= startMs && t.completedAt <= endMs) todoCount++;
+  });
+  (S.reminders || []).forEach(r => {
+    if (r.completed && r.completedAt && r.completedAt >= startMs && r.completedAt <= endMs) remCount++;
+  });
+  // Archived items (only added once they're purged — so no double-counting with live items)
+  if (S.dailyStats) {
+    for (const dateKey in S.dailyStats) {
+      if (dateKey >= startDate && dateKey <= endDate) {
+        todoCount += S.dailyStats[dateKey].todosCompleted || 0;
+        remCount += S.dailyStats[dateKey].remindersCompleted || 0;
+      }
+    }
+  }
+  return { todoCount, remCount };
+}
+
 function cleanupAllMentions() {
   // One-shot cleanup: reapply mentions logic to every item to clear accumulated stale entries
   let cleaned = 0;
@@ -4531,7 +4887,16 @@ function confirmSharePicker() {
   if (!activeShareEditor) { closeModal('modal-share-picker'); return; }
   const ed = activeShareEditor;
   const collection = { todo: S.todos, list: S.lists, reminder: S.reminders, note: S.notes, streak: S.streaks }[ed.itemType];
-  if (collection && ed.itemId) {
+  if (ed.itemType === 'listitem' && ed.itemId) {
+    const parentList = S.lists.find(l => l.id === listId);
+    const item = parentList ? (parentList.items || []).find(x => x.id === ed.itemId) : null;
+    if (item) {
+      item.sharedWith = [...ed.sharedWith];
+      save();
+      renderListDet();
+      renderLists();
+    }
+  } else if (collection && ed.itemId) {
     const item = collection.find(x => x.id === ed.itemId);
     if (item) {
       // Merge with existing mentions (mentions still take priority)
@@ -5541,6 +5906,107 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.22',
+    date: 'Jun 20, 2026',
+    type: 'medium',
+    items: [
+      'Fixed streak chain calculation (grace window): a log made before your Grace Window hour now correctly counts as covering yesterday\'s gap exactly once, then keeps counting back through earlier history — matching the documented behavior in Settings ("Log yesterday before X:00 AM"). Previously, the grace window could silently forgive an actually-missed day with no log at all, inflating chains incorrectly. Verified against 6 scenarios including same-day pending, real misses, and grace-window expiry.'
+    ]
+  },
+  {
+    version: '0.04.21',
+    date: 'Jun 20, 2026',
+    type: 'medium',
+    items: [
+      'Settings page regrouped from 11 fragmented sections into 4: My Profile (Sync & Username, Household Members, Firebase), Customize View (Compact Mode, Theme, Dashboard Sections, Templates, Grace Window), Data (Export/Import Backup, Email Forwarding, Clear All Data), and About',
+      'Within Data, destructive Clear All Data is now visually separated at the bottom, below the routine backup/forwarding actions',
+      'Within My Profile, Firebase moved to the bottom since it\'s typically configured once and rarely revisited'
+    ]
+  },
+  {
+    version: '0.04.20',
+    date: 'Jun 20, 2026',
+    type: 'major',
+    items: [
+      'Fixed: tapping the log button on a VALUE-based streak now opens a value-entry prompt instead of toggling a boolean log — previously this could mark a streak "logged" with no actual value recorded',
+      'New: Pause/Resume a streak. Paused streaks are excluded from the dashboard nudge and chain-risk calculations, shown dimmed with a "Paused" badge — use for seasonal habits without losing history',
+      'New: per-streak reminder hour. Each streak can set its own dashboard-nudge time (default 8 PM) instead of sharing one global time',
+      'New: "Show 6 months" toggle on each streak\'s history grid, expanding from the default 91-day view to 182 days',
+      'NOTE: a chain-counting edge case in the grace-window logic (multiple past misses getting silently forgiven) was investigated but not changed — the fix requires a product decision on intended grace semantics. Flagging for follow-up.'
+    ]
+  },
+  {
+    version: '0.04.19',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Dashboard alert card: overdue reminders now show a priority-colored dot (high/medium/low) instead of a generic reminder color',
+      'Fixed: swiping to defer an OVERDUE reminder now moves it to today, not +1 day (which barely changed an overdue item\'s status)',
+      'Completed reminders filter now sorts by completion time (most recent first) instead of original due date'
+    ]
+  },
+  {
+    version: '0.04.18',
+    date: 'Jun 20, 2026',
+    type: 'major',
+    items: [
+      'List items now support per-item sharing (previously only whole-list sharing existed). Use the item ••• menu → “Share with…”. Items not shared with you are hidden from your view, same privacy model as To-Dos/Reminders',
+      'New list items are stamped with ownerUsername on creation, fixing a gap where item ownership was undefined',
+      'List items now support swipe gestures: swipe to check/uncheck or delete, matching To-Dos and Reminders',
+      'List cards: replaced the lone ••• edit shortcut with a full menu — Edit, Duplicate, Move Up/Down, Delete',
+      'Duplicating a list creates an independent copy with fresh item IDs, unchecked items, and no sharing/recurrence carried over',
+      'Lists can now be manually reordered in the grid via Move Up/Down',
+      'Recurring lists show their last-refreshed date directly on the card'
+    ]
+  },
+  {
+    version: '0.04.17',
+    date: 'Jun 20, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: “High” filter on To-Dos previously only showed overdue items; now shows high-priority items across Today/Upcoming/Overdue groups',
+      'Added “Completed” filter pill to the To-Dos tab (consistent with Reminders)',
+      'Recurring to-dos and reminders now transfer linked notes to the next auto-scheduled instance — links no longer break after the first cycle',
+      'New to-dos and reminders added at 9pm or later default to tomorrow (instead of today, which would make them immediately overdue at midnight)',
+      'Linked-note indicator: to-do cards now show a small note chip with count when one or more notes are linked to the item'
+    ]
+  },
+  {
+    version: '0.04.16',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Removed redundant top-right “+” buttons from To-Dos, Lists, Reminders, and Streaks tabs (kept the FAB on the bottom-right)',
+      'Sync status indicator moved from bottom-right to bottom-center',
+      'Widget: small widget now shows “as of Xpm” under the steps progress bar, reflecting when Firestore last received a step update'
+    ]
+  },
+  {
+    version: '0.04.15',
+    date: 'Jun 20, 2026',
+    type: 'major',
+    items: [
+      'Dashboard rework: three rings instead of one — To-Dos, Steps, and Streaks, side-by-side at the top. Each ring shows its own progress percentage with a label and breakdown beneath it',
+      'Alert card (top of dashboard) now flags overdue reminders too, not just high-priority overdue to-dos. Each row in the alert opens directly into the right modal',
+      'Weekly summary (shown Sunday evening) now displays REAL numbers for Streaks Kept (chains ≥ 7 days) and Notes Added this week. Previously these were placeholder em-dashes',
+      'Weekly summary task count is archive-aware: completed items that were already auto-purged by the 24h cleanup are now still counted toward the weekly summary, via a new S.dailyStats archive that snapshots each day\'s completion count before purge',
+      'Schema: added S.dailyStats = { YYYY-MM-DD: { todosCompleted, remindersCompleted } } with migration so existing users get an empty object. Populated on cleanup, queried by weekly summary',
+      'Streak nudge color now uses --pri-high CSS variable instead of hardcoded #f43f5e (will follow theme changes)'
+    ]
+  },
+  {
+    version: '0.04.14',
+    date: 'Jun 20, 2026',
+    type: 'medium',
+    items: [
+      'Reminders filter bar rebuilt: Today (default), Overdue, Upcoming, Completed, All',
+      'Default Reminders view (Today) now shows today\'s reminders on top and overdue reminders below — overdue items no longer hide silently behind a filter you forgot about',
+      'Added explicit Overdue filter so you can see only past-due items in one tap',
+      'Completed to-dos and reminders now AUTOMATICALLY DELETE after 24 hours. This is permanent (no undo). Runs on app open and every 60 seconds while the app is open',
+      'The Completed filter now shows what\'s been completed in the last 24 hours — historical completions are no longer accessible after that window'
+    ]
+  },
   {
     version: '0.04.13',
     date: 'Jun 20, 2026',
@@ -6776,6 +7242,35 @@ function getTodayValue(streak) {
   return streak.values[td()] || 0;
 }
 
+function openValueLogPrompt(streakId) {
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  const current = getTodayValue(s);
+  const input = prompt('Log ' + (s.unit || 'value') + ' for ' + s.name + ':', current || '');
+  if (input === null) return; // cancelled
+  const num = parseInt(input);
+  if (isNaN(num) || num < 0) { toast('Enter a valid number', 'err'); return; }
+  setTodayValue(streakId, num);
+  const reached = s.target && num >= s.target;
+  toast(reached ? 'Goal reached! \uD83C\uDF89' : 'Logged ' + num + ' ' + (s.unit||''), 'ok');
+}
+
+function toggleStreakViewRange(streakId) {
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  s._extendedView = !s._extendedView;
+  renderStreaks();
+}
+
+function toggleStreakPause(streakId) {
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  s.paused = !s.paused;
+  save();
+  renderStreaks();
+  toast(s.paused ? 'Streak paused' : 'Streak resumed', 'ok');
+}
+
 function setTodayValue(streakId, value) {
   const s = S.streaks.find(x => x.id === streakId);
   if (!s) return;
@@ -7053,7 +7548,7 @@ function initSwipeTabs() {
 
 
 <!-- SYNC STATUS INDICATOR -->
-<div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 86px);right:14px;z-index:200;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);opacity:0;transition:opacity .3s ease;pointer-events:none;">
+<div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 86px);left:50%;transform:translateX(-50%);z-index:200;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);opacity:0;transition:opacity .3s ease;pointer-events:none;">
   <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ink-mute);transition:background .2s"></span>
   <span id="sync-label">Sync</span>
 </div>
@@ -7073,6 +7568,16 @@ function initSwipeTabs() {
       <button class="btn-icon" onclick="closeModal('modal-list-item-menu')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body" id="list-item-menu-body"></div>
+  </div>
+</div>
+
+<!-- LIST CARD MENU MODAL (Edit/Duplicate/Move/Delete) -->
+<div class="modal-backdrop" id="modal-list-card-menu">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title" id="list-card-menu-title">List Options</div>
+      <button class="btn-icon" onclick="closeModal('modal-list-card-menu')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="list-card-menu-body"></div>
   </div>
 </div>
 
@@ -7223,6 +7728,16 @@ function initSwipeTabs() {
           <input type="text" id="streak-unit" placeholder="steps" maxlength="20" style="flex:1">
         </div>
         <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Track a number toward a daily goal. Leave blank for a simple yes/no streak.</div>
+      </div>
+      <div class="field"><label class="field-label">Nudge me at</label>
+        <select id="streak-reminder-hour" style="width:100%">
+          <option value="">Use default (8 PM)</option>
+          <option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option>
+          <option value="9">9 AM</option><option value="12">12 PM</option><option value="15">3 PM</option>
+          <option value="17">5 PM</option><option value="18">6 PM</option><option value="19">7 PM</option>
+          <option value="20">8 PM</option><option value="21">9 PM</option><option value="22">10 PM</option>
+        </select>
+        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">If not logged by this hour, this streak shows in the dashboard nudge card.</div>
       </div>
       <div class="field"><label class="field-label">Frequency</label><div class="pill-row" id="pr-sfreq">
         <button class="pill sel" data-val="daily" onclick="setPill('sfreq',this)">Daily</button>
