@@ -226,7 +226,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .detail-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em;}
 .detail-sub{font-size:12px;color:var(--ink-soft);margin-top:1px;}
 .detail-body{flex:1;overflow-y:auto;padding-bottom:calc(var(--safe-bot) + 20px);}
-.li-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line-soft);}
+.li-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line-soft);background:var(--bg-elev);}
 .li-row:last-child{border-bottom:none;}
 .li-row.checked{opacity:.5;}
 .li-chk{width:22px;height:22px;border-radius:6px;border:2px solid var(--ink-mute);background:none;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;}
@@ -5964,6 +5964,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.28',
+    date: 'Jun 21, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: swipe actions (check/delete) on list items were visible at all times instead of staying hidden until swiped. .li-row had no background color, so the transparent row let the swipe-actions underneath show through immediately. Added background:var(--bg-elev) to match how To-Dos and Reminders rows already handle this.'
+    ]
+  },
   {
     version: '0.04.27',
     date: 'Jun 20, 2026',
