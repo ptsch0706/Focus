@@ -266,8 +266,12 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .ring-bk{font-size:12px;color:var(--ink-mute);margin-top:6px;}
 
 /* Multi-ring dashboard layout: 3 small rings in a grid */
-.rings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.rings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
 .ring-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;}
+.info-stats-row{display:flex;gap:10px;margin-bottom:10px;}
+.info-stat-card{flex:1;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.info-stat-num{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;color:var(--ink);letter-spacing:-.02em;}
+.info-stat-label{font-size:12px;color:var(--ink-soft);}
 .ring-card .ring{width:56px;height:56px;}
 .ring-card .ring svg{width:56px;height:56px;}
 .ring-card .ring-pct{font-size:13px;}
@@ -3004,10 +3008,15 @@ function renderDash(){
     out += '</div>';
   }
 
-  // ─── MULTI-RING: To-Dos, Steps, Streaks ───
+  // ─── MULTI-RING: To-Dos, Reminders, Steps, Streaks ───
   const todoLoad = todT.length + ovT.length + ovR.length + compToday.length;
   const todoPct = todoLoad > 0 ? Math.round((compToday.length / todoLoad) * 100) : 0;
   const todoSub = compToday.length + '/' + todoLoad + ' done';
+
+  const compTodayR = S.reminders.filter(r=>r.completed&&r.completedAt&&new Date(r.completedAt).toDateString()===now.toDateString());
+  const remLoad = todR.length + ovR.length + compTodayR.length;
+  const remPct = remLoad > 0 ? Math.round((compTodayR.length / remLoad) * 100) : 0;
+  const remSub = compTodayR.length + '/' + remLoad + ' done';
 
   let stepsPct = 0, stepsLabel = 'No goal';
   const stepsStreak = (S.streaks || []).filter(canSeeItem).find(s => normalizeUsername(s.name || '') === 'steps');
@@ -3024,9 +3033,24 @@ function renderDash(){
 
   out += '<div class="rings-grid">';
   out += renderRingCard('TO-DOS', todoPct, 'var(--cyan)', todoSub);
+  out += renderRingCard('REMINDERS', remPct, 'var(--reminder)', remSub);
   out += renderRingCard('STEPS', stepsPct, stepsPct >= 100 ? 'var(--note)' : 'var(--violet)', stepsLabel);
   out += renderRingCard('STREAKS', streaksPct, 'var(--streak)', streaksSub);
   out += '</div>';
+
+  // ─── INFO CARDS: Lists, Notes (simple counts, no percent — these don't have a "done" concept) ───
+  const visibleLists = (S.lists || []).filter(canSeeItem);
+  const visibleNotes = (S.notes || []).filter(canSeeItem);
+  out += '<div class="info-stats-row">'
+    + '<div class="info-stat-card" onclick="switchView(\'lists\')" style="cursor:pointer">'
+    + '<span style="color:var(--list);display:flex">' + svg('inbox', 20) + '</span>'
+    + '<div><div class="info-stat-num">' + visibleLists.length + '</div><div class="info-stat-label">' + (visibleLists.length===1?'List':'Lists') + '</div></div>'
+    + '</div>'
+    + '<div class="info-stat-card" onclick="switchView(\'notes\')" style="cursor:pointer">'
+    + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:20px;height:20px;flex-shrink:0;color:var(--note)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+    + '<div><div class="info-stat-num">' + visibleNotes.length + '</div><div class="info-stat-label">' + (visibleNotes.length===1?'Note':'Notes') + '</div></div>'
+    + '</div>'
+    + '</div>';
   // today list
   const todayAll=[...ovT.map(t=>({...t,_k:'todo'})),...todT.map(t=>({...t,_k:'todo'})),...ovR.map(r=>({...r,_k:'rem'})),...todR.map(r=>({...r,_k:'rem'}))].slice(0,6);
   if(todayAll.length){
@@ -5970,6 +5994,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.30',
+    date: 'Jun 21, 2026',
+    type: 'medium',
+    items: [
+      'Dashboard: added a Reminders percent-complete ring (same formula as To-Dos: completed today vs. today + overdue load). Rings grid is now 2x2 (To-Dos, Reminders, Steps, Streaks) instead of a single row of 3',
+      'Dashboard: added a Lists and Notes info card row below the rings — simple counts (not percentages, since lists/notes don\'t have a "done" state), tappable to jump straight to each tab'
+    ]
+  },
   {
     version: '0.04.29',
     date: 'Jun 21, 2026',
