@@ -182,6 +182,8 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .todo-date svg{width:11px;height:11px;stroke-width:2;}
 .todo-date.ov{color:var(--pri-high);}
 .t-tag{font-size:11px;font-weight:600;letter-spacing:.04em;padding:2px 7px;border-radius:20px;text-transform:uppercase;}
+.t-tag.push1d{background:var(--bg-elev);color:var(--ink-soft);border:1px solid var(--line);cursor:pointer;font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;transition:background .15s,color .15s;}
+.t-tag.push1d:active{background:var(--cyan-soft);color:var(--cyan);}
 .t-tag.recur{background:var(--cyan-soft);color:var(--cyan);}
 .t-tag.high{background:var(--pri-high-soft);color:var(--pri-high);}
 .t-tag.med{background:var(--pri-med-soft);color:var(--pri-med);}
@@ -1912,7 +1914,6 @@ function makeSwipeable(wrapEl, opts) {
 
   wrapEl.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
-    if (e.target.closest('button, input, [contenteditable]')) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     startT = Date.now();
@@ -2111,6 +2112,7 @@ function tHTML(t){
   <button class="todo-chk ${cc}" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
   <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date ${o?'ov':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
+  <button class="t-tag push1d" onclick="event.stopPropagation();swipeDeferTodo('${t.id}')" title="Push 1 day">+1d</button>
   ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${t.priority==='high'?'<span class="t-tag high">High</span>':t.priority==='med'?'<span class="t-tag med">Med</span>':''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
   ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>
@@ -3014,6 +3016,7 @@ function rHTML(r){
   <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   <div class="todo-meta">
     ${r.time?`<span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtT(r.time)}</span>`:''}
+    <button class="t-tag push1d" onclick="event.stopPropagation();swipeDeferRem('${r.id}')" title="Push 1 day">+1d</button>
     ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':''}
     ${isRanged?`<span class="t-tag rem" style="background:var(--reminder-soft);color:var(--reminder)">${esc(fmtD(r.date))} \u2192 ${esc(fmtD(r.endDate))}</span>`:''}
     ${r.recur&&r.recur!=='none'?`<span class="t-tag rem">↻ ${describeRecur(r.recur)}</span>`:''}
@@ -6065,6 +6068,23 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.34',
+    date: 'Jun 21, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: swiping on a To-Do or Reminder card was being silently blocked if the gesture started on or near a button (like the new +1d chip) — it fell through to a plain tap and opened the edit modal instead of revealing Defer/Done/Delete. The swipe gesture now correctly detects horizontal movement regardless of where the touch started; a genuine tap (no real movement) still works normally for buttons and the card itself.'
+    ]
+  },
+  {
+    version: '0.04.33',
+    date: 'Jun 21, 2026',
+    type: 'minor',
+    items: [
+      'Added a quick "+1d" button directly on To-Do and Reminder cards, next to the date — no need to swipe or open the edit modal to push something back a day',
+      'Behaves the same as the existing swipe-to-defer: jumps overdue items to today, pushes future items by one day, and for multi-day reminders shifts both the start and end date together'
+    ]
+  },
   {
     version: '0.04.32',
     date: 'Jun 21, 2026',
