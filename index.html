@@ -68,6 +68,7 @@ html.light .nudge-card { background:#fff1f2; }
 html.light .week-card { background:linear-gradient(135deg,#fff 0%,#e8edf5 100%); }
 html.light .fab { box-shadow:0 4px 20px rgba(8,145,178,.35); }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Inter',sans-serif;}
 html,body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;min-height:100vh;overscroll-behavior-y:none;overflow-x:hidden;}
 body{padding:0 0 calc(var(--safe-bot) + 80px);-webkit-font-smoothing:antialiased;}
 .display{font-family:'Plus Jakarta Sans',system-ui,sans-serif;}
@@ -103,7 +104,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .btn-primary:active{background:var(--cyan-dim);}
 .btn-ghost{background:transparent;border-color:transparent;color:var(--ink-soft);}
 .btn-danger{background:var(--pri-high-soft);color:var(--pri-high);border-color:var(--pri-high);}
-.btn-amber{background:#f59e0b20;color:#f59e0b;border-color:#f59e0b;}
+.btn-amber{background:var(--pri-med-soft);color:var(--pri-med);border-color:var(--pri-med);}
 .btn-violet{background:var(--reminder-soft);color:var(--reminder);border-color:var(--reminder);}
 .btn-block{width:100%;} .btn svg{width:18px;height:18px;stroke-width:2;}
 .btn-sm{padding:8px 14px;font-size:13px;gap:6px;} .btn-sm svg{width:14px;height:14px;}
@@ -324,7 +325,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .coming-soon{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;gap:12px;}
 .cs-icon{width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
 .cs-icon svg{width:32px;height:32px;stroke-width:1.5;}
-.cs-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--ink);}
+.cs-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--ink);}
 .cs-sub{font-size:14px;color:var(--ink-soft);line-height:1.5;max-width:260px;}
 .phase-badge{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--ink-mute);}
 
@@ -1395,7 +1396,7 @@ input.has-mention, .note-title-input.has-mention {
     <button class="detail-back" onclick="closeListDetail()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>Lists</button>
     <div class="detail-title-wrap"><div class="detail-title" id="det-title"></div><div class="detail-sub" id="det-sub"></div></div>
     <button class="btn-icon" onclick="openListAttachmentPicker()" title="Add photo"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-    <button class="btn-icon" onclick="openListMenu()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
+    <button class="btn-icon" onclick="openListMenu()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg></button>
   </div>
   <div class="detail-body"><div id="det-items"></div>
     <div class="li-quicktag-row" id="li-quicktag-row" style="display:none"></div>
@@ -1483,7 +1484,7 @@ input.has-mention, .note-title-input.has-mention {
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:8px">
-        <button class="btn btn-ghost btn-sm" id="todo-del-btn" onclick="deleteTodo()" style="display:none;color:var(--pri-high)">Delete</button>
+        <button class="btn btn-ghost btn-danger btn-sm" id="todo-del-btn" onclick="deleteTodo()" style="display:none">Delete</button>
         <button class="btn btn-primary btn-block" onclick="saveTodo()">Save To-Do</button>
       </div>
     </div>
@@ -1517,7 +1518,7 @@ input.has-mention, .note-title-input.has-mention {
       </div>
       
       <div style="display:flex;gap:10px;margin-top:8px">
-        <button class="btn btn-ghost btn-sm" id="list-del-btn" onclick="deleteList()" style="display:none;color:var(--pri-high)">Delete</button>
+        <button class="btn btn-ghost btn-danger btn-sm" id="list-del-btn" onclick="deleteList()" style="display:none">Delete</button>
         <button class="btn btn-block btn-amber" onclick="saveList()">Save List</button>
       </div>
     </div>
@@ -1589,7 +1590,7 @@ input.has-mention, .note-title-input.has-mention {
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:8px">
-        <button class="btn btn-ghost btn-sm" id="rem-del-btn" onclick="deleteReminder()" style="display:none;color:var(--pri-high)">Delete</button>
+        <button class="btn btn-ghost btn-danger btn-sm" id="rem-del-btn" onclick="deleteReminder()" style="display:none">Delete</button>
         <button class="btn btn-block btn-violet" onclick="saveReminder()">Save Reminder</button>
       </div>
     </div>
@@ -1849,7 +1850,7 @@ function renderTodos(){
 }
 function toggleDone(){doneOpen=!doneOpen;const t=document.querySelector('.done-toggle'),l=document.getElementById('done-list');if(t)t.classList.toggle('open',doneOpen);if(l)l.style.display=doneOpen?'':'none';}
 function ghdr(label,count,isOv=false){return`<div class="grp-hdr ${isOv?'ov':''}"><span class="grp-title">${label}</span><span class="grp-count">${count}</span></div>`;}
-function emptyHTML(title,sub){return`<div class="empty-state"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>`;}
+function emptyHTML(title,sub){return`<div class="empty-state"><div class="empty-icon" style="background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>`;}
 
 // ── SWIPE ACTIONS ON TODO / REMINDER ROWS ──
 function makeSwipeable(wrapEl, opts) {
@@ -2218,7 +2219,7 @@ function openListCardMenu(listIdForMenu) {
   html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');duplicateList(\''+listIdForMenu+'\')">'+icoCopy+'Duplicate</button>';
   if (canMoveUp) html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');moveListCard(\''+listIdForMenu+'\',-1)">'+icoUp+'Move up</button>';
   if (canMoveDown) html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');moveListCard(\''+listIdForMenu+'\',1)">'+icoDown+'Move down</button>';
-  html += '<button class="btn btn-block" style="margin-top:6px;justify-content:flex-start;gap:12px;color:var(--pri-high);border-color:var(--pri-high)" onclick="closeModal(\'modal-list-card-menu\');deleteListFromMenu(\''+listIdForMenu+'\')">'+svg('trash',18)+'Delete</button>';
+  html += '<button class="btn btn-block btn-danger" style="margin-top:6px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');deleteListFromMenu(\''+listIdForMenu+'\')">'+svg('trash',18)+'Delete</button>';
   document.getElementById('list-card-menu-title').textContent = l.name || 'List';
   document.getElementById('list-card-menu-body').innerHTML = html;
   openModal('modal-list-card-menu');
@@ -2536,7 +2537,7 @@ function openListItemMenu(itemId) {
   }
 
   // Delete (red, always last)
-  html += '<button class="btn btn-block" style="margin-top:14px;justify-content:flex-start;gap:12px;color:var(--pri-high);border-color:var(--pri-high)" onclick="closeModal(\'modal-list-item-menu\');deleteLI(\'' + itemId + '\')">'
+  html += '<button class="btn btn-block btn-danger" style="margin-top:14px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-item-menu\');deleteLI(\'' + itemId + '\')">'
     + '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>';
 
   document.getElementById('list-item-menu-body').innerHTML = html;
@@ -2769,7 +2770,7 @@ function openListMenu(){
     </button>`:''}
     ${isC?`<button class="btn btn-block btn-amber" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="uncheckAll('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Uncheck all items</button>
-    <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px;border-color:var(--pri-high);color:var(--pri-high)" onclick="clearChecked('${l.id}')">
+    <button class="btn btn-block btn-danger" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="clearChecked('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Clear checked items</button>`:''}
     <button class="btn btn-danger btn-block" style="justify-content:flex-start;gap:12px" onclick="deleteListFromDet('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete this list</button>`;
@@ -2987,13 +2988,16 @@ function renderDash(){
   ];
   if (overdueAlerts.length) {
     out += '<div class="alert-card"><div class="alert-label"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Needs attention now</div>';
+    const bellIco = '<span style="display:inline-flex;align-items:center;color:var(--reminder);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>';
+    const checkIco = '<span style="display:inline-flex;align-items:center;color:var(--cyan);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>';
     overdueAlerts.forEach(item => {
       const nav = item._k === 'rem' ? "switchView('reminders');openReminderModal('" + item.id + "')" : "switchView('todos');openTodoModal('" + item.id + "')";
       let dotColor = 'var(--pri-high)';
       if (item._k === 'rem') {
         dotColor = item.priority === 'high' ? 'var(--pri-high)' : item.priority === 'medium' ? 'var(--pri-med)' : 'var(--reminder)';
       }
-      out += '<div class="dash-item" onclick="' + nav + '"><div class="di-dot" style="background:' + dotColor + '"></div><div class="di-text ov">' + esc(item.title) + '</div><div class="di-time" style="color:var(--pri-high)">' + esc(fmtD(item.date)) + '</div></div>';
+      const icon = item._k === 'rem' ? bellIco : checkIco;
+      out += '<div class="dash-item" onclick="' + nav + '"><div class="di-dot" style="background:' + dotColor + '"></div><div class="di-text ov">' + icon + esc(item.title) + '</div><div class="di-time" style="color:var(--pri-high)">' + esc(fmtD(item.date)) + '</div></div>';
     });
     out += '</div>';
   }
@@ -3029,7 +3033,7 @@ function renderDash(){
       const isOv=ov(item.date);
       const dot=item._k==='rem'?'var(--reminder)':(item.priority==='high'?'var(--pri-high)':item.priority==='med'?'var(--pri-med)':'var(--cyan)');
       const nav=item._k==='rem'?`switchView('reminders');openReminderModal('${item.id}')`:`switchView('todos');openTodoModal('${item.id}')`;
-      return`<div class="dash-item" onclick="${nav}"><div class="di-dot" style="background:${dot}"></div><div><div class="di-text ${isOv?'ov':''}">${item._k==='rem'?'<span style="display:inline-flex;align-items:center;color:var(--reminder);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>':''}${esc(item.title)}</div>${item.time?`<div class="di-sub">${fmtT(item.time)}</div>`:''}</div><div class="di-time">${esc(fmtD(item.date))}</div></div>`;
+      return`<div class="dash-item" onclick="${nav}"><div class="di-dot" style="background:${dot}"></div><div><div class="di-text ${isOv?'ov':''}">${item._k==='rem'?'<span style="display:inline-flex;align-items:center;color:var(--reminder);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>':'<span style="display:inline-flex;align-items:center;color:var(--cyan);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'}${esc(item.title)}</div>${item.time?`<div class="di-sub">${fmtT(item.time)}</div>`:''}</div><div class="di-time">${esc(fmtD(item.date))}</div></div>`;
     }).join('');
     const more=(todT.length+ovT.length+todR.length+ovR.length)-6;
     if(more>0)out+=`<div class="dash-item" onclick="switchView('todos')"><div class="di-dot" style="background:var(--ink-mute)"></div><div class="di-text" style="color:var(--ink-soft)">+${more} more</div></div>`;
@@ -3072,7 +3076,7 @@ function renderDash(){
     out+=upAll.map(item=>{
       const dot=item._k==='rem'?'var(--reminder)':'var(--ink-mute)';
       const nav=item._k==='rem'?`switchView('reminders');openReminderModal('${item.id}')`:`switchView('todos');openTodoModal('${item.id}')`;
-      return`<div class="dash-item" onclick="${nav}"><div class="di-dot" style="background:${dot}"></div><div class="di-text">${item._k==='rem'?'<span style="display:inline-flex;align-items:center;color:var(--reminder);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>':''}${esc(item.title)}</div><div class="di-time">${esc(fmtD(item.date))}</div></div>`;
+      return`<div class="dash-item" onclick="${nav}"><div class="di-dot" style="background:${dot}"></div><div class="di-text">${item._k==='rem'?'<span style="display:inline-flex;align-items:center;color:var(--reminder);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>':'<span style="display:inline-flex;align-items:center;color:var(--cyan);margin-right:4px;vertical-align:middle"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'}${esc(item.title)}</div><div class="di-time">${esc(fmtD(item.date))}</div></div>`;
     }).join('');
     out+=`</div>`;
   }
@@ -3169,7 +3173,7 @@ function renderSett(){
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button>'
     +'<button class="sett-row" onclick="settFB()">'
-    +'<div class="sett-icon" style="background:#f59e0b20;color:#f59e0b"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>'
+    +'<div class="sett-icon" style="background:var(--pri-med-soft);color:var(--pri-med)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>'
     +'<div class="sett-text"><div class="sett-label">Firebase</div><div class="sett-sub">'+(fbOk()?'Configured':'Not configured')+'</div></div>'
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
@@ -4289,7 +4293,7 @@ function renderStreaks() {
           + '<div class="streak-chain-wrap">'
             + '<div class="streak-chain" style="color:'+color+'">' + chain + '</div>'
             + '<span class="streak-chain-lbl">day' + (chain!==1?'s':'') + '</span>'
-            + (chain>=7?'<span style="margin-left:6px;display:inline-flex;color:#f59e0b">'+svg('flame',16)+'</span>':'')
+            + (chain>=7?'<span style="margin-left:6px;display:inline-flex;color:var(--pri-med)">'+svg('flame',16)+'</span>':'')
           + '</div>'
           + (shareChipsHTML(s) ? '<div class="shared-with-row" style="margin-top:4px">' + shareChipsHTML(s) + '</div>' : '')
         + '</div>'
@@ -5906,6 +5910,27 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.24',
+    date: 'Jun 20, 2026',
+    type: 'medium',
+    items: [
+      'App-wide consistency pass: added a global Inter font fallback so no text silently renders in the browser default font (previously only explicitly-styled elements got Inter)',
+      'To-Dos empty state now uses the cyan tint matching its tab color, consistent with Lists/Reminders/Streaks/Notes (previously flat gray, the only untinted empty state)',
+      'Normalized heading scale: .cs-title resized from 20px to 18px to align with .modal-title\'s tier, removing an odd one-off size in the heading hierarchy',
+      'Fixed 3 stray hardcoded amber hex colors (Firebase settings icon, streak flame icon, .btn-amber class) to use the existing var(--pri-med) variable instead of literal #f59e0b',
+      'Standardized 8 destructive/delete buttons across To-Dos, Lists, Reminders, and Streaks to use the shared .btn-danger class instead of mixing inline color/border styles',
+      'Fixed an unstyled list-menu icon that was missing its 16px sizing, falling back inconsistently to the 18px default while its sibling menu icons were 16px'
+    ]
+  },
+  {
+    version: '0.04.23',
+    date: 'Jun 20, 2026',
+    type: 'minor',
+    items: [
+      'Dashboard: to-dos now show a small checkmark icon (matching the bell icon reminders already had) in the Today list, Coming Up list, and the overdue alert card — makes it easier to tell at a glance which item type you\'re looking at in mixed lists'
+    ]
+  },
   {
     version: '0.04.22',
     date: 'Jun 20, 2026',
@@ -7638,7 +7663,7 @@ function initSwipeTabs() {
       </div>
 
       <button class="btn btn-primary btn-block" onclick="saveListRecurrence()">Save</button>
-      <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;color:var(--pri-high)" onclick="removeListRecurrence()">Remove recurrence</button>
+      <button class="btn btn-ghost btn-danger btn-block btn-sm" style="margin-top:8px" onclick="removeListRecurrence()">Remove recurrence</button>
     </div>
   </div>
 </div>
@@ -7757,7 +7782,7 @@ function initSwipeTabs() {
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:8px">
-        <button class="btn btn-ghost btn-sm" id="streak-del-btn" onclick="deleteStreak()" style="display:none;color:var(--pri-high)">Delete</button>
+        <button class="btn btn-ghost btn-danger btn-sm" id="streak-del-btn" onclick="deleteStreak()" style="display:none">Delete</button>
         <button class="btn btn-block" onclick="saveStreak()" style="background:var(--streak);border-color:var(--streak);color:#fff">Save Streak</button>
       </div>
     </div>
