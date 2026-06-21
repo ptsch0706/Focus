@@ -3441,9 +3441,15 @@ function applyStepsFromSideDoc(dateStr, stepValue) {
   // Only update if the new value is different (avoid no-op writes triggering sync churn)
   if (current === stepValue) return;
   stepsStreak.values[dateStr] = stepValue;
-  // Also mark as logged today
+  // Mark as logged ONLY if the value meets/exceeds the target (when a target is set).
+  // Streaks with no target (just tracking a number, no goal) log on any positive value.
+  const meetsGoal = stepsStreak.target ? (stepValue >= stepsStreak.target) : (stepValue > 0);
   if (!Array.isArray(stepsStreak.logs)) stepsStreak.logs = [];
-  if (!stepsStreak.logs.includes(dateStr)) stepsStreak.logs.push(dateStr);
+  if (meetsGoal && !stepsStreak.logs.includes(dateStr)) {
+    stepsStreak.logs.push(dateStr);
+  } else if (!meetsGoal && stepsStreak.logs.includes(dateStr)) {
+    stepsStreak.logs = stepsStreak.logs.filter(d => d !== dateStr);
+  }
   save();
   renderStreaks();
   renderDash();
@@ -5965,6 +5971,16 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.29',
+    date: 'Jun 21, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: value-based streaks with a goal (like Steps) were marking the day as "logged" the moment ANY value was recorded, even 1 step — not when the goal was actually reached. Fixed in all 3 places that write streak values: the Firestore side-doc handler (Shortcuts), the manual value-entry prompt, and the legacy URL-parameter handler.',
+      'Now a value-based streak only counts as logged for the day once its value reaches the target. If a later update for the same day drops below target, the day un-logs accordingly (keeps chain math honest).',
+      'Streaks with no target set (plain number tracking, no goal) are unaffected — still log on any positive value, same as before.'
+    ]
+  },
+  {
     version: '0.04.28',
     date: 'Jun 21, 2026',
     type: 'minor',
@@ -7389,11 +7405,13 @@ function setTodayValue(streakId, value) {
   if (!s) return;
   if (!s.values) s.values = {};
   s.values[td()] = value;
-  // Also add to logs if value > 0
-  if (value > 0 && !(s.logs || []).includes(td())) {
+  // Mark as logged ONLY if the value meets/exceeds the target (when a target is set).
+  // Streaks with no target log on any positive value, same as before.
+  const meetsGoal = s.target ? (value >= s.target) : (value > 0);
+  if (meetsGoal && !(s.logs || []).includes(td())) {
     s.logs = s.logs || [];
     s.logs.push(td());
-  } else if (value <= 0) {
+  } else if (!meetsGoal) {
     s.logs = (s.logs || []).filter(d => d !== td());
   }
   save();
@@ -7487,12 +7505,15 @@ function handleURLScheme() {
     if (s.target) {
       if (!s.values) s.values = {};
       s.values[td()] = value;
-      if (!(s.logs || []).includes(td())) {
+      const meetsGoal = value >= s.target;
+      if (meetsGoal && !(s.logs || []).includes(td())) {
         s.logs = s.logs || [];
         s.logs.push(td());
+      } else if (!meetsGoal) {
+        s.logs = (s.logs || []).filter(d => d !== td());
       }
       save();
-      toast('Logged ' + value + ' ' + (s.unit || '') + ' for ' + s.name, 'ok');
+      toast((meetsGoal ? 'Goal reached! Logged ' : 'Logged ') + value + ' ' + (s.unit || '') + ' for ' + s.name, 'ok');
     } else {
       if (!(s.logs || []).includes(td())) {
         s.logs = s.logs || [];
