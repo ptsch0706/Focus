@@ -182,8 +182,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .todo-date svg{width:11px;height:11px;stroke-width:2;}
 .todo-date.ov{color:var(--pri-high);}
 .t-tag{font-size:11px;font-weight:600;letter-spacing:.04em;padding:2px 7px;border-radius:20px;text-transform:uppercase;}
-.t-tag.push1d{background:var(--bg-elev);color:var(--ink-soft);border:1px solid var(--line);cursor:pointer;font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;transition:background .15s,color .15s;}
-.t-tag.push1d:active{background:var(--cyan-soft);color:var(--cyan);}
+
 .t-tag.recur{background:var(--cyan-soft);color:var(--cyan);}
 .t-tag.high{background:var(--pri-high-soft);color:var(--pri-high);}
 .t-tag.med{background:var(--pri-med-soft);color:var(--pri-med);}
@@ -1716,6 +1715,17 @@ function save(){
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function td(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+// Parses a 'YYYY-MM-DD' string as LOCAL midnight, not UTC midnight.
+// new Date("2026-06-21") is parsed as UTC, which shifts to the previous day
+// in any timezone behind UTC (e.g. 2026-06-20 8pm in US Eastern) — this caused
+// date-math bugs (defer, date-range day counts) to silently land on the wrong day.
+function parseLocalDate(ds){
+  if(!ds) return new Date(NaN);
+  const parts=ds.split('-');
+  if(parts.length!==3) return new Date(ds);
+  const y=parseInt(parts[0],10),m=parseInt(parts[1],10)-1,d=parseInt(parts[2],10);
+  return new Date(y,m,d);
+}
 function ov(ds){return ds&&ds<td();}
 function isToday(ds){return ds===td();}
 // A reminder is "active today" if today falls within [date, endDate||date] inclusive.
@@ -2006,7 +2016,7 @@ function swipeCompleteRem(id) {
 function swipeDeferTodo(id) {
   const t = S.todos.find(x => x.id === id);
   if (!t) return;
-  const dt = new Date(t.date || td());
+  const dt = parseLocalDate(t.date || td());
   if (isNaN(dt.getTime())) return;
   dt.setDate(dt.getDate() + 1);
   t.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
@@ -2024,21 +2034,21 @@ function swipeDeferRem(id) {
   if (isRemOverdue(r)) {
     // Overdue: shift the whole range forward so it starts today, preserving its length
     if (isRanged) {
-      const lengthDays = Math.floor((new Date(r.endDate) - new Date(r.date)) / 86400000);
+      const lengthDays = Math.floor((parseLocalDate(r.endDate) - parseLocalDate(r.date)) / 86400000);
       newDate = today;
-      const endDt = new Date(today); endDt.setDate(endDt.getDate() + lengthDays);
+      const endDt = parseLocalDate(today); endDt.setDate(endDt.getDate() + lengthDays);
       newEndDate = endDt.getFullYear() + '-' + String(endDt.getMonth()+1).padStart(2,'0') + '-' + String(endDt.getDate()).padStart(2,'0');
     } else {
       newDate = today;
     }
     toastMsg = 'Moved to today';
   } else {
-    const dt = new Date(r.date || today);
+    const dt = parseLocalDate(r.date || today);
     if (isNaN(dt.getTime())) return;
     dt.setDate(dt.getDate() + 1);
     newDate = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
     if (isRanged) {
-      const endDt = new Date(r.endDate);
+      const endDt = parseLocalDate(r.endDate);
       endDt.setDate(endDt.getDate() + 1);
       newEndDate = endDt.getFullYear() + '-' + String(endDt.getMonth()+1).padStart(2,'0') + '-' + String(endDt.getDate()).padStart(2,'0');
     }
@@ -2112,7 +2122,6 @@ function tHTML(t){
   <button class="todo-chk ${cc}" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
   <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date ${o?'ov':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
-  <button class="t-tag push1d" onclick="event.stopPropagation();swipeDeferTodo('${t.id}')" title="Push 1 day">+1d</button>
   ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${t.priority==='high'?'<span class="t-tag high">High</span>':t.priority==='med'?'<span class="t-tag med">Med</span>':''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
   ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>
@@ -2898,8 +2907,8 @@ function checkRem(id){
       const nextStart = nextDate(r.date,r.recur);
       let nextEnd = null;
       if (r.endDate && r.endDate !== r.date) {
-        const lengthDays = Math.floor((new Date(r.endDate) - new Date(r.date)) / 86400000);
-        const endDt = new Date(nextStart); endDt.setDate(endDt.getDate() + lengthDays);
+        const lengthDays = Math.floor((parseLocalDate(r.endDate) - parseLocalDate(r.date)) / 86400000);
+        const endDt = parseLocalDate(nextStart); endDt.setDate(endDt.getDate() + lengthDays);
         nextEnd = endDt.getFullYear() + '-' + String(endDt.getMonth()+1).padStart(2,'0') + '-' + String(endDt.getDate()).padStart(2,'0');
       }
       const nextR={id:gid(),title:r.title,date:nextStart,endDate:nextEnd,time:r.time||'',notes:r.notes||'',recur:r.recur,completed:false,createdAt:Date.now(),ownerUsername:r.ownerUsername||S.myUsername||'',sharedWith:[...(r.sharedWith||[])]};
@@ -2990,8 +2999,8 @@ function rHTML(r){
   const isRanged = !!r.endDate && r.endDate !== r.date;
   let rangeLabel = '';
   if (isRanged && t2) {
-    const dayNum = Math.floor((new Date(td()) - new Date(r.date)) / 86400000) + 1;
-    const totalDays = Math.floor((new Date(r.endDate) - new Date(r.date)) / 86400000) + 1;
+    const dayNum = Math.floor((parseLocalDate(td()) - parseLocalDate(r.date)) / 86400000) + 1;
+    const totalDays = Math.floor((parseLocalDate(r.endDate) - parseLocalDate(r.date)) / 86400000) + 1;
     rangeLabel = 'Day ' + dayNum + ' of ' + totalDays;
   }
   const chips=shareChipsHTML(r);
@@ -3016,7 +3025,6 @@ function rHTML(r){
   <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   <div class="todo-meta">
     ${r.time?`<span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtT(r.time)}</span>`:''}
-    <button class="t-tag push1d" onclick="event.stopPropagation();swipeDeferRem('${r.id}')" title="Push 1 day">+1d</button>
     ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':''}
     ${isRanged?`<span class="t-tag rem" style="background:var(--reminder-soft);color:var(--reminder)">${esc(fmtD(r.date))} \u2192 ${esc(fmtD(r.endDate))}</span>`:''}
     ${r.recur&&r.recur!=='none'?`<span class="t-tag rem">↻ ${describeRecur(r.recur)}</span>`:''}
@@ -5849,19 +5857,29 @@ function finishOnboarding() {
   if (!u) { toast('Pick a username to continue', 'err'); return; }
   S.myUsername = u;
   ensureKnownUsername(u);
+  const hadNoSyncCode = !S.syncCode;
   if (sc) {
     if (sc.length !== 6) { toast('Sync code must be 6 characters', 'err'); return; }
-    S.syncCode = sc;
+    if (!fbOk()) { toast('Set up Firebase to use sync', 'err'); }
+    else S.syncCode = sc;
   }
   S.onboardingDismissed = true;
   // Stamp all existing un-owned items with this username
   ['todos','lists','reminders','notes','streaks'].forEach(k => {
     (S[k] || []).forEach(item => { if (!item.ownerUsername) item.ownerUsername = u; });
   });
-  save();
+  // Save LOCALLY first. Don't push to cloud until startSync() reconciles \u2014 same
+  // protection as saveUsernameSetup() in Settings. This is the fix for the bug where
+  // a fresh install + onboarding with a sync code left the app showing empty data
+  // forever, because the listener that pulls cloud data down was never started.
+  try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){console.warn(e);}
   hideOnboarding();
   renderDash();
   toast('Welcome, @' + u, 'ok');
+  if (hadNoSyncCode && S.syncCode && fbOk()) {
+    if (initFB()) startSync();
+  }
+  updateSyncIndicator();
 }
 
 function skipOnboarding() {
@@ -6068,6 +6086,17 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.35',
+    date: 'Jun 21, 2026',
+    type: 'major',
+    items: [
+      'CRITICAL FIX: deferring a to-do or reminder could silently fail to move the date forward, depending on your timezone. Root cause: new Date("YYYY-MM-DD") is parsed as UTC midnight, which shifts to the PREVIOUS day in any timezone behind UTC (e.g. 8pm the day before, in US Eastern). Date-math built on top of that parsing (defer +1 day, multi-day reminder ranges, "Day X of Y" labels) could land on the wrong day or appear to do nothing.',
+      'Added parseLocalDate() — a timezone-safe replacement that parses YYYY-MM-DD strings as local midnight. Replaced all 6 places in the codebase that had this bug: swipe-defer for to-dos, swipe-defer for reminders (including multi-day range shifting), the recurring+ranged reminder carry-forward, and the "Day X of Y" display calculation.',
+      'Removed the +1d quick-button added in v0.04.33 — redundant now that swipe-to-defer works correctly and is the single way to push a date forward',
+      'Confirmed: the earlier sync fix (starting the cloud listener immediately when a sync code is entered during first-run onboarding) is intact and unaffected by this work'
+    ]
+  },
   {
     version: '0.04.34',
     date: 'Jun 21, 2026',
