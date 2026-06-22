@@ -724,6 +724,31 @@ html.compact .card { padding: 10px 14px; }
 .cal-day .cal-dots{display:flex;gap:2px;margin-top:2px;}
 .cal-day .cal-dot{width:4px;height:4px;border-radius:50%;}
 
+/* Multi-day reminder bars: an absolutely-positioned overlay sitting on top of
+   .cal-grid, sharing the same 7-column grid so bar segments can use grid-column
+   to span exactly the right days. Positioned near the bottom of each day cell,
+   same area where single-day dots would otherwise sit. */
+.cal-bars-overlay{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  display:grid;grid-template-columns:repeat(7,1fr);
+  padding:8px;gap:2px;
+  pointer-events:none;
+}
+.cal-bar-row{
+  grid-column:1 / 8;
+  display:grid;grid-template-columns:repeat(7,1fr);
+  gap:2px;
+}
+.cal-bar-seg{
+  align-self:end;
+  height:4px;margin-bottom:4px;
+  pointer-events:none;
+}
+.cal-bar-seg.start{border-radius:3px 0 0 3px;margin-left:4px;}
+.cal-bar-seg.end{border-radius:0 3px 3px 0;margin-right:4px;}
+.cal-bar-seg.solo{border-radius:3px;margin-left:4px;margin-right:4px;}
+.cal-bar-seg.middle{border-radius:0;}
+
 
 #note-detail-view .detail-title-wrap{text-align:center;}
 #note-detail-view .detail-sub{text-align:center;}
@@ -6118,6 +6143,26 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.39',
+    date: 'Jun 21, 2026',
+    type: 'major',
+    items: [
+      'Calendar: multi-day reminders no longer show as a dot repeated on every day — they now render as a continuous horizontal bar spanning all their active days on the month grid, same height as the existing dots',
+      'Bars correctly break across week-row boundaries (since a single bar can\'t visually span two grid rows), with rounded end-caps only at the true start/end of the reminder\'s range — a bar that continues into the previous or next month stays flat-edged on that side, signaling it carries over',
+      'Multiple overlapping multi-day reminders stack into separate lanes instead of merging into one bar',
+      'Bars are clipped to the currently-viewed month; single-day to-dos and reminders are unaffected and still show as dots'
+    ]
+  },
+  {
+    version: '0.04.38',
+    date: 'Jun 21, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: calendar showed to-do/reminder times in 24-hour format (e.g. "14:30") instead of 12-hour format like everywhere else in the app. Now uses the same fmtT() formatter as the To-Dos and Reminders tabs.',
+      'Multi-day reminders (the "runs for multiple days" feature) now show up on EVERY day in their range on the calendar — both as dots on the month grid and in the day-detail view when you tap a date — not just their start date. Each card shows the full date range for context.'
+    ]
+  },
+  {
     version: '0.04.37',
     date: 'Jun 21, 2026',
     type: 'major',
@@ -7467,8 +7512,11 @@ function renderCalendar() {
   const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
   const today = td();
 
-  // Build map of dates → items
+  // Build map of dates → items. Multi-day reminders are tracked SEPARATELY
+  // (multiDayReminders) and do NOT get added as dots here — they're rendered
+  // as continuous bars instead, via the overlay built further down.
   const itemsByDate = {};
+  const multiDayReminders = []; // { reminder, startDs, endDs }
   S.todos.filter(canSeeItem).forEach(t => {
     if (t.date) {
       if (!itemsByDate[t.date]) itemsByDate[t.date] = { todos: [], reminders: [] };
@@ -7476,10 +7524,22 @@ function renderCalendar() {
     }
   });
   S.reminders.filter(canSeeItem).forEach(r => {
-    if (r.date) {
+    if (!r.date) return;
+    const hasRange = r.endDate && r.endDate !== r.date;
+    if (!hasRange) {
       if (!itemsByDate[r.date]) itemsByDate[r.date] = { todos: [], reminders: [] };
       itemsByDate[r.date].reminders.push(r);
+      return;
     }
+    const cursorCheck = parseLocalDate(r.date);
+    const endCheck = parseLocalDate(r.endDate);
+    if (isNaN(cursorCheck.getTime()) || isNaN(endCheck.getTime())) {
+      // Malformed range — fall back to a dot on just the start date
+      if (!itemsByDate[r.date]) itemsByDate[r.date] = { todos: [], reminders: [] };
+      itemsByDate[r.date].reminders.push(r);
+      return;
+    }
+    multiDayReminders.push({ reminder: r, startDs: r.date, endDs: r.endDate });
   });
 
   let html = '';
@@ -7513,7 +7573,86 @@ function renderCalendar() {
     html += '<div class="cal-day other-month"><div class="cal-day-num">' + d + '</div></div>';
   }
   document.getElementById('cal-grid').innerHTML = html;
+  renderCalBars(multiDayReminders, startDow, daysInMonth);
   renderCalDayDetail();
+}
+
+// Renders the multi-day reminder bar overlay. Each reminder's range gets split
+// into per-week-row segments (since a CSS grid-column span can't wrap across
+// rows), with rounded caps only at the TRUE start/end of the reminder's range
+// (not at every week boundary) so it reads as one continuous bar broken by the
+// grid's row structure, not as separate disconnected pills.
+function renderCalBars(multiDayReminders, startDow, daysInMonth) {
+  const overlay = document.getElementById('cal-bars-overlay');
+  if (!overlay) return;
+  if (!multiDayReminders.length) { overlay.innerHTML = ''; return; }
+
+  const monthStartDs = dateStr(calYear, calMonth, 1);
+  const monthEndDs = dateStr(calYear, calMonth, daysInMonth);
+
+  // For each reminder, clip its range to the days actually visible in THIS
+  // month's grid (bars don't carry over into prev/next month padding cells —
+  // each month view only shows the portion of the span that falls within it).
+  const clipped = multiDayReminders.map(({ reminder, startDs, endDs }) => {
+    const visStart = startDs < monthStartDs ? monthStartDs : startDs;
+    const visEnd = endDs > monthEndDs ? monthEndDs : endDs;
+    if (visStart > visEnd) return null; // range doesn't overlap this month at all
+    return {
+      reminder,
+      visStart,
+      visEnd,
+      isTrueStart: startDs >= monthStartDs, // true range start falls within this month
+      isTrueEnd: endDs <= monthEndDs,       // true range end falls within this month
+    };
+  }).filter(Boolean);
+
+  if (!clipped.length) { overlay.innerHTML = ''; return; }
+
+  // Stack overlapping reminders into separate lanes (row index within the bar
+  // area) so two simultaneous multi-day reminders don't merge visually.
+  // Simple greedy assignment: each reminder gets the lowest lane index where
+  // it doesn't overlap an already-placed reminder in that lane.
+  const laneEndDs = []; // laneEndDs[i] = last occupied date string in lane i
+  const placements = clipped.map(item => {
+    let lane = 0;
+    while (laneEndDs[lane] !== undefined && laneEndDs[lane] >= item.visStart) lane++;
+    laneEndDs[lane] = item.visEnd;
+    return { ...item, lane };
+  });
+  const laneCount = laneEndDs.length;
+
+  // Helper: given a date string within this month, return its column (0-6) and
+  // week-row index (0-based) within the grid.
+  function colRowFor(ds) {
+    const dayNum = parseInt(ds.split('-')[2], 10);
+    const cellIndex = startDow + dayNum - 1; // 0-based index in the flat 7-col grid
+    return { col: cellIndex % 7, row: Math.floor(cellIndex / 7) };
+  }
+
+  let barsHtml = '';
+  placements.forEach(({ reminder, visStart, visEnd, isTrueStart, isTrueEnd, lane }) => {
+    const startPos = colRowFor(visStart);
+    const endPos = colRowFor(visEnd);
+    const color = 'var(--reminder)';
+    // Walk week-rows from startPos.row to endPos.row, emitting one segment per row.
+    for (let row = startPos.row; row <= endPos.row; row++) {
+      const segStartCol = row === startPos.row ? startPos.col : 0;
+      const segEndCol = row === endPos.row ? endPos.col : 6;
+      const isFirstSeg = row === startPos.row;
+      const isLastSeg = row === endPos.row;
+      let segClass = 'middle';
+      if (isFirstSeg && isLastSeg) segClass = (isTrueStart && isTrueEnd) ? 'solo' : (isTrueStart ? 'start' : (isTrueEnd ? 'end' : 'middle'));
+      else if (isFirstSeg) segClass = isTrueStart ? 'start' : 'middle';
+      else if (isLastSeg) segClass = isTrueEnd ? 'end' : 'middle';
+      barsHtml += '<div class="cal-bar-row" style="grid-row:' + (row + 1) + '">'
+        + '<div class="cal-bar-seg ' + segClass + '" style="grid-column:' + (segStartCol + 1) + ' / ' + (segEndCol + 2) + ';background:' + color + ';margin-bottom:' + (4 + lane * 6) + 'px" title="' + esc(reminder.title) + '"></div>'
+        + '</div>';
+    }
+  });
+  overlay.innerHTML = barsHtml;
+  // Match the overlay's row count to the actual grid so grid-row indices align.
+  const totalRows = Math.ceil((startDow + daysInMonth) / 7);
+  overlay.style.gridTemplateRows = 'repeat(' + totalRows + ', 1fr)';
 }
 
 function calSelectDay(ds) {
@@ -7525,7 +7664,11 @@ function renderCalDayDetail() {
   const el = document.getElementById('cal-day-detail');
   if (!calSelectedDate) { el.innerHTML = '<p style="text-align:center;color:var(--ink-mute);font-size:13px;padding:20px">Tap a day to see items and add new ones</p>'; return; }
   const todos = S.todos.filter(t => t.date === calSelectedDate && canSeeItem(t));
-  const reminders = S.reminders.filter(r => r.date === calSelectedDate && canSeeItem(r));
+  const reminders = S.reminders.filter(r => {
+    if (!canSeeItem(r) || !r.date) return false;
+    const end = r.endDate || r.date;
+    return r.date <= calSelectedDate && calSelectedDate <= end;
+  });
   const [y, m, d] = calSelectedDate.split('-').map(Number);
   const dateLabel = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -7543,16 +7686,19 @@ function renderCalDayDetail() {
     todos.forEach(t => {
       html += '<div class="card" style="margin-bottom:6px;cursor:pointer" onclick="closeCalendar();switchView(\'todos\');setTimeout(()=>openTodoModal(\'' + t.id + '\'),200)">'
         + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(t.title,'todo',t.id) + '</div>'
-        + (t.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(t.time) + '</div>' : '')
+        + (t.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(fmtT(t.time)) + '</div>' : '')
         + '</div>';
     });
   }
   if (reminders.length) {
     html += '<div class="section-label">Reminders</div>';
     reminders.forEach(r => {
+      const hasRange = r.endDate && r.endDate !== r.date;
+      const rangeNote = hasRange ? '<div style="font-size:11px;color:var(--reminder);margin-top:2px">' + esc(fmtD(r.date)) + ' \u2192 ' + esc(fmtD(r.endDate)) + '</div>' : '';
       html += '<div class="card" style="margin-bottom:6px;cursor:pointer" onclick="closeCalendar();switchView(\'reminders\');setTimeout(()=>openReminderModal(\'' + r.id + '\'),200)">'
         + '<div style="font-size:14px;color:var(--ink)">' + renderMentionsHTML(r.title,'reminder',r.id) + '</div>'
-        + (r.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(r.time) + '</div>' : '')
+        + (r.time ? '<div style="font-size:11px;color:var(--ink-mute);margin-top:2px">' + esc(fmtT(r.time)) + '</div>' : '')
+        + rangeNote
         + '</div>';
     });
   }
@@ -7822,7 +7968,10 @@ function initSwipeTabs() {
     <div class="cal-grid-header">
       <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
     </div>
-    <div class="cal-grid" id="cal-grid"></div>
+    <div style="position:relative">
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-bars-overlay" id="cal-bars-overlay"></div>
+    </div>
     <div id="cal-day-detail" style="padding:0 16px"></div>
   </div>
 </div>
