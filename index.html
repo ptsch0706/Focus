@@ -11,6 +11,21 @@
 <link rel="apple-touch-icon" sizes="180x180" href="focusicon.PNG">
 <link rel="icon" type="image/png" href="focusicon.PNG">
 <link rel="manifest" href="manifest.json">
+<script>
+  // Register service worker for network-first caching — ensures deployed
+  // updates are picked up automatically without needing to delete/reinstall
+  // the PWA. See sw.js for the caching strategy. No auto-reload here: the
+  // network-first fetch strategy in sw.js already means every fresh page
+  // load gets the latest index.html when online, so there's no need to
+  // force a reload mid-session (which could interrupt something you're typing).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch((e) => {
+        console.warn('Service worker registration failed:', e);
+      });
+    });
+  }
+</script>
 <title>Focus</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1996,10 +2011,20 @@ function makeSwipeable(wrapEl, opts) {
 }
 
 function initItemSwipes() {
-  // Close any revealed swipes when tapping elsewhere
+  // Close any revealed swipes when tapping elsewhere.
+  // IMPORTANT: .swipe-actions is a SIBLING of .swipe-content (not nested inside it),
+  // so a tap on a Defer/Done/Delete button doesn't satisfy .swipe-content.contains(e.target).
+  // Without checking the actions row too, touching those buttons snapped the card closed
+  // out from under the user's finger before the click could register on the button,
+  // causing the tap to fall through to the card underneath and open the edit modal.
   document.addEventListener('touchstart', e => {
     document.querySelectorAll('.swipe-content').forEach(el => {
-      if (el.style.transform && el.style.transform.includes('translateX(-') && !el.contains(e.target)) {
+      if (!el.style.transform || !el.style.transform.includes('translateX(-')) return;
+      const wrap = el.closest('.swipe-wrap');
+      const actions = wrap ? wrap.querySelector('.swipe-actions') : null;
+      const insideContent = el.contains(e.target);
+      const insideActions = actions && actions.contains(e.target);
+      if (!insideContent && !insideActions) {
         el.style.transform = 'translateX(0)';
       }
     });
@@ -6092,6 +6117,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.37',
+    date: 'Jun 21, 2026',
+    type: 'major',
+    items: [
+      'CRITICAL FIX: tapping Defer or Done in the revealed swipe-actions row could snap the card closed mid-tap and open the edit modal instead. Root cause: .swipe-actions is a SIBLING of .swipe-content (not nested inside it), so the global "close swipe on tap outside" listener didn\'t recognize a tap on those buttons as being "inside" the revealed area, and closed the card out from under your finger before the click could register. Fixed by checking both the content and actions areas.',
+      'Added a service worker (sw.js) with a network-first caching strategy. The PWA now checks the network for the latest index.html on every load when online, falling back to a cached copy only when offline. This should eliminate the need to delete and reinstall the PWA to pick up new versions — deploying an update should now be visible the next time the app opens with any connectivity.',
+      'No auto-reload-on-update logic was added intentionally, since the network-first fetch already ensures freshness on each fresh page load without risking an interruption mid-session.'
+    ]
+  },
   {
     version: '0.04.36',
     date: 'Jun 21, 2026',
