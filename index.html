@@ -2008,10 +2008,12 @@ function initItemSwipes() {
 
 // Helpers used by swipe actions
 function swipeCompleteTodo(id) {
-  checkTodo(id);
+  // Wrapped (not calling checkTodo directly) so the swipe-actions-row tap gets the
+  // same render-delay protection as Defer — see swipeDeferTodo for why.
+  setTimeout(() => checkTodo(id), 50);
 }
 function swipeCompleteRem(id) {
-  checkRem(id);
+  setTimeout(() => checkRem(id), 50);
 }
 function swipeDeferTodo(id) {
   const t = S.todos.find(x => x.id === id);
@@ -2021,9 +2023,12 @@ function swipeDeferTodo(id) {
   dt.setDate(dt.getDate() + 1);
   t.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
   save();
-  renderTodos();
-  renderDash();
   toast('Deferred to tomorrow', 'ok');
+  // Delay the re-render slightly: on touch devices, replacing the list's HTML
+  // synchronously here destroys the button that was just tapped, and the browser's
+  // trailing synthetic click event then lands on the newly-rendered card underneath
+  // instead, opening the edit modal. Waiting a beat lets that click event resolve first.
+  setTimeout(() => { renderTodos(); renderDash(); }, 50);
 }
 function swipeDeferRem(id) {
   const r = S.reminders.find(x => x.id === id);
@@ -2057,9 +2062,10 @@ function swipeDeferRem(id) {
   r.date = newDate;
   if (isRanged) r.endDate = newEndDate;
   save();
-  renderRem();
-  renderDash();
   toast(toastMsg, 'ok');
+  // Same fix as swipeDeferTodo: delay the re-render so the trailing synthetic click
+  // from this touch doesn't land on a freshly-rendered card and open the modal.
+  setTimeout(() => { renderRem(); renderDash(); }, 50);
 }
 function swipeDeleteTodo(id) {
   if (!confirm('Delete this to-do?')) return;
@@ -6086,6 +6092,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.36',
+    date: 'Jun 21, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: tapping Defer (or Done) in the revealed swipe-actions row on mobile could accidentally open the edit modal instead. Cause: the list re-rendered immediately on tap, destroying the button under your finger — the browser\'s trailing synthetic click event then landed on the newly-rendered card underneath instead, triggering the card\'s own tap-to-open behavior.',
+      'Fixed by delaying the re-render by 50ms after Defer/Done actions triggered from the swipe-actions row, giving the click event time to resolve against the original button first. Applies to both To-Dos and Reminders.'
+    ]
+  },
   {
     version: '0.04.35',
     date: 'Jun 21, 2026',
