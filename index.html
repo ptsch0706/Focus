@@ -2155,7 +2155,7 @@ function attachItemSwipes() {
 function tHTML(t){
   const o=!t.completed&&ov(t.date),pc=t.priority==='high'?'pri-high':t.priority==='med'?'pri-med':'pri-low';
   const cc=t.completed?'checked':(t.priority==='high'?'ph':t.priority==='med'?'pm':'');
-  const chips=shareChipsHTML(t);
+  const chips=shareChipsHTML(t,'todo',t.id);
   // Completed todos render without swipe actions (no Defer/Done/Delete reveal)
   if (t.completed) {
     return `<div class="todo-item done ${pc}" onclick="openTodoModal('${t.id}')">
@@ -2280,7 +2280,7 @@ function renderLists(){
       : '';
     return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'}">
     <div class="list-card-hdr">
-      <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name,'list',l.id)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}${lastRefreshedTxt}</div>${shareChipsHTML(l)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l)}</div>`:''}</div>
+      <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name,'list',l.id)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}${lastRefreshedTxt}</div>${shareChipsHTML(l,'list',l.id)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l,'list',l.id)}</div>`:''}</div>
       <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListCardMenu('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
     </div></div>`;
   }).join('');
@@ -2451,7 +2451,7 @@ function liHTML(item,type,listColor){
   // Nested lists default to bullet (no checkbox) unless showCheckboxes is enabled on the list
   // We need access to the list for showCheckboxes — passed via the 4th arg, fallback false
   const showChk = (type === 'checklist') || (type === 'nested' && arguments[3] === true);
-  const liChips=shareChipsHTML(item);
+  const liChips=shareChipsHTML(item,'listitem',item.id);
   return`<div class="swipe-wrap" data-item-type="listitem" data-item-id="${item.id}">
   <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
   <div class="swipe-actions">
@@ -3059,7 +3059,7 @@ function rHTML(r){
     const totalDays = Math.floor((parseLocalDate(r.endDate) - parseLocalDate(r.date)) / 86400000) + 1;
     rangeLabel = 'Day ' + dayNum + ' of ' + totalDays;
   }
-  const chips=shareChipsHTML(r);
+  const chips=shareChipsHTML(r,'reminder',r.id);
   // Completed reminders render without swipe actions
   if (r.completed) {
     return `<div class="rem-item done" onclick="openReminderModal('${r.id}')">
@@ -4230,7 +4230,7 @@ function renderNotes() {
       <div class="note-card-title">${note.title ? renderMentionsHTML(note.title,'note',note.id) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
       ${preview ? `<div class="note-card-preview">${esc(preview)}</div>` : ''}
       <div class="note-card-meta">${dateStr}${linkBadge ? ' · '+linkBadge : ''}</div>
-      ${shareChipsHTML(note) ? `<div class="shared-with-row">${shareChipsHTML(note)}</div>` : ''}
+      ${shareChipsHTML(note,'note',note.id) ? `<div class="shared-with-row">${shareChipsHTML(note,'note',note.id)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -4517,7 +4517,7 @@ function renderStreaks() {
             + '<span class="streak-chain-lbl">day' + (chain!==1?'s':'') + '</span>'
             + (chain>=7?'<span style="margin-left:6px;display:inline-flex;color:var(--pri-med)">'+svg('flame',16)+'</span>':'')
           + '</div>'
-          + (shareChipsHTML(s) ? '<div class="shared-with-row" style="margin-top:4px">' + shareChipsHTML(s) + '</div>' : '')
+          + (shareChipsHTML(s,'streak',s.id) ? '<div class="shared-with-row" style="margin-top:4px">' + shareChipsHTML(s,'streak',s.id) + '</div>' : '')
         + '</div>'
         + '<div class="streak-actions">'
           + (inGrace ? '<span class="streak-grace-badge">Grace</span>' : '')
@@ -4840,17 +4840,25 @@ function markAllNotificationsRead() {
 }
 
 
-function shareChipsHTML(item) {
+function shareChipsHTML(item, itemType, itemId) {
   if (!item || !item.sharedWith || !item.sharedWith.length) return '';
   const me = normalizeUsername(S.myUsername);
+  const interactive = itemType !== undefined && itemId !== undefined;
+  const chipFor = (u, extraClass, label) => {
+    const cls = 'share-chip mention-tappable' + (extraClass ? ' ' + extraClass : '');
+    if (interactive) {
+      return '<span class="' + cls + '" onclick="event.stopPropagation();openMentionPopover(event,\'' + esc(u) + '\',\'' + itemType + '\',\'' + itemId + '\')">' + label + '</span>';
+    }
+    return '<span class="share-chip' + (extraClass ? ' ' + extraClass : '') + '">' + label + '</span>';
+  };
   const chips = item.sharedWith.map(u => {
     const isMe = normalizeUsername(u) === me;
-    return '<span class="share-chip ' + (isMe ? 'me' : '') + '">@' + esc(u) + '</span>';
+    return chipFor(u, isMe ? 'me' : '', '@' + esc(u));
   }).join('');
   // Also include owner if it's not us
   const owner = item.ownerUsername;
   if (owner && normalizeUsername(owner) !== me && !item.sharedWith.some(u => normalizeUsername(u) === normalizeUsername(owner))) {
-    return '<span class="share-chip">from @' + esc(owner) + '</span>' + chips;
+    return chipFor(owner, '', 'from @' + esc(owner)) + chips;
   }
   return chips;
 }
@@ -6142,6 +6150,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.40',
+    date: 'Jun 21, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: tapping a "shared with @username" chip (the small badge showing who an item is shared with) did nothing — only inline @mentions inside a title/name were tappable. These are two different UI elements that looked similar but only one was wired up. Now both open the same Notify popover.',
+      'Applies everywhere share chips appear: To-Dos, Lists, List items, Reminders, Notes, and Streaks',
+      'Tapping the "from @owner" chip (shown when someone shared an item with you) also opens the notify popover, so you can ping back the person who shared it'
+    ]
+  },
   {
     version: '0.04.39',
     date: 'Jun 21, 2026',
