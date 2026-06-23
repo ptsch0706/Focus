@@ -481,7 +481,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
   position:relative;display:inline-block;
 }
 .note-style-menu{
-  position:absolute;top:100%;left:0;
+  position:fixed;top:0;left:0;
   background:var(--bg-raised);border:1px solid var(--line);
   border-radius:var(--radius);padding:6px;margin-top:6px;
   display:none;flex-direction:column;gap:2px;min-width:140px;
@@ -4203,12 +4203,30 @@ function setBlockStyle(tag) {
 
 function toggleStyleMenu(event) {
   event.stopPropagation();
-  document.getElementById('note-style-menu').classList.toggle('open');
+  const menu = document.getElementById('note-style-menu');
+  const isOpening = !menu.classList.contains('open');
+  if (isOpening) {
+    // Position the menu (now position:fixed, so it escapes the toolbar's
+    // overflow-x:auto clipping) directly below the Style button, using the
+    // button's actual on-screen coordinates rather than relying on CSS
+    // top:100% — which only worked when the menu was position:absolute
+    // inside the toolbar, and got clipped by the toolbar's horizontal scroll.
+    const btn = event.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 6) + 'px';
+    menu.style.left = rect.left + 'px';
+    // Keep the menu on-screen if the button is near the right edge
+    const menuWidth = 150; // approx min-width + padding
+    if (rect.left + menuWidth > window.innerWidth) {
+      menu.style.left = Math.max(8, window.innerWidth - menuWidth - 8) + 'px';
+    }
+  }
+  menu.classList.toggle('open');
 }
 
 // Close style menu when clicking elsewhere
 document.addEventListener('click', e => {
-  if (!e.target.closest('.note-style-dropdown')) {
+  if (!e.target.closest('.note-style-dropdown') && !e.target.closest('#note-style-menu')) {
     const m = document.getElementById('note-style-menu');
     if (m) m.classList.remove('open');
   }
@@ -6613,6 +6631,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.51',
+    date: 'Jun 22, 2026',
+    type: 'medium',
+    items: [
+      'Actually fixed the Style dropdown rendering behind the page (0.04.50\'s z-index change was real but not the actual cause). The real issue: the toolbar has overflow-x:auto to allow horizontal scrolling, which clips ANY content extending past its edges regardless of z-index — including the dropdown, which extended below the toolbar.',
+      'Fixed by changing the dropdown to position:fixed instead of position:absolute, with its screen position now computed in JavaScript from the Style button\'s actual location. This escapes the toolbar\'s clipping entirely, since fixed-position elements are placed relative to the viewport, not any scrollable ancestor.',
+      'Includes an edge-of-screen guard so the dropdown does not run off the right side on narrow screens'
+    ]
+  },
   {
     version: '0.04.50',
     date: 'Jun 22, 2026',
