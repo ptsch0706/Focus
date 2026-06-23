@@ -485,7 +485,7 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
   background:var(--bg-raised);border:1px solid var(--line);
   border-radius:var(--radius);padding:6px;margin-top:6px;
   display:none;flex-direction:column;gap:2px;min-width:140px;
-  box-shadow:var(--shadow-lg);z-index:20;
+  box-shadow:var(--shadow-lg);z-index:250;
 }
 .note-style-menu.open{display:flex;}
 .note-style-menu button{
@@ -6613,6 +6613,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.50',
+    date: 'Jun 22, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: the Style dropdown in the note editor toolbar could open behind the note detail page instead of on top of it. Its z-index (20) was far lower than the detail view\'s own (150), so it could render underneath. Raised to 250.'
+    ]
+  },
   {
     version: '0.04.49',
     date: 'Jun 22, 2026',
