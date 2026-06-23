@@ -4257,6 +4257,21 @@ function closeNoteDetail() {
 // Handle Enter key inside the rich note editor: ensure it creates a new paragraph/line
 // even when cursor is right after an atomic mention-tag span
 function handleNoteEditorKeydown(e) {
+  if (e.key === 'Tab') {
+    // Tab/Shift+Tab only indents/outdents when the cursor is inside a list item —
+    // execCommand('indent') has no meaningful effect on plain paragraph text, and
+    // letting the browser's default Tab behavior through would move focus OUT of
+    // the editor entirely, which is worse than doing nothing. So: always prevent
+    // default (never lose focus), and only actually indent/outdent when inside a list.
+    e.preventDefault();
+    const sel = window.getSelection();
+    const inList = sel.rangeCount > 0 && !!(sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement)?.closest('li'));
+    if (inList) {
+      document.execCommand(e.shiftKey ? 'outdent' : 'indent', false, null);
+      noteChanged();
+    }
+    return;
+  }
   if (e.key !== 'Enter') return;
   // Let the default behavior happen for most cases; but ensure highlighter doesn't
   // immediately overwrite the cursor position. Cancel any pending highlight.
@@ -6632,6 +6647,15 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.52',
+    date: 'Jun 22, 2026',
+    type: 'minor',
+    items: [
+      'Added Indent/Outdent buttons to the note editor toolbar, next to the List buttons',
+      'Tab and Shift+Tab now indent/outdent when the cursor is inside a bulleted or numbered list. Outside of a list, Tab no longer jumps focus out of the note (previously the browser\'s default behavior) — it now does nothing, keeping you in the editor'
+    ]
+  },
+  {
     version: '0.04.51',
     date: 'Jun 22, 2026',
     type: 'medium',
@@ -8630,6 +8654,8 @@ function initSwipeTabs() {
     <button class="note-tb-btn" onclick="richCmd('underline')"><u>U</u></button>
     <button class="note-tb-btn" onclick="richCmd('insertUnorderedList')">• List</button>
     <button class="note-tb-btn" onclick="richCmd('insertOrderedList')">1. List</button>
+    <button class="note-tb-btn" onclick="richCmd('outdent')" title="Decrease indent"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="21" y1="10" x2="11" y2="10"/><line x1="21" y1="6" x2="11" y2="6"/><line x1="21" y1="14" x2="11" y2="14"/><line x1="21" y1="18" x2="11" y2="18"/><polyline points="7 8 3 12 7 16"/></svg></button>
+    <button class="note-tb-btn" onclick="richCmd('indent')" title="Increase indent"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="21" y1="10" x2="11" y2="10"/><line x1="21" y1="6" x2="11" y2="6"/><line x1="21" y1="14" x2="11" y2="14"/><line x1="21" y1="18" x2="11" y2="18"/><polyline points="3 8 7 12 3 16"/></svg></button>
     <button class="note-tb-btn" onclick="wrapSelectionInCode()" title="Code"><span style="font-family:monospace;font-size:13px">&lt;/&gt;</span></button>
   </div>
   <div class="detail-body" id="note-editor-body" onclick="focusNoteBody(event)">
