@@ -518,6 +518,14 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .streak-card .streak-expand-area{display:none;}
 .streak-card.expanded .streak-expand-area{display:block;}
 .streak-collapse-indicator{font-size:11px;color:var(--ink-mute);padding:8px 16px 14px;display:flex;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--line-soft);margin-top:4px;}
+
+/* PLACEHOLDER STREAK CARDS (suggested setup, not real data) */
+.streak-placeholder-card{background:var(--bg-elev);border:1.5px dashed var(--line);border-radius:var(--radius);margin-bottom:12px;padding:14px 16px;}
+.streak-placeholder-top{display:flex;align-items:flex-start;gap:10px;}
+.streak-placeholder-icon{width:32px;height:32px;border-radius:8px;background:var(--streak-soft);color:var(--streak);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.streak-placeholder-title{font-size:14px;font-weight:600;color:var(--ink);}
+.streak-placeholder-sub{font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.4;}
+.streak-placeholder-dismiss{background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px;flex-shrink:0;}
 .streak-collapse-indicator svg{width:12px;height:12px;stroke-width:2;transition:transform .2s;}
 .streak-card.expanded .streak-collapse-indicator svg{transform:rotate(180deg);}
 
@@ -1719,7 +1727,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1758,6 +1766,7 @@ function loadState(){
       if(!Array.isArray(loaded.quickTags))loaded.quickTags=['Kids','Everyone'];
       if(!loaded.dailyStats||typeof loaded.dailyStats!=='object')loaded.dailyStats={};
       if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
+      if(!Array.isArray(loaded.dismissedStreakPlaceholders))loaded.dismissedStreakPlaceholders=[];
       return loaded;
     }
     const v1=localStorage.getItem('focus_state');
@@ -3150,10 +3159,10 @@ function renderDash(){
   const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('dash-date').textContent=`${days[now.getDay()]}, ${mons[now.getMonth()]} ${now.getDate()}`;
   document.getElementById('dash-hello').innerHTML=`${greet()}${S.myUsername?', <span class="accent">@'+esc(S.myUsername)+'</span>':''}`;
-  const actT=S.todos.filter(t=>!t.completed),todT=actT.filter(t=>t.date===today),ovT=actT.filter(t=>t.date<today),hiOv=ovT.filter(t=>t.priority==='high');
-  const compToday=S.todos.filter(t=>t.completed&&t.completedAt&&new Date(t.completedAt).toDateString()===now.toDateString());
+  const actT=S.todos.filter(t=>!t.completed&&canSeeItem(t)),todT=actT.filter(t=>t.date===today),ovT=actT.filter(t=>t.date<today),hiOv=ovT.filter(t=>t.priority==='high');
+  const compToday=S.todos.filter(t=>t.completed&&canSeeItem(t)&&t.completedAt&&new Date(t.completedAt).toDateString()===now.toDateString());
   const totT=todT.length+compToday.length,pct=totT>0?Math.round((compToday.length/totT)*100):0;
-  const actR=S.reminders.filter(r=>!r.completed),todR=actR.filter(r=>isRemActiveToday(r)&&!isRemOverdue(r)),ovR=actR.filter(r=>isRemOverdue(r));
+  const actR=S.reminders.filter(r=>!r.completed&&canSeeItem(r)),todR=actR.filter(r=>isRemActiveToday(r)&&!isRemOverdue(r)),ovR=actR.filter(r=>isRemOverdue(r));
   let out='';
 
   // ─── ALERT CARD: high-priority overdue todos AND any overdue reminders ───
@@ -3182,7 +3191,7 @@ function renderDash(){
   const todoPct = todoLoad > 0 ? Math.round((compToday.length / todoLoad) * 100) : 0;
   const todoSub = compToday.length + '/' + todoLoad + ' done';
 
-  const compTodayR = S.reminders.filter(r=>r.completed&&r.completedAt&&new Date(r.completedAt).toDateString()===now.toDateString());
+  const compTodayR = S.reminders.filter(r=>r.completed&&canSeeItem(r)&&r.completedAt&&new Date(r.completedAt).toDateString()===now.toDateString());
   const remLoad = todR.length + ovR.length + compTodayR.length;
   const remPct = remLoad > 0 ? Math.round((compTodayR.length / remLoad) * 100) : 0;
   const remSub = compTodayR.length + '/' + remLoad + ' done';
@@ -3280,9 +3289,11 @@ function renderDash(){
     const ar=S.streaks.filter(s=>isScheduledToday(s)&&!isLoggedToday(s));
     if(ar.length)out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div>'
       +ar.map(s=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:'+(s.color||'var(--pri-high)')+'"></span>'+esc(s.name)+'</span><span style="font-size:11px;color:var(--streak)">&#128293; '+getStreakChain(s)+' days</span></div>').join('')+'</div>';
-  } else if(h>=20&&(!S.dashSections||S.dashSections.streakNudge!==false)){
-    out+='<div class="nudge-card"><div class="nudge-title"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Log your streaks</div><div style="color:var(--ink-mute);font-size:13px">Tap the Streaks tab to set up your habits.</div></div>';
   }
+  // NOTE: previously had an "else if" here showing a generic "Tap the Streaks tab to
+  // set up your habits" nudge when the person had zero streaks. Removed per request —
+  // setup guidance now lives as dismissible placeholder cards on the Streaks tab itself
+  // (see renderStreakPlaceholders), not as dashboard noise.
   if((!S.dashSections||S.dashSections.pinnedNote!==false)&&S.notes){const pn=S.notes.find(n=>n.pinned);if(pn){
     const pv=stripHTML(pn.body).substring(0,80);
     out+='<div class="section-label" style="display:flex;align-items:center;gap:6px">'+svg('pin',12)+' Pinned Note</div><div class="note-card" onclick="switchView(\'notes\');openNoteDetail(\''+(pn.id)+'\')" style="margin-bottom:10px"><div class="note-card-title">'+(pn.title?esc(pn.title):'Untitled')+'</div>'+(pv?'<div class="note-card-preview">'+esc(pv)+'</div>':'')+'</div>';}}
@@ -4799,17 +4810,99 @@ function streakBarChartHTML(streak) {
   return html;
 }
 
+// Builds the HTML for Steps/Activity Rings placeholder cards. Each is shown
+// independently based on whether that specific streak already exists and
+// whether it's been dismissed — never shown on the dashboard, only here on
+// the Streaks tab, since this is setup guidance, not daily-use noise.
+function renderStreakPlaceholders(showSteps, showRings) {
+  let html = '';
+  if (showSteps) {
+    html += '<div class="streak-placeholder-card">'
+      + '<div class="streak-placeholder-top">'
+      + '<div class="streak-placeholder-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div class="streak-placeholder-title">Track Steps?</div>'
+      + '<div class="streak-placeholder-sub">Set up a Steps streak, then connect an iOS Shortcut to Apple Health to log your daily step count automatically. See SETUP-STEPS-SHORTCUT.md for instructions.</div>'
+      + '<button class="btn btn-sm" style="margin-top:10px" onclick="createStreakFromPlaceholder(\'steps\')">Create Steps streak</button>'
+      + '</div>'
+      + '<button class="streak-placeholder-dismiss" onclick="dismissStreakPlaceholder(\'steps\')" title="Dismiss"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + '</div>'
+      + '</div>';
+  }
+  if (showRings) {
+    html += '<div class="streak-placeholder-card">'
+      + '<div class="streak-placeholder-top">'
+      + '<div class="streak-placeholder-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg></div>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div class="streak-placeholder-title">Track Activity Rings?</div>'
+      + '<div class="streak-placeholder-sub">Set up an Activity Rings streak, then connect an iOS Shortcut to Apple Health to log when all 3 rings close each day. See SETUP-STEPS-SHORTCUT.md for instructions.</div>'
+      + '<button class="btn btn-sm" style="margin-top:10px" onclick="createStreakFromPlaceholder(\'rings\')">Create Activity Rings streak</button>'
+      + '</div>'
+      + '<button class="streak-placeholder-dismiss" onclick="dismissStreakPlaceholder(\'rings\')" title="Dismiss"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + '</div>'
+      + '</div>';
+  }
+  return html;
+}
+
+// Creates the real streak from a placeholder. Steps gets a value-based streak
+// (target 10000, unit "steps"); Activity Rings gets a plain boolean streak.
+// Once created, the placeholder naturally stops showing (hasSteps/hasRings
+// becomes true) without needing to also touch the dismissed list.
+function createStreakFromPlaceholder(which) {
+  if (which === 'steps') {
+    const newS = { id: gid(), name: 'Steps', color: '#06b6d4', freq: 'daily', days: [0,1,2,3,4,5,6], target: 10000, unit: 'steps', reminderHour: null, logs: [], values: {}, _expanded: false, createdAt: Date.now() };
+    stampOwner(newS);
+    S.streaks.push(newS);
+    toast('Steps streak created', 'ok');
+  } else if (which === 'rings') {
+    const newS = { id: gid(), name: 'Activity Rings', color: '#f43f5e', freq: 'daily', days: [0,1,2,3,4,5,6], target: null, unit: '', reminderHour: null, logs: [], values: {}, _expanded: false, createdAt: Date.now() };
+    stampOwner(newS);
+    S.streaks.push(newS);
+    toast('Activity Rings streak created', 'ok');
+  }
+  save();
+  renderStreaks();
+  renderDash();
+}
+
+// Permanently dismisses a placeholder for this person. Stored in S (synced),
+// so it survives reinstalls and stays dismissed unless the matching streak
+// is later deleted AND they want to see the suggestion again — in which case
+// they'd need to clear it via... there's currently no UI for "undo dismiss";
+// the placeholder simply won't reappear once dismissed, by design (the user
+// explicitly said "for them not to return if removed").
+function dismissStreakPlaceholder(which) {
+  if (!Array.isArray(S.dismissedStreakPlaceholders)) S.dismissedStreakPlaceholders = [];
+  if (!S.dismissedStreakPlaceholders.includes(which)) S.dismissedStreakPlaceholders.push(which);
+  save();
+  renderStreaks();
+}
+
+
 function renderStreaks() {
   const el = document.getElementById('streak-list');
   if (!el) return;
   const now = new Date(), hour = now.getHours();
   const visible = S.streaks.filter(canSeeItem);
   document.getElementById('streak-sub').textContent = visible.length + ' habit' + (visible.length!==1?'s':'');
+
+  // Placeholder setup cards for Steps / Activity Rings — shown only if a streak
+  // with that exact name doesn't already exist for this person, AND the person
+  // hasn't dismissed it before. Dismissal is permanent (synced via S, so it
+  // survives reinstalls) until the matching real streak is created.
+  const hasSteps = visible.some(s => normalizeUsername(s.name) === normalizeUsername('Steps'));
+  const hasRings = visible.some(s => normalizeUsername(s.name) === normalizeUsername('Activity Rings'));
+  const dismissed = S.dismissedStreakPlaceholders || [];
+  const showStepsPlaceholder = !hasSteps && !dismissed.includes('steps');
+  const showRingsPlaceholder = !hasRings && !dismissed.includes('rings');
+  const placeholdersHTML = renderStreakPlaceholders(showStepsPlaceholder, showRingsPlaceholder);
+
   if (!visible.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon" style="background:var(--streak-soft);border-color:var(--streak);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="empty-title">No streaks yet</div><div class="empty-sub">Tap + to create your first habit and start your chain.</div></div>';
+    el.innerHTML = placeholdersHTML + '<div class="empty-state"><div class="empty-icon" style="background:var(--streak-soft);border-color:var(--streak);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="empty-title">No streaks yet</div><div class="empty-sub">Tap + to create your first habit and start your chain.</div></div>';
     return;
   }
-  el.innerHTML = visible.map(s => {
+  el.innerHTML = placeholdersHTML + visible.map(s => {
     const chain = getStreakChain(s);
     const logged = isLoggedToday(s);
     const scheduled = isScheduledToday(s);
@@ -5353,12 +5446,16 @@ function countCompletedInRange(startDate, endDate) {
   let todoCount = 0, remCount = 0;
   // Live items still in arrays
   (S.todos || []).forEach(t => {
-    if (t.completed && t.completedAt && t.completedAt >= startMs && t.completedAt <= endMs) todoCount++;
+    if (t.completed && canSeeItem(t) && t.completedAt && t.completedAt >= startMs && t.completedAt <= endMs) todoCount++;
   });
   (S.reminders || []).forEach(r => {
-    if (r.completed && r.completedAt && r.completedAt >= startMs && r.completedAt <= endMs) remCount++;
+    if (r.completed && canSeeItem(r) && r.completedAt && r.completedAt >= startMs && r.completedAt <= endMs) remCount++;
   });
-  // Archived items (only added once they're purged — so no double-counting with live items)
+  // Archived items (only added once they're purged — so no double-counting with live items).
+  // NOTE: archived daily stats are NOT per-owner broken down, so they're counted as-is here.
+  // This is a known minor gap: once an item is purged into S.dailyStats, its per-item
+  // ownership info is gone, so this count may include household totals for older history
+  // rather than just "my" items for dates beyond the live-item retention window.
   if (S.dailyStats) {
     for (const dateKey in S.dailyStats) {
       if (dateKey >= startDate && dateKey <= endDate) {
@@ -6478,6 +6575,26 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.48',
+    date: 'Jun 22, 2026',
+    type: 'medium',
+    items: [
+      'Removed the dashboard\'s generic "Tap the Streaks tab to set up your habits" nudge that appeared in the evenings when someone had zero streaks — setup guidance now lives on the Streaks tab itself instead',
+      'Added dismissible placeholder cards on the Streaks tab suggesting a Steps streak and an Activity Rings streak, each shown only if that streak doesn\'t already exist for you and you haven\'t dismissed it before. Includes a one-tap "Create" button and a note that an iOS Shortcut connected to Apple Health is needed to log them automatically',
+      'Dismissing a placeholder is permanent and synced — it won\'t reappear on this or any of your other devices unless the matching streak is deleted later'
+    ]
+  },
+  {
+    version: '0.04.47',
+    date: 'Jun 22, 2026',
+    type: 'major',
+    items: [
+      'CRITICAL PRIVACY FIX: the dashboard (alert card, To-Dos/Reminders rings, Today list, weekly summary) was pulling directly from S.todos/S.reminders without applying the canSeeItem privacy filter \u2014 meaning a household member could see your private to-dos and reminders on their own dashboard if you hadn\u2019t shared them. This affected the alert card, the percent-complete rings, and the weekly Sunday summary\u2019s completion counts.',
+      'Fixed by applying canSeeItem at the point these arrays are built, so every dashboard section that derives from them is now correctly filtered to only your own items + items explicitly shared with you',
+      'Known remaining gap: the weekly summary\u2019s count of items completed more than 24 hours ago (which come from the dailyStats archive, not live data) cannot currently be filtered per-owner, since that archive only stores aggregate counts, not per-item ownership. This is a smaller, less visible leak (a number, not your actual to-do titles) and would need a schema change to fully close \u2014 flagging for a future fix rather than addressing silently.'
+    ]
+  },
   {
     version: '0.04.46',
     date: 'Jun 22, 2026',
