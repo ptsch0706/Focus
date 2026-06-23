@@ -662,6 +662,12 @@ html.compact .card { padding: 10px 14px; }
 .mention-row:first-of-type{border-top:none;}
 .mention-row:active{opacity:.7;}
 .mention-text{flex:1;min-width:0;}
+.dash-row-dismiss{
+  background:none;border:none;color:var(--ink-mute);cursor:pointer;
+  padding:6px;margin-left:4px;flex-shrink:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.dash-row-dismiss:active{background:var(--bg-raised);}
 .mention-from{
   font-size:11px;color:var(--ink-mute);
 }
@@ -1727,7 +1733,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1767,6 +1773,7 @@ function loadState(){
       if(!loaded.dailyStats||typeof loaded.dailyStats!=='object')loaded.dailyStats={};
       if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
       if(!Array.isArray(loaded.dismissedStreakPlaceholders))loaded.dismissedStreakPlaceholders=[];
+      if(!Array.isArray(loaded.dismissedSharedItems))loaded.dismissedSharedItems=[];
       return loaded;
     }
     const v1=localStorage.getItem('focus_state');
@@ -3319,7 +3326,9 @@ function renderDash(){
         + '<div class="mention-text">'
         + '<div class="mention-from">@' + esc(n.fromUser || 'unknown') + ' in ' + itemTypeLabel + '</div>'
         + '<div class="mention-snippet">' + esc(n.snippet || '(no preview)') + '</div>'
-        + '</div></div>';
+        + '</div>'
+        + '<button class="dash-row-dismiss" onclick="event.stopPropagation();dismissNotification(\''+n.id+'\')" title="Dismiss"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+        + '</div>';
     });
     mentionHTML += '</div>';
     out = mentionHTML + out;
@@ -5251,6 +5260,19 @@ function openMention(notifId) {
   tabs();
 }
 
+// Marks a single notification as read WITHOUT navigating to the item — for the
+// X button on the dashboard's "You were tagged" card. Tapping the row itself
+// still opens the item (via openMention); this is the lighter "just clear it"
+// path so the dashboard can be kept tidy without a detour into the item.
+function dismissNotification(notifId) {
+  const n = (S.notifications || []).find(x => x.id === notifId);
+  if (!n) return;
+  n.read = true;
+  save();
+  renderDash();
+  tabs();
+}
+
 function markAllNotificationsRead() {
   (S.notifications || []).forEach(n => {
     if (normalizeUsername(n.forUser) === normalizeUsername(S.myUsername)) n.read = true;
@@ -5638,7 +5660,11 @@ function getSharedWithMe() {
   });
   // Sort by most recent createdAt or updatedAt
   result.sort((a, b) => (b.item.updatedAt || b.item.createdAt || 0) - (a.item.updatedAt || a.item.createdAt || 0));
-  return result.slice(0, 6);
+  // Filter out anything the user has dismissed from the dashboard view. This does
+  // NOT unshare the item — it's still fully visible/editable on its own tab. It's
+  // purely "stop showing this on the dashboard" so the dashboard stays clean.
+  const dismissed = S.dismissedSharedItems || [];
+  return result.filter(r => !dismissed.includes(r.type + ':' + r.id)).slice(0, 6);
 }
 
 function renderSharedWithYouHTML() {
@@ -5653,10 +5679,22 @@ function renderSharedWithYouHTML() {
       + '<div class="shared-row-title">' + esc(it.title) + '</div>'
       + '</div>'
       + '<div class="shared-row-type">' + it.label + '</div>'
+      + '<button class="dash-row-dismiss" onclick="event.stopPropagation();dismissSharedItem(\'' + it.type + '\',\'' + it.id + '\')" title="Dismiss"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
       + '</div>';
   });
   html += '</div>';
   return html;
+}
+
+// Hides one shared item from the "Shared with you" dashboard card. The item
+// itself is untouched — still fully shared and visible on its own tab. This is
+// purely a dashboard declutter action, not an unshare action.
+function dismissSharedItem(type, id) {
+  if (!Array.isArray(S.dismissedSharedItems)) S.dismissedSharedItems = [];
+  const key = type + ':' + id;
+  if (!S.dismissedSharedItems.includes(key)) S.dismissedSharedItems.push(key);
+  save();
+  renderDash();
 }
 
 function openSharedItem(type, id) {
@@ -6575,6 +6613,17 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.49',
+    date: 'Jun 22, 2026',
+    type: 'medium',
+    items: [
+      'Added a dismiss (X) button to each row in the "You were tagged" and "Shared with you" dashboard cards — no need to open an item just to clear it from the dashboard',
+      'Dismissing a tag notification marks it read (same as opening it would) without navigating away',
+      'Dismissing a shared item only hides it from the dashboard — it stays fully shared and visible on its own tab (To-Dos, Lists, Reminders, Notes, or Streaks). This is a declutter action, not an unshare action',
+      'Goal: keep the dashboard reflecting only what still needs your attention, not a running log of everything that has ever happened'
+    ]
+  },
   {
     version: '0.04.48',
     date: 'Jun 22, 2026',
