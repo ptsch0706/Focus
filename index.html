@@ -1667,6 +1667,10 @@ input.has-mention, .note-title-input.has-mention {
 <script>window.FB_CONFIG = null;</script>
 <script src="firebase-config.js" onerror="console.info('firebase-config.js not loaded — sync disabled')"></script>
 
+<!-- Push notification config — lives in a separate file so it survives app updates. See SETUP-NOTIFICATIONS.md -->
+<script>window.PUSH_CONFIG = null;</script>
+<script src="push-config.js" onerror="console.info('push-config.js not loaded — notifications disabled')"></script>
+
 
 <script>
 'use strict';
@@ -1718,12 +1722,13 @@ function svg(name, size) {
 const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
-// ─── PUSH NOTIFICATIONS CONFIG ──────────────────────────────────────────
-// Fill in PUSH_BACKEND_URL and VAPID_PUBLIC_KEY after deploying the Cloudflare
-// Worker (see SETUP-NOTIFICATIONS.md). Leave PUSH_BACKEND_URL empty to disable
-// the notifications feature entirely — Settings will hide the toggle.
-const PUSH_BACKEND_URL = 'PASTE_PUSH_BACKEND_URL_HERE';
-const VAPID_PUBLIC_KEY = 'PASTE_VAPID_PUBLIC_KEY_HERE';
+// ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
+// Your real config lives in push-config.js (a separate file that survives app
+// updates, same pattern as firebase-config.js). See SETUP-NOTIFICATIONS.md.
+// If the file is missing or has placeholder values, notifications stay
+// disabled and Settings hides the toggle — the app works fine without it.
+const PUSH_BACKEND_URL = (typeof window !== 'undefined' && window.PUSH_CONFIG && window.PUSH_CONFIG.backendUrl) || 'PASTE_PUSH_BACKEND_URL_HERE';
+const VAPID_PUBLIC_KEY = (typeof window !== 'undefined' && window.PUSH_CONFIG && window.PUSH_CONFIG.vapidPublicKey) || 'PASTE_VAPID_PUBLIC_KEY_HERE';
 function pushConfigured(){
   return PUSH_BACKEND_URL && !PUSH_BACKEND_URL.startsWith('PASTE_')
       && VAPID_PUBLIC_KEY && !VAPID_PUBLIC_KEY.startsWith('PASTE_');
@@ -6473,6 +6478,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.46',
+    date: 'Jun 22, 2026',
+    type: 'medium',
+    items: [
+      'Push notification config (backend URL + VAPID public key) moved out of index.html into a new push-config.js file, following the same pattern as firebase-config.js. You fill this in once during setup and it survives every future app update \u2014 no more re-pasting your config when Claude sends an updated index.html',
+      'Updated SETUP-NOTIFICATIONS.md to reflect editing push-config.js instead of index.html directly'
+    ]
+  },
   {
     version: '0.04.45',
     date: 'Jun 22, 2026',
