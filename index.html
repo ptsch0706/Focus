@@ -1717,6 +1717,17 @@ function svg(name, size) {
 // ── STATE ──
 const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
+
+// ─── PUSH NOTIFICATIONS CONFIG ──────────────────────────────────────────
+// Fill in PUSH_BACKEND_URL and VAPID_PUBLIC_KEY after deploying the Cloudflare
+// Worker (see SETUP-NOTIFICATIONS.md). Leave PUSH_BACKEND_URL empty to disable
+// the notifications feature entirely — Settings will hide the toggle.
+const PUSH_BACKEND_URL = 'PASTE_PUSH_BACKEND_URL_HERE';
+const VAPID_PUBLIC_KEY = 'PASTE_VAPID_PUBLIC_KEY_HERE';
+function pushConfigured(){
+  return PUSH_BACKEND_URL && !PUSH_BACKEND_URL.startsWith('PASTE_')
+      && VAPID_PUBLIC_KEY && !VAPID_PUBLIC_KEY.startsWith('PASTE_');
+}
 applyTheme(S.theme||'light');
 let tf='all',lf='all',rf='today',noteFilter='all',doneOpen=false,listId=null;
 const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
@@ -1838,7 +1849,12 @@ document.querySelectorAll('.modal-backdrop').forEach(el=>el.addEventListener('cl
 function toast(msg,type=''){
   const w=document.getElementById('toast-wrap'),t=document.createElement('div');
   t.className='toast'+(type==='ok'?' ok':type==='err'?' err':'');
-  t.textContent=msg;w.appendChild(t);setTimeout(()=>t.remove(),2800);
+  t.textContent=msg;
+  // Cap how many toasts can stack at once. If we're at the limit, remove the
+  // oldest one immediately rather than letting them pile up on screen.
+  const MAX_TOASTS=2;
+  while(w.children.length>=MAX_TOASTS){ w.firstChild.remove(); }
+  w.appendChild(t);setTimeout(()=>t.remove(),2800);
 }
 
 // ── TODOS ──
@@ -1887,25 +1903,29 @@ function saveTodo(){
   if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1){S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal};stampOwner(S.todos[i]);applyMentions(S.todos[i],'todo');}toast('Updated','ok');}
   else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');if(window._pendingShareWith&&window._pendingShareWith.length){newT.sharedWith=[...new Set([...(newT.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.todos.push(newT);toast('To-Do added','ok');}
   save();closeModal('modal-todo');renderTodos();renderDash();tabs();
+  syncDueTimeSchedules();
 }
 function checkTodo(id){
   const t=S.todos.find(t=>t.id===id);if(!t)return;
   if(!t.completed){
     t.completed=true;t.completedAt=Date.now();
+    cancelDueTimeSchedule('todo',t.id);
     if(t.recur&&t.recur!=='none'){
       const nextT={id:gid(),title:t.title,date:nextDate(t.date,t.recur),time:t.time||'',notes:t.notes||'',priority:t.priority,recur:t.recur,completed:false,createdAt:Date.now(),ownerUsername:t.ownerUsername||S.myUsername||'',sharedWith:[...(t.sharedWith||[])]};
       S.todos.push(nextT);
       // Transfer any linked notes from the old instance to the new one so they keep working
       (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='todo'&&n.linkedTo.id===t.id){n.linkedTo.id=nextT.id;}});
       toast('Done! Next one scheduled ↻','ok');
+      syncDueTimeSchedules();
     }
     else toast('Done! ✓','ok');
-  }else{t.completed=false;t.completedAt=null;toast('Marked incomplete');}
+  }else{t.completed=false;t.completedAt=null;toast('Marked incomplete');syncDueTimeSchedules();}
   save();renderTodos();renderDash();tabs();
 }
 function deleteTodo(){
   const id=document.getElementById('todo-eid').value;
   if(!id||!confirm('Delete this to-do?'))return;
+  cancelDueTimeSchedule('todo',id);
   S.todos=S.todos.filter(t=>t.id!==id);save();closeModal('modal-todo');renderTodos();renderDash();tabs();toast('Deleted');
 }
 
@@ -2954,11 +2974,13 @@ function saveReminder(){
   if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
   else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');if(window._pendingShareWith&&window._pendingShareWith.length){newR.sharedWith=[...new Set([...(newR.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.reminders.push(newR);toast('Reminder added','ok');}
   save();closeModal('modal-reminder');renderRem();renderDash();tabs();
+  syncDueTimeSchedules();
 }
 function checkRem(id){
   const r=S.reminders.find(r=>r.id===id);if(!r)return;
   if(!r.completed){
     r.completed=true;r.completedAt=Date.now();
+    cancelDueTimeSchedule('rem',r.id);
     if(r.recur&&r.recur!=='none'){
       const nextStart = nextDate(r.date,r.recur);
       let nextEnd = null;
@@ -2971,13 +2993,15 @@ function checkRem(id){
       S.reminders.push(nextR);
       (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='reminder'&&n.linkedTo.id===r.id){n.linkedTo.id=nextR.id;}});
       toast('Acknowledged · Next scheduled ↻','ok');
+      syncDueTimeSchedules();
     }
     else toast('Acknowledged ✓','ok');
-  }else{r.completed=false;r.completedAt=null;toast('Marked active');}
+  }else{r.completed=false;r.completedAt=null;toast('Marked active');syncDueTimeSchedules();}
   save();renderRem();renderDash();tabs();
 }
 function deleteReminder(){
   const id=document.getElementById('rem-eid').value;if(!id||!confirm('Delete this reminder?'))return;
+  cancelDueTimeSchedule('rem',id);
   S.reminders=S.reminders.filter(r=>r.id!==id);save();closeModal('modal-reminder');renderRem();renderDash();tabs();toast('Deleted');
 }
 function renderRem(){
@@ -3115,6 +3139,8 @@ function formatStepsShort(n) {
 
 function renderDash(){
   const now=new Date(),today=td(),h=now.getHours();
+  const weekAheadDate=parseLocalDate(today);weekAheadDate.setDate(weekAheadDate.getDate()+7);
+  const weekAhead=weekAheadDate.getFullYear()+'-'+String(weekAheadDate.getMonth()+1).padStart(2,'0')+'-'+String(weekAheadDate.getDate()).padStart(2,'0');
   const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('dash-date').textContent=`${days[now.getDay()]}, ${mons[now.getMonth()]} ${now.getDate()}`;
@@ -3157,7 +3183,7 @@ function renderDash(){
   const remSub = compTodayR.length + '/' + remLoad + ' done';
 
   let stepsPct = 0, stepsLabel = 'No goal';
-  const stepsStreak = (S.streaks || []).filter(canSeeItem).find(s => normalizeUsername(s.name || '') === 'steps');
+  const stepsStreak = (S.streaks || []).filter(canSeeItem).find(s => normalizeUsername(s.name || '') === normalizeUsername('Steps'));
   if (stepsStreak && stepsStreak.target > 0) {
     const stepValue = (stepsStreak.values && stepsStreak.values[today]) || 0;
     stepsPct = Math.min(100, Math.round((stepValue / stepsStreak.target) * 100));
@@ -3232,8 +3258,8 @@ function renderDash(){
       + '</div></div>';
   }
   // upcoming
-  const upT=actT.filter(t=>t.date>today).sort((a,b)=>a.date<b.date?-1:1).slice(0,4);
-  const upR=actR.filter(r=>r.date>today).sort((a,b)=>a.date<b.date?-1:1).slice(0,2);
+  const upT=actT.filter(t=>t.date>today&&t.date<=weekAhead).sort((a,b)=>a.date<b.date?-1:1).slice(0,4);
+  const upR=actR.filter(r=>r.date>today&&r.date<=weekAhead).sort((a,b)=>a.date<b.date?-1:1).slice(0,2);
   const upAll=[...upT.map(t=>({...t,_k:'todo'})),...upR.map(r=>({...r,_k:'rem'}))].sort((a,b)=>a.date<b.date?-1:1).slice(0,5);
   if(upAll.length){
     out+=`<div class="section-label">Coming up</div><div class="card" style="padding:4px 16px">`;
@@ -3341,6 +3367,19 @@ function renderSett(){
     +'<div class="sett-text"><div class="sett-label">Firebase</div><div class="sett-sub">'+(fbOk()?'Configured':'Not configured')+'</div></div>'
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
+
+    // ═══ NOTIFICATIONS: enable/disable push notifications ═══
+    +'<div class="section-label">Notifications</div>'
+    +(!pushConfigured()
+      ? '<div class="sett-group"><div class="sett-row" style="cursor:default">'
+        + '<div class="sett-icon" style="background:var(--ink-mute)1a;color:var(--ink-mute)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>'
+        + '<div class="sett-text"><div class="sett-label">Push Notifications</div><div class="sett-sub">Not set up yet \u2014 see SETUP-NOTIFICATIONS.md</div></div>'
+        + '</div></div>'
+      : '<div class="sett-group"><div class="sett-row" style="cursor:default">'
+        + '<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>'
+        + '<div class="sett-text"><div class="sett-label">Push Notifications</div><div class="sett-sub">'+(S.notificationsEnabled?'On \u2014 due times, daily streak check, and tags':'Off')+'</div></div>'
+        + '<label class="switch"><input type="checkbox" '+(S.notificationsEnabled?'checked':'')+' onchange="this.checked?enablePushNotifications():disablePushNotifications()"><span class="slider"></span></label>'
+        + '</div></div>')
 
     // ═══ CUSTOMIZE VIEW: Compact Mode, Theme, Dashboard toggles, Templates, Grace Window ═══
     +'<div class="section-label">Customize View</div>'
@@ -3492,11 +3531,13 @@ function updateSyncIndicator(){
   if(!el)return;
   // Hide entirely if Firebase isn't configured or user hasn't joined a sync household
   if(!fbOk()||!S.syncCode){hideSyncIndicator(true);return;}
+  // The routine "Synced" success state is intentionally NOT shown — a polished app
+  // doesn't need to confirm every successful background sync. Only surface states
+  // that actually need attention: actively syncing (briefly), error, or offline.
+  if(_syncStatus==='ok'){ hideSyncIndicator(); return; }
   const dot=document.getElementById('sync-dot');
   const lbl=document.getElementById('sync-label');
-  // Set color + label by status
-  if(_syncStatus==='ok'){dot.style.background='var(--note)';lbl.textContent='Synced';}
-  else if(_syncStatus==='syncing'){dot.style.background='var(--cyan)';lbl.textContent='Syncing\u2026';}
+  if(_syncStatus==='syncing'){dot.style.background='var(--cyan)';lbl.textContent='Syncing\u2026';}
   else if(_syncStatus==='error'){dot.style.background='var(--pri-high)';lbl.textContent='Sync error';}
   else if(_syncStatus==='offline'){dot.style.background='var(--ink-mute)';lbl.textContent='Offline';}
   else{dot.style.background='var(--ink-mute)';lbl.textContent='Sync';}
@@ -3506,10 +3547,11 @@ function updateSyncIndicator(){
   void el.offsetWidth;
   el.style.opacity='1';
   el.style.pointerEvents='auto';
-  // Auto-hide when status is OK (the boring success state). Show persistently for syncing/error/offline.
   clearTimeout(_syncHideTimer);
-  if(_syncStatus==='ok'){
-    _syncHideTimer=setTimeout(()=>hideSyncIndicator(),2000);
+  // Auto-hide "syncing" after a few seconds even if no further update arrives,
+  // so a quick sync doesn't leave a stale "Syncing…" label on screen.
+  if(_syncStatus==='syncing'){
+    _syncHideTimer=setTimeout(()=>hideSyncIndicator(),4000);
   }
 }
 function hideSyncIndicator(immediate){
@@ -3588,14 +3630,19 @@ function startStepsSync() {
 function applyStepsFromSideDoc(dateStr, stepValue) {
   if (!Array.isArray(S.streaks)) return;
   // Find the "Steps" streak (case-insensitive match)
-  const stepsStreak = S.streaks.find(s => normalizeUsername(s.name) === 'steps');
+  const stepsStreak = S.streaks.find(s => normalizeUsername(s.name) === normalizeUsername('Steps'));
   if (!stepsStreak) {
     console.info('Side-doc step value received but no "Steps" streak exists yet');
     return;
   }
-  // Only log to today's date — ignore historical writes
-  if (dateStr !== td()) {
-    console.info('Side-doc step value is for ' + dateStr + ', but today is ' + td() + ' — skipping');
+  // Accept today's or yesterday's write — yesterday covers the case where the
+  // Shortcut ran last night (e.g. a late check) and the PWA isn't opened again
+  // until the next calendar day. Anything older than that is genuinely stale.
+  const yesterdayDate = parseLocalDate(td());
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.getFullYear() + '-' + String(yesterdayDate.getMonth()+1).padStart(2,'0') + '-' + String(yesterdayDate.getDate()).padStart(2,'0');
+  if (dateStr !== td() && dateStr !== yesterdayStr) {
+    console.info('Side-doc step value is for ' + dateStr + ', too old to apply (today is ' + td() + ') — skipping');
     return;
   }
   if (!stepsStreak.values) stepsStreak.values = {};
@@ -3640,14 +3687,19 @@ function startRingsSync() {
 function applyRingsFromSideDoc(dateStr, allClosed) {
   if (!Array.isArray(S.streaks)) return;
   // Find the "Activity Rings" streak (case-insensitive match)
-  const ringsStreak = S.streaks.find(s => normalizeUsername(s.name) === 'activity rings');
+  const ringsStreak = S.streaks.find(s => normalizeUsername(s.name) === normalizeUsername('Activity Rings'));
   if (!ringsStreak) {
     console.info('Side-doc rings value received but no "Activity Rings" streak exists yet');
     return;
   }
-  // Only apply to today's date — ignore historical writes
-  if (dateStr !== td()) {
-    console.info('Side-doc rings value is for ' + dateStr + ', but today is ' + td() + ' — skipping');
+  // Accept today's or yesterday's write — see applyStepsFromSideDoc for why
+  // (a check that runs at night needs to still apply if the PWA isn't opened
+  // again until the next calendar day).
+  const yesterdayDate = parseLocalDate(td());
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.getFullYear() + '-' + String(yesterdayDate.getMonth()+1).padStart(2,'0') + '-' + String(yesterdayDate.getDate()).padStart(2,'0');
+  if (dateStr !== td() && dateStr !== yesterdayStr) {
+    console.info('Side-doc rings value is for ' + dateStr + ', too old to apply (today is ' + td() + ') — skipping');
     return;
   }
   if (!Array.isArray(ringsStreak.logs)) ringsStreak.logs = [];
@@ -3666,10 +3718,255 @@ function applyRingsFromSideDoc(dateStr, allClosed) {
   renderDash();
 }
 
+// ─── PUSH NOTIFICATIONS ─────────────────────────────────────────────────
+// Talks to the Cloudflare Worker backend (see SETUP-NOTIFICATIONS.md). Covers:
+//   1. To-do/reminder due-time notifications (one scheduled bucket per item)
+//   2. Daily 9pm streak-check (one bucket, recomputed each day)
+//   3. First-tag notifications (fire-now, via the synced S.notifications array)
+//   4. Manual "notify @user" taps (same fire-now path as #3)
+//
+// Auth: every request is signed with an HMAC derived from the sync code,
+// matching the backend's auth.js exactly. No separate login/password needed —
+// knowing the sync code is sufficient, same trust model as Firestore sync.
+
+function getOrCreateDeviceId() {
+  let id = localStorage.getItem('focus_device_id');
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : (gid() + gid() + gid()));
+    try { localStorage.setItem('focus_device_id', id); } catch (e) {}
+  }
+  return id;
+}
+
+async function pushHmac(syncCode, message) {
+  const encoder = new TextEncoder();
+  const secretInput = encoder.encode(syncCode + '|focus-push-v1');
+  const secretHash = await crypto.subtle.digest('SHA-256', secretInput);
+  const key = await crypto.subtle.importKey('raw', secretHash, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Signed POST to the push backend. Returns parsed JSON, or throws on network/HTTP error.
+async function pushBackendPost(path, body) {
+  if (!pushConfigured() || !S.syncCode) throw new Error('Push not configured or no sync code');
+  const bodyStr = JSON.stringify(body || {});
+  const timestamp = String(Date.now());
+  const nonce = (crypto.randomUUID ? crypto.randomUUID() : gid()).replace(/-/g, '');
+  const message = timestamp + '\n' + nonce + '\nPOST\n' + path + '\n' + bodyStr;
+  const hmac = await pushHmac(S.syncCode, message);
+  const resp = await fetch(PUSH_BACKEND_URL + path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Focus-Sync-Code': S.syncCode,
+      'X-Focus-Timestamp': timestamp,
+      'X-Focus-Nonce': nonce,
+      'X-Focus-HMAC': hmac,
+    },
+    body: bodyStr,
+  });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    throw new Error('Push backend ' + path + ' failed: ' + resp.status + ' ' + text.slice(0, 200));
+  }
+  return resp.json();
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+// Requests notification permission, subscribes via the service worker's PushManager,
+// and registers the subscription with the backend. Call this when the user toggles
+// notifications ON in Settings.
+async function enablePushNotifications() {
+  if (!pushConfigured()) { toast('Notifications not set up yet \u2014 see SETUP-NOTIFICATIONS.md', 'err'); return false; }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    toast('Push notifications aren\u2019t supported on this browser', 'err');
+    return false;
+  }
+  if (!S.syncCode) { toast('Set up sync first (Settings \u2192 My Profile)', 'err'); return false; }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      toast('Notification permission denied', 'err');
+      return false;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    const deviceId = getOrCreateDeviceId();
+    const subJson = sub.toJSON();
+    await pushBackendPost('/subscribe', {
+      deviceId,
+      subscription: { endpoint: subJson.endpoint, keys: subJson.keys },
+    });
+    S.notificationsEnabled = true;
+    save();
+    toast('Notifications enabled', 'ok');
+    syncAllNotificationSchedules();
+    return true;
+  } catch (e) {
+    console.warn('enablePushNotifications failed:', e);
+    toast('Couldn\u2019t enable notifications', 'err');
+    return false;
+  }
+}
+
+async function disablePushNotifications() {
+  S.notificationsEnabled = false;
+  save();
+  try {
+    if (pushConfigured() && S.syncCode) {
+      await pushBackendPost('/cancel', { deviceId: getOrCreateDeviceId() });
+      await pushBackendPost('/unsubscribe', { deviceId: getOrCreateDeviceId() });
+    }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await sub.unsubscribe();
+  } catch (e) {
+    console.warn('disablePushNotifications cleanup failed:', e);
+  }
+  toast('Notifications disabled', 'ok');
+}
+
+// ── Scenario 1: due-time notifications for to-dos and reminders ──
+// Recomputes the full set of upcoming due-time notifications and replaces each
+// item's bucket on the backend. Called after any to-do/reminder change, and once
+// on app load. Items with no time set, already completed, or overdue are skipped
+// (overdue items already had their moment; re-notifying on every sync would spam).
+async function syncDueTimeSchedules() {
+  if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
+  const deviceId = getOrCreateDeviceId();
+  const now = Date.now();
+  const jobs = [];
+
+  (S.todos || []).filter(canSeeItem).forEach(t => {
+    if (t.completed || !t.date || !t.time) return;
+    const fireAt = parseLocalDate(t.date).getTime() + timeStrToMs(t.time);
+    if (fireAt < now) return; // already passed — don't reschedule
+    jobs.push({ bucketId: 'todo:' + t.id, items: [{ fireAt, title: 'To-Do due', body: t.title, tag: 'todo-' + t.id, url: '?focus_open=todo&id=' + t.id }] });
+  });
+  (S.reminders || []).filter(canSeeItem).forEach(r => {
+    if (r.completed || !r.date || !r.time) return;
+    const fireAt = parseLocalDate(r.date).getTime() + timeStrToMs(r.time);
+    if (fireAt < now) return;
+    jobs.push({ bucketId: 'rem:' + r.id, items: [{ fireAt, title: 'Reminder', body: r.title, tag: 'rem-' + r.id, url: '?focus_open=reminder&id=' + r.id }] });
+  });
+
+  for (const job of jobs) {
+    try { await pushBackendPost('/schedule', { deviceId, bucketId: job.bucketId, items: job.items }); }
+    catch (e) { console.warn('schedule failed for', job.bucketId, e); }
+  }
+}
+
+// Cancels the due-time notification bucket for one item. Call when completing
+// or deleting a to-do/reminder so a stale notification doesn't fire later.
+async function cancelDueTimeSchedule(itemType, itemId) {
+  if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
+  try {
+    await pushBackendPost('/cancel', { deviceId: getOrCreateDeviceId(), bucketId: (itemType === 'todo' ? 'todo:' : 'rem:') + itemId });
+  } catch (e) { console.warn('cancelDueTimeSchedule failed:', e); }
+}
+
+function timeStrToMs(t) {
+  // "HH:MM" -> milliseconds since local midnight
+  const [h, m] = t.split(':').map(Number);
+  return ((h || 0) * 60 + (m || 0)) * 60 * 1000;
+}
+
+// ── Scenario 2: daily 9pm streak check ──
+// Schedules ONE notification for TODAY at 9pm, but only if there's at least one
+// scheduled-today streak that isn't logged yet. Recomputed once per day (on app
+// open, and via the existing 60s interval like other periodic checks) so it stays
+// accurate as streaks get logged throughout the day.
+async function syncStreakCheckSchedule() {
+  if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
+  const deviceId = getOrCreateDeviceId();
+  const todayDate = parseLocalDate(td());
+  const nineP = todayDate.getTime() + 21 * 60 * 60 * 1000; // 9:00 PM local
+  const now = Date.now();
+
+  const openStreaks = (S.streaks || []).filter(canSeeItem)
+    .filter(s => isScheduledToday(s) && !isLoggedToday(s));
+
+  if (nineP < now || !openStreaks.length) {
+    // Either 9pm already passed today, or nothing's open — clear today's bucket
+    try { await pushBackendPost('/cancel', { deviceId, bucketId: 'streak-check' }); }
+    catch (e) { console.warn('cancel streak-check failed:', e); }
+    return;
+  }
+  const names = openStreaks.map(s => s.name).slice(0, 3).join(', ') + (openStreaks.length > 3 ? '...' : '');
+  try {
+    await pushBackendPost('/schedule', {
+      deviceId,
+      bucketId: 'streak-check',
+      items: [{ fireAt: nineP, title: 'Streaks open', body: names, tag: 'streak-check', url: '?focus_open=streaks' }],
+    });
+  } catch (e) { console.warn('schedule streak-check failed:', e); }
+}
+
+// Recomputes everything. Call on app load (after sync settles) and whenever
+// to-dos/reminders/streaks change meaningfully.
+async function syncAllNotificationSchedules() {
+  if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
+  await syncDueTimeSchedules();
+  await syncStreakCheckSchedule();
+}
+
+// ── Scenarios 3 & 4: first-tag and manual-notify (fire-now) ──
+// Watches the synced S.notifications array for new unread entries addressed to
+// ME, and fires an immediate push for each. Called after every Firestore
+// snapshot update (NOT the first-snapshot reconciliation, to avoid replaying
+// all historical notifications on initial load).
+let _seenNotificationIds = null;
+function watchForNewNotifications() {
+  if (!Array.isArray(S.notifications)) return;
+  const me = normalizeUsername(S.myUsername);
+  if (_seenNotificationIds === null) {
+    // First call this session — just record what's already there, don't notify.
+    _seenNotificationIds = new Set(S.notifications.map(n => n.id));
+    return;
+  }
+  const fresh = S.notifications.filter(n =>
+    !_seenNotificationIds.has(n.id) &&
+    !n.read &&
+    normalizeUsername(n.forUser) === me &&
+    normalizeUsername(n.fromUser) !== me // don't push for my own self-mentions
+  );
+  S.notifications.forEach(n => _seenNotificationIds.add(n.id));
+  if (!fresh.length) return;
+  if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
+  fresh.forEach(n => {
+    const title = n.type === 'manual-notify' ? '@' + esc(n.fromUser) + ' notified you' : '@' + esc(n.fromUser) + ' tagged you';
+    pushBackendPost('/notify-now', {
+      deviceId: getOrCreateDeviceId(),
+      title,
+      notifBody: n.snippet || '',
+      tag: 'notif-' + n.id,
+      url: '?focus_open=notifications',
+    }).catch(e => console.warn('notify-now failed:', e));
+  });
+}
+
 function startSync(){
   if(!initFB()||!S.syncCode){setSyncStatus('offline');return;}
   if(unsub)unsub();
   _syncReady = false;
+  // Seed the "already seen" notification set BEFORE any snapshot is processed, so
+  // the first real update after this doesn't treat pre-existing history as new.
+  watchForNewNotifications();
   // NOTE: startStepsSync() is called only AFTER main sync has reconciled —
   // see _syncReady=true branches below. Calling it earlier creates a race where
   // the side-doc listener could apply step values that are then overwritten by
@@ -3745,6 +4042,7 @@ function startSync(){
       S._lp=data.updatedAt;
       try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){}
       renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();tabs();
+      watchForNewNotifications();
       setSyncStatus('ok');
     }else{
       setSyncStatus('ok');
@@ -3753,6 +4051,7 @@ function startSync(){
 }
 
 // ── INIT ──
+let _notifSyncCounter = 0;
 function init(){
   applyTheme(S.theme||'light');
   if(shouldShowOnboarding())showOnboarding();
@@ -3769,8 +4068,32 @@ function init(){
   updateSyncIndicator();
   if(window.__firebase){if(initFB()&&S.syncCode)startSync();}
   else window.addEventListener('firebase-ready',()=>{if(initFB()&&S.syncCode)startSync();});
-  setInterval(()=>{cleanupOldCompleted();if(view==='home')renderDash();tabs();},60000);
+  // Sync notification schedules once shortly after load (gives Firestore sync a
+  // moment to settle first) and then roughly every 10 minutes via the interval below.
+  setTimeout(()=>{ syncAllNotificationSchedules(); },5000);
+  setInterval(()=>{
+    cleanupOldCompleted();
+    if(view==='home')renderDash();
+    tabs();
+    _notifSyncCounter++;
+    if(_notifSyncCounter>=10){ _notifSyncCounter=0; syncAllNotificationSchedules(); }
+  },60000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;if(view==='home')renderDash();if(db&&S.syncCode)startSync();});
+  // When a notification is tapped while the PWA is already open, the service
+  // worker focuses this window and posts a message instead of doing a fresh
+  // navigation (see sw.js's notificationclick handler). Handle that here.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const msg = event.data || {};
+      if (msg.type === 'notif-open' && msg.url) {
+        try {
+          const target = new URL(msg.url).searchParams.get('focus_open');
+          const id = new URL(msg.url).searchParams.get('id');
+          if (target) handleNotificationOpen(target, id);
+        } catch (e) { console.warn('Could not parse notification URL:', e); }
+      }
+    });
+  }
 }
 // Apply theme immediately before render
 applyTheme(S.theme||'light');
@@ -6151,6 +6474,53 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.45',
+    date: 'Jun 22, 2026',
+    type: 'minor',
+    items: [
+      'Dashboard "Coming Up" section now only shows to-dos and reminders due within the next 7 days, instead of showing the nearest items regardless of how far out they were'
+    ]
+  },
+  {
+    version: '0.04.44',
+    date: 'Jun 22, 2026',
+    type: 'medium',
+    items: [
+      'Sync indicator no longer shows for routine successful syncs ("Synced") \u2014 it was popping in and out constantly since nearly every action triggers a background sync. Now it only appears for states that actually need attention: actively syncing (briefly, auto-hides after 4s), sync error, or offline',
+      'Fixed: toasts and the sync indicator occupied nearly the same screen position, so they sometimes visually overlapped. Moved the sync indicator lower, just above the bottom nav bar, clear of the toast/FAB zone',
+      'Toasts are now capped at 2 on screen at once \u2014 triggering several actions in quick succession no longer piles up a stack of notifications; the oldest is removed immediately to make room for a new one'
+    ]
+  },
+  {
+    version: '0.04.43',
+    date: 'Jun 22, 2026',
+    type: 'medium',
+    items: [
+      'Fixed the REAL Activity Rings bug (the date-guard fix in 0.04.42 was real but not the actual cause): the streak lookup compared normalizeUsername(s.name) \u2014 which strips spaces \u2014 against the literal string \u0027activity rings\u0027 (with a space). \u0027Activity Rings\u0027 normalizes to \u0027activityrings\u0027, so the comparison could never match, and the side-doc write was silently ignored every time, regardless of date or timing.',
+      'Fixed by normalizing both sides of the comparison instead of hardcoding the expected normalized string. Applied the same defensive pattern to the Steps streak lookup (3 places) even though \u0027steps\u0027 has no spaces and was not actually broken, to prevent this class of bug if either streak is ever renamed.'
+    ]
+  },
+  {
+    version: '0.04.42',
+    date: 'Jun 22, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: Health side-doc writes (Steps and Activity Rings) were only applied if their date exactly matched today. A Shortcut that runs at night (e.g. the 10pm Activity Rings check) could get silently rejected if the PWA wasn\u2019t reopened until the next calendar day, since by then today\u2019s date had moved on. Now accepts a write for today OR yesterday \u2014 covers the overnight gap without accepting genuinely stale data.'
+    ]
+  },
+  {
+    version: '0.04.41',
+    date: 'Jun 22, 2026',
+    type: 'major',
+    items: [
+      'Added real push notifications (arrive even when the app is closed), via a new Cloudflare Worker backend \u2014 see SETUP-NOTIFICATIONS.md. Covers 4 scenarios: a to-do/reminder\'s due date+time, a daily 9pm check for any streaks still open, the first time you\'re @-tagged on something, and manually tapping "Notify" on a shared item',
+      'New Settings \u2192 Notifications toggle to enable/disable. Hidden until the backend is configured (PUSH_BACKEND_URL and VAPID_PUBLIC_KEY need to be filled in \u2014 see setup guide)',
+      'Tapping a notification opens the app to the right place: the to-do/reminder, the Streaks tab, or the dashboard',
+      'Completing or deleting a to-do/reminder cancels its pending due-time notification so it does not fire after the fact',
+      'This is a backend-dependent feature: the toggle and underlying code ship with this version, but will not do anything until the Cloudflare Worker is deployed per the setup guide'
+    ]
+  },
+  {
     version: '0.04.40',
     date: 'Jun 21, 2026',
     type: 'medium',
@@ -7878,8 +8248,31 @@ function openInbox() {
 // ── URL SCHEME HANDLER (for iOS Shortcuts) ──
 // Usage: focus://streak/log?name=Steps&value=8500
 //        OR: ?focus_action=streak_log&name=Steps&value=8500 (query param fallback)
+// Navigates to the right place when a push notification is tapped (or when the
+// app was already open and the service worker focused this window instead of
+// reloading it — see the 'message' listener below for that path).
+function handleNotificationOpen(target, id) {
+  if (target === 'todo') {
+    switchView('todos');
+    if (id) setTimeout(() => openTodoModal(id), 300);
+  } else if (target === 'reminder') {
+    switchView('reminders');
+    if (id) setTimeout(() => openReminderModal(id), 300);
+  } else if (target === 'streaks') {
+    switchView('streaks');
+  } else if (target === 'notifications') {
+    switchView('home');
+  }
+}
+
 function handleURLScheme() {
   const params = new URLSearchParams(window.location.search);
+
+  // Notification-tap navigation (separate from focus_action below — these come
+  // from the service worker's push notification URLs, see syncDueTimeSchedules etc.)
+  const openTarget = params.get('focus_open');
+  if (openTarget) handleNotificationOpen(openTarget, params.get('id'));
+
   const action = params.get('focus_action');
   if (!action) return;
 
@@ -8072,7 +8465,7 @@ function initSwipeTabs() {
 
 
 <!-- SYNC STATUS INDICATOR -->
-<div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 86px);left:50%;transform:translateX(-50%);z-index:200;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);opacity:0;transition:opacity .3s ease;pointer-events:none;">
+<div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 64px);left:50%;transform:translateX(-50%);z-index:150;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);opacity:0;transition:opacity .3s ease;pointer-events:none;">
   <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ink-mute);transition:background .2s"></span>
   <span id="sync-label">Sync</span>
 </div>
