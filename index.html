@@ -3835,6 +3835,7 @@ async function enablePushNotifications() {
     const subJson = sub.toJSON();
     await pushBackendPost('/subscribe', {
       deviceId,
+      username: S.myUsername || '',
       subscription: { endpoint: subJson.endpoint, keys: subJson.keys },
     });
     S.notificationsEnabled = true;
@@ -3955,34 +3956,21 @@ async function syncAllNotificationSchedules() {
 // ME, and fires an immediate push for each. Called after every Firestore
 // snapshot update (NOT the first-snapshot reconciliation, to avoid replaying
 // all historical notifications on initial load).
+// Tracks notification IDs already seen this session — kept for potential future
+// use (e.g. in-app toast on new tag while actively looking at the app), but no
+// longer fires a push directly. That responsibility moved to the Cloudflare
+// Worker's cron job (dispatchTagNotifications), which polls Firestore directly
+// and doesn't depend on this device being open/connected. Firing from both
+// places would risk duplicate notifications, since the two systems don't share
+// dedup state with each other.
 let _seenNotificationIds = null;
 function watchForNewNotifications() {
   if (!Array.isArray(S.notifications)) return;
-  const me = normalizeUsername(S.myUsername);
   if (_seenNotificationIds === null) {
-    // First call this session — just record what's already there, don't notify.
     _seenNotificationIds = new Set(S.notifications.map(n => n.id));
     return;
   }
-  const fresh = S.notifications.filter(n =>
-    !_seenNotificationIds.has(n.id) &&
-    !n.read &&
-    normalizeUsername(n.forUser) === me &&
-    normalizeUsername(n.fromUser) !== me // don't push for my own self-mentions
-  );
   S.notifications.forEach(n => _seenNotificationIds.add(n.id));
-  if (!fresh.length) return;
-  if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
-  fresh.forEach(n => {
-    const title = n.type === 'manual-notify' ? '@' + esc(n.fromUser) + ' notified you' : '@' + esc(n.fromUser) + ' tagged you';
-    pushBackendPost('/notify-now', {
-      deviceId: getOrCreateDeviceId(),
-      title,
-      notifBody: n.snippet || '',
-      tag: 'notif-' + n.id,
-      url: '?focus_open=notifications',
-    }).catch(e => console.warn('notify-now failed:', e));
-  });
 }
 
 function startSync(){
@@ -6646,6 +6634,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.53',
+    date: 'Jun 22, 2026',
+    type: 'major',
+    items: [
+      'Fixed unreliable tag/manual-notify push notifications: previously, detecting a new tag relied entirely on the RECIPIENT\'s device having an active Firestore connection at that exact moment — if their PWA was closed or backgrounded, nothing happened until they next opened it. This was the only one of the 4 notification scenarios that worked this way; due-time and streak-check notifications were already reliable since they run via the Cloudflare Worker\'s server-side cron job.',
+      'Tag/manual-notify detection moved to the same server-side cron job — it now polls each household\'s Firestore document once a minute and pushes new unread notifications directly, independent of whether the recipient\'s device is active. Requires a backend update (new D1 migration + redeployed Worker) — see SETUP-NOTIFICATIONS.md.',
+      'Removed the old client-side push-firing logic to avoid duplicate notifications now that the cron job handles this'
+    ]
+  },
   {
     version: '0.04.52',
     date: 'Jun 22, 2026',
