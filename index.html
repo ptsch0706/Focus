@@ -522,6 +522,31 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .color-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:all .15s;}
 .color-swatch.selected{border-color:var(--ink);transform:scale(1.1);}
 
+/* LIST ICON PICKER */
+.list-icon-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.list-icon-swatch{width:40px;height:40px;border-radius:10px;cursor:pointer;border:2px solid var(--line);background:var(--bg-elev);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;}
+.list-icon-swatch.selected{border-color:var(--cyan);background:var(--cyan-soft);}
+
+/* LIST FOLDERS */
+.list-folder-hdr{display:flex;align-items:center;gap:8px;padding:10px 4px;cursor:pointer;}
+.list-folder-hdr .chev{transition:transform .2s;color:var(--ink-mute);flex-shrink:0;}
+.list-folder-hdr.collapsed .chev{transform:rotate(-90deg);}
+.list-folder-name{font-size:14px;font-weight:700;color:var(--ink);flex:1;}
+.list-folder-count{font-size:12px;color:var(--ink-mute);}
+.list-folder-body{display:block;}
+.list-folder-body.collapsed{display:none;}
+.list-section-label{font-size:11px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.04em;padding:14px 4px 6px;}
+
+/* PIN BUTTON on list cards */
+.list-pin-btn{background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.list-pin-btn.pinned{color:var(--pri-med);}
+.list-card-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center;}
+
+/* SORT TOGGLE inside list detail view */
+.sort-toggle-row{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:var(--ink-soft);}
+.sort-toggle-btn{background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--ink-soft);}
+.sort-toggle-btn.active{background:var(--cyan-soft);color:var(--cyan);border-color:var(--cyan);font-weight:600;}
+
 /* COLLAPSIBLE STREAK CARDS */
 .streak-card{cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
 .streak-card.expanded{cursor:default;}
@@ -1595,6 +1620,26 @@ input.has-mention, .note-title-input.has-mention {
           <div class="color-swatch" data-color="#ec4899" style="background:#ec4899" onclick="selectListColor('#ec4899',this)"></div>
         </div>
       </div>
+      <div class="field"><label class="field-label">Icon (optional)</label>
+        <div class="list-icon-picker" id="list-icon-picker">
+          <div class="list-icon-swatch" data-icon="" onclick="selectListIcon('',this)" title="None">—</div>
+          <div class="list-icon-swatch" data-icon="🛒" onclick="selectListIcon('🛒',this)" title="Groceries">🛒</div>
+          <div class="list-icon-swatch" data-icon="🧳" onclick="selectListIcon('🧳',this)" title="Packing">🧳</div>
+          <div class="list-icon-swatch" data-icon="🏠" onclick="selectListIcon('🏠',this)" title="Home">🏠</div>
+          <div class="list-icon-swatch" data-icon="🎁" onclick="selectListIcon('🎁',this)" title="Gift">🎁</div>
+          <div class="list-icon-swatch" data-icon="✈️" onclick="selectListIcon('✈️',this)" title="Travel">✈️</div>
+          <div class="list-icon-swatch" data-icon="💼" onclick="selectListIcon('💼',this)" title="Work">💼</div>
+          <div class="list-icon-swatch" data-icon="🔧" onclick="selectListIcon('🔧',this)" title="Projects/Repairs">🔧</div>
+          <div class="list-icon-swatch" data-icon="💡" onclick="selectListIcon('💡',this)" title="Ideas">💡</div>
+          <div class="list-icon-swatch" data-icon="🐾" onclick="selectListIcon('🐾',this)" title="Pets">🐾</div>
+        </div>
+      </div>
+      <div class="field"><label class="field-label">Folder (optional)</label>
+        <select id="list-folder-select" style="width:100%;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 14px;color:var(--ink);font-family:'Inter',sans-serif;font-size:15px">
+          <option value="">No folder</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="promptNewListFolder()">+ New folder</button>
+      </div>
       
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn btn-ghost btn-danger btn-sm" id="list-del-btn" onclick="deleteList()" style="display:none">Delete</button>
@@ -1751,7 +1796,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],listFolders:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1797,6 +1842,13 @@ function loadState(){
       if(!Array.isArray(loaded.dismissedStreakPlaceholders))loaded.dismissedStreakPlaceholders=[];
       if(!Array.isArray(loaded.dismissedSharedItems))loaded.dismissedSharedItems=[];
       if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{if(!Array.isArray(t.subtasks))t.subtasks=[];});
+      if(!Array.isArray(loaded.listFolders))loaded.listFolders=[];
+      if(Array.isArray(loaded.lists))loaded.lists.forEach(l=>{
+        if(typeof l.folderId==='undefined')l.folderId=null;
+        if(typeof l.pinned!=='boolean')l.pinned=false;
+        if(typeof l.icon==='undefined')l.icon=null;
+        if(l.sortMode!=='manual'&&l.sortMode!=='alphabetical')l.sortMode='manual';
+      });
       return loaded;
     }
     const v1=localStorage.getItem('focus_state');
@@ -2328,6 +2380,55 @@ function selectListColor(color, el) {
   document.querySelectorAll('#list-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s === el));
 }
 
+// ── LIST ICON PICKER ──
+let selectedListIcon = '';
+function selectListIcon(icon, el) {
+  selectedListIcon = icon;
+  document.querySelectorAll('#list-icon-picker .list-icon-swatch').forEach(s => s.classList.toggle('selected', s === el));
+}
+
+// ── LIST FOLDERS ──
+function populateListFolderSelect(currentFolderId) {
+  const sel = document.getElementById('list-folder-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">No folder</option>'
+    + (S.listFolders || []).map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
+  sel.value = currentFolderId || '';
+}
+
+function promptNewListFolder() {
+  const name = prompt('Folder name:');
+  if (!name || !name.trim()) return;
+  const folder = { id: gid(), name: name.trim(), color: '#06b6d4', createdAt: Date.now() };
+  if (!Array.isArray(S.listFolders)) S.listFolders = [];
+  S.listFolders.push(folder);
+  save();
+  populateListFolderSelect(folder.id);
+  toast('Folder created', 'ok');
+}
+
+function toggleListPin(listId) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  l.pinned = !l.pinned;
+  save();
+  renderLists();
+}
+
+function setListSortMode(listId, mode) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  l.sortMode = mode;
+  save();
+  renderListDet();
+}
+
+let _collapsedListFolders = {}; // per-device view state, deliberately NOT part of S so it never syncs or persists across reinstalls
+function toggleListFolderCollapse(folderId) {
+  _collapsedListFolders[folderId] = !_collapsedListFolders[folderId];
+  renderLists();
+}
+
 // ── LISTS ──
 function openListModal(id=null){
   const l=id?S.lists.find(l=>l.id===id):null;
@@ -2337,6 +2438,17 @@ function openListModal(id=null){
   // list-icon field removed (replaced with color picker)
   document.getElementById('list-del-btn').style.display=l?'':'none';
   resetPills('listtype',l?l.type||'checklist':'checklist');
+  // Color picker — restore the list's actual color when editing (was previously
+  // a pre-existing bug: selectedListColor never got reset here, so editing a list
+  // without touching a swatch could silently overwrite its color with whatever was
+  // left over from a previous session).
+  selectedListColor = l ? (l.color || '#f59e0b') : '#f59e0b';
+  document.querySelectorAll('#list-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s.dataset.color === selectedListColor));
+  // Icon picker
+  selectedListIcon = l ? (l.icon || '') : '';
+  document.querySelectorAll('#list-icon-picker .list-icon-swatch').forEach(s => s.classList.toggle('selected', s.dataset.icon === selectedListIcon));
+  // Folder picker
+  populateListFolderSelect(l ? l.folderId : '');
     // Inject share row
   const lBody = document.querySelector('#modal-list .modal-body');
   let lShareRow = lBody.querySelector('.share-injected');
@@ -2357,8 +2469,9 @@ function saveList(){
   const id=document.getElementById('list-eid').value;
   let newId=null;
   let editedId=null;
-  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');editedId=id;}toast('Updated','ok');}
-  else{const newL={id:gid(),name,color:selectedListColor,type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
+  const folderId=document.getElementById('list-folder-select').value||null;
+  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,icon:selectedListIcon||null,folderId,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');editedId=id;}toast('Updated','ok');}
+  else{const newL={id:gid(),name,color:selectedListColor,icon:selectedListIcon||null,folderId,pinned:false,sortMode:'manual',type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
   save();closeModal('modal-list');renderLists();
   // If we just edited the list currently open in detail view, refresh its header live
   if(editedId&&typeof listId!=='undefined'&&listId===editedId&&typeof renderListDet==='function')renderListDet();
@@ -2370,25 +2483,56 @@ function deleteList(){
   if(!id||!confirm('Delete this list and all its items?'))return;
   S.lists=S.lists.filter(l=>l.id!==id);save();closeModal('modal-list');renderLists();toast('Deleted');
 }
+function renderListCardHTML(l){
+  const regularItemsCard=(l.items||[]).filter(i=>!i.isSection&&!i.isSubsection);
+  const tot=regularItemsCard.length,chk=regularItemsCard.filter(i=>i.checked).length;
+  const lHasChks=(l.type==='checklist')||(l.type==='nested'&&l.showCheckboxes);
+  const meta=lHasChks?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
+  const lastRefreshedTxt = l.recurrence && l.recurrence.lastRefreshedDate
+    ? ' · refreshed ' + new Date(l.recurrence.lastRefreshedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
+    : '';
+  const iconHTML = l.icon ? `<div class="list-card-icon">${esc(l.icon)}</div>` : '';
+  return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'};display:flex;align-items:center">
+  ${iconHTML}
+  <div class="list-card-hdr" style="flex:1">
+    <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name,'list',l.id)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}${lastRefreshedTxt}</div>${shareChipsHTML(l,'list',l.id)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l,'list',l.id)}</div>`:''}</div>
+    <button class="list-pin-btn${l.pinned?' pinned':''}" onclick="event.stopPropagation();toggleListPin('${l.id}')" title="${l.pinned?'Unpin':'Pin'}"><svg xmlns="http://www.w3.org/2000/svg" fill="${l.pinned?'currentColor':'none'}" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><path d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z"/></svg></button>
+    <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListCardMenu('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
+  </div></div>`;
+}
+
 function renderLists(){
   const lists=S.lists.filter(canSeeItem);
   document.getElementById('list-sub').textContent=`${lists.length} list${lists.length!==1?'s':''}`;
   const el=document.getElementById('list-grid');
   if(!lists.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon" style="background:var(--list-soft);border-color:var(--list);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/></svg></div><div class="empty-title">No lists yet</div><div class="empty-sub">Tap + to create a grocery, packing, or idea list.</div></div>`;return;}
-  el.innerHTML=lists.map(l=>{
-    const regularItemsCard=(l.items||[]).filter(i=>!i.isSection&&!i.isSubsection);
-    const tot=regularItemsCard.length,chk=regularItemsCard.filter(i=>i.checked).length;
-    const lHasChks=(l.type==='checklist')||(l.type==='nested'&&l.showCheckboxes);
-    const meta=lHasChks?`${chk}/${tot}`:`${tot} item${tot!==1?'s':''}`;
-    const lastRefreshedTxt = l.recurrence && l.recurrence.lastRefreshedDate
-      ? ' · refreshed ' + new Date(l.recurrence.lastRefreshedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
-      : '';
-    return`<div class="list-card" onclick="openListDetail('${l.id}')" style="border-left:3px solid ${l.color||'#f59e0b'}">
-    <div class="list-card-hdr">
-      <div style="flex:1;min-width:0"><div class="list-name">${renderMentionsHTML(l.name,'list',l.id)}</div><div class="list-meta">${meta}${l.recurrence?`<span class="list-rec-badge">${svg('refresh',10)} ${l.recurrence.schedule=='weekly'?'Weekly':l.recurrence.schedule=='biweekly'?'Bi-weekly':'Monthly'}</span>`:''}${lastRefreshedTxt}</div>${shareChipsHTML(l,'list',l.id)?`<div class="shared-with-row" style="margin-top:4px">${shareChipsHTML(l,'list',l.id)}</div>`:''}</div>
-      <button class="btn-icon btn-xs" onclick="event.stopPropagation();openListCardMenu('${l.id}')" style="color:var(--ink-mute);flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
-    </div></div>`;
-  }).join('');
+
+  const pinned = lists.filter(l => l.pinned);
+  const unpinned = lists.filter(l => !l.pinned);
+  const folders = S.listFolders || [];
+  const folderIds = new Set(folders.map(f => f.id));
+  const unfiled = unpinned.filter(l => !l.folderId || !folderIds.has(l.folderId));
+
+  let html = '';
+  if (pinned.length) {
+    html += '<div class="list-section-label">📌 Pinned</div>' + pinned.map(renderListCardHTML).join('');
+  }
+  folders.forEach(f => {
+    const inFolder = unpinned.filter(l => l.folderId === f.id);
+    if (!inFolder.length) return; // hide empty folders from the list view (still exist, just not shown until they have a list)
+    const collapsed = !!_collapsedListFolders[f.id];
+    html += `<div class="list-folder-hdr${collapsed?' collapsed':''}" onclick="toggleListFolderCollapse('${f.id}')">`
+      + `<svg class="chev" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><polyline points="6 9 12 15 18 9"/></svg>`
+      + `<span class="list-folder-name">${esc(f.name)}</span>`
+      + `<span class="list-folder-count">${inFolder.length}</span>`
+      + `</div>`
+      + `<div class="list-folder-body${collapsed?' collapsed':''}">${inFolder.map(renderListCardHTML).join('')}</div>`;
+  });
+  if (unfiled.length) {
+    if (folders.length) html += '<div class="list-section-label">Unfiled</div>';
+    html += unfiled.map(renderListCardHTML).join('');
+  }
+  el.innerHTML = html;
 }
 
 // REC D: duplicate an entire list (name gets " Copy" suffix, items copied fresh/unchecked)
@@ -2466,8 +2610,15 @@ function renderListDet(){
     return canSeeItem(i);
   });
   const regularItems=items.filter(i=>!i.isSection&&!i.isSubsection);
-  const unc=regularItems.filter(i=>!i.checked);
-  const chk=regularItems.filter(i=>i.checked);
+  let unc=regularItems.filter(i=>!i.checked);
+  let chk=regularItems.filter(i=>i.checked);
+  // Sort toggle only applies to checklist/freeform lists — nested lists have
+  // meaningful section/subsection ordering that alphabetical sort would break.
+  if(l.sortMode==='alphabetical'&&l.type!=='nested'){
+    const alphaSort=(a,b)=>(a.text||'').localeCompare(b.text||'',undefined,{sensitivity:'base'});
+    unc=[...unc].sort(alphaSort);
+    chk=[...chk].sort(alphaSort);
+  }
   const hasChks=(l.type==='checklist')||(l.type==='nested'&&l.showCheckboxes);
   const baseMeta=hasChks?`${chk.length}/${regularItems.length}`:`${regularItems.length} item${regularItems.length!==1?'s':''}`;
   // Update title
@@ -2486,6 +2637,12 @@ function renderListDet(){
     document.getElementById('det-sub').textContent=baseMeta;
   }
   let h='';
+  if(l.type!=='nested'){
+    h+=`<div class="sort-toggle-row">Sort: `
+      + `<button class="sort-toggle-btn${l.sortMode!=='alphabetical'?' active':''}" onclick="setListSortMode('${l.id}','manual')">Manual</button>`
+      + `<button class="sort-toggle-btn${l.sortMode==='alphabetical'?' active':''}" onclick="setListSortMode('${l.id}','alphabetical')">A–Z</button>`
+      + `</div>`;
+  }
   if(!items.length){
     h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;
   } else if(l.type==='nested'){
@@ -6698,6 +6855,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.55',
+    date: 'Jun 23, 2026',
+    type: 'major',
+    items: [
+      'Lists got 4 organization upgrades, modeled on patterns from established list apps like AnyList: Folders (group related lists together, collapsible, optional — ungrouped lists sit in an "Unfiled" section), Pin (pinned lists float to a dedicated section above everything else), a per-list Icon picker (10 curated icons — groceries, packing, travel, etc. — shown next to the list name on its card), and a Sort toggle (Manual vs A–Z, per list, only on checklist/freeform types since nested lists have meaningful section ordering that alphabetizing would break)',
+      'Fixed a pre-existing bug while in this area: editing a list never restored its actual color into the color picker, so saving an edit without touching a color swatch could silently revert the list to whatever color was last selected in a previous session',
+      'Folder collapse state is a per-device view preference, not synced data — collapsing a folder on your phone does not affect what Allie sees on hers'
+    ]
+  },
   {
     version: '0.04.54',
     date: 'Jun 23, 2026',
