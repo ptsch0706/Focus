@@ -364,6 +364,18 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 /* NOTE CARDS */
 .act-note{border-color:var(--note);background:var(--note-soft);color:var(--note);}
 .note-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:10px;cursor:pointer;transition:background .15s;position:relative;overflow:hidden;}
+.note-card.has-color{border-left:3px solid var(--note-card-color);}
+
+/* CHECKBOX BLOCKS inside the rich-text note editor — these are NOT real <input>
+   elements, deliberately. Native checkboxes inside contenteditable regions have
+   a history of inconsistent behavior on iOS Safari. Instead each block is a div
+   with a data attribute and a click-toggled class; toggling is handled via event
+   delegation in the editor, not a native checkbox input. */
+.note-checkbox-block{display:flex;align-items:flex-start;gap:8px;padding:3px 0;cursor:pointer;}
+.note-checkbox-box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.note-checkbox-block.checked .note-checkbox-box{background:var(--note);border-color:var(--note);}
+.note-checkbox-text{flex:1;}
+.note-checkbox-block.checked .note-checkbox-text{color:var(--ink-mute);text-decoration:line-through;}
 .note-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--note);border-radius:3px 0 0 3px;}
 .note-card:active{background:var(--bg-raised);}
 /* .note-card.pinned indicator handled by JS-injected SVG */
@@ -1796,7 +1808,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],listFolders:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1848,6 +1860,13 @@ function loadState(){
         if(typeof l.pinned!=='boolean')l.pinned=false;
         if(typeof l.icon==='undefined')l.icon=null;
         if(l.sortMode!=='manual'&&l.sortMode!=='alphabetical')l.sortMode='manual';
+      });
+      if(!Array.isArray(loaded.noteFolders))loaded.noteFolders=[];
+      if(Array.isArray(loaded.notes))loaded.notes.forEach(n=>{
+        if(typeof n.folderId==='undefined')n.folderId=null;
+        if(typeof n.color==='undefined')n.color=null;
+        if(typeof n.icon==='undefined')n.icon=null;
+        if(!Array.isArray(n.attachments))n.attachments=[];
       });
       return loaded;
     }
@@ -3663,6 +3682,16 @@ function renderSett(){
     +'<div class="sett-text"><div class="sett-label">List Templates</div><div class="sett-sub">'+((S.templates||[]).length)+' saved</div></div>'
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button>'
+    +'<button class="sett-row" onclick="openFolderManager(\'list\')">'
+    +'<div class="sett-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h3.5l1.5 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">List Folders</div><div class="sett-sub">'+((S.listFolders||[]).length)+' folder'+((S.listFolders||[]).length!==1?'s':'')+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button>'
+    +'<button class="sett-row" onclick="openFolderManager(\'note\')">'
+    +'<div class="sett-icon" style="background:var(--note-soft);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h3.5l1.5 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Note Folders</div><div class="sett-sub">'+((S.noteFolders||[]).length)+' folder'+((S.noteFolders||[]).length!==1?'s':'')+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button>'
     +'<button class="sett-row" onclick="settGrace()">'
     +'<div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
     +'<div class="sett-text"><div class="sett-label">Late Log Grace Window</div><div class="sett-sub">Log yesterday before '+S.graceWindowHour+':00 AM</div></div>'
@@ -4358,6 +4387,12 @@ function openNoteDetail(id=null) {
   updateNotePin(note);
   updateNoteMeta(note);
   updateNoteLinkChips(note);
+  updateNoteColorPicker(note);
+  updateNoteIconPicker(note);
+  populateNoteFolderSelect(note ? note.folderId : '');
+  renderNoteAttachStrip(note);
+  initNoteChecklistDelegation();
+  document.getElementById('note-options-row').style.display = 'none';
   document.getElementById('note-detail-view').classList.add('show');
   document.body.style.overflow = 'hidden';
   showNoteToolbar();
@@ -4666,6 +4701,13 @@ function updateNotePin(note) {
   btn.style.color = note.pinned ? 'var(--note)' : '';
 }
 
+function toggleNoteOptionsRow() {
+  const row = document.getElementById('note-options-row');
+  if (!row) return;
+  const showing = row.style.display !== 'none';
+  row.style.display = showing ? 'none' : 'flex';
+}
+
 function toggleNotePin() {
   const note = S.notes.find(n=>n.id===noteId);
   if (!note) return;
@@ -4674,6 +4716,167 @@ function toggleNotePin() {
   save();
   updateNotePin(note);
   toast(note.pinned ? 'Pinned to Dashboard' : 'Unpinned', 'ok');
+}
+
+// ── NOTE COLOR ──
+function selectNoteColor(color, el) {
+  const note = S.notes.find(n=>n.id===noteId);
+  if (!note) return;
+  note.color = color || null;
+  note.updatedAt = Date.now();
+  save();
+  document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s === el));
+}
+
+function updateNoteColorPicker(note) {
+  document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s.dataset.color === (note ? (note.color || '') : '')));
+}
+
+// ── NOTE ICON (parity with List icons) ──
+function selectNoteIcon(icon, el) {
+  const note = S.notes.find(n=>n.id===noteId);
+  if (!note) return;
+  note.icon = icon || null;
+  note.updatedAt = Date.now();
+  save();
+  document.querySelectorAll('#note-icon-picker .list-icon-swatch').forEach(s => s.classList.toggle('selected', s === el));
+  renderNotes();
+}
+
+function updateNoteIconPicker(note) {
+  document.querySelectorAll('#note-icon-picker .list-icon-swatch').forEach(s => s.classList.toggle('selected', s.dataset.icon === (note ? (note.icon || '') : '')));
+}
+
+// ── NOTE FOLDERS ──
+function populateNoteFolderSelect(currentFolderId) {
+  const sel = document.getElementById('note-folder-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">No folder</option>'
+    + (S.noteFolders || []).map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
+  sel.value = currentFolderId || '';
+}
+
+function promptNewNoteFolder() {
+  const name = prompt('Folder name:');
+  if (!name || !name.trim()) return;
+  const folder = { id: gid(), name: name.trim(), color: '#06b6d4', createdAt: Date.now() };
+  if (!Array.isArray(S.noteFolders)) S.noteFolders = [];
+  S.noteFolders.push(folder);
+  save();
+  populateNoteFolderSelect(folder.id);
+  setNoteFolder(folder.id);
+  toast('Folder created', 'ok');
+}
+
+function setNoteFolder(folderId) {
+  const note = S.notes.find(n=>n.id===noteId);
+  if (!note) return;
+  note.folderId = folderId || null;
+  note.updatedAt = Date.now();
+  save();
+}
+
+let _collapsedNoteFolders = {}; // per-device view state, deliberately not part of S
+function toggleNoteFolderCollapse(folderId) {
+  _collapsedNoteFolders[folderId] = !_collapsedNoteFolders[folderId];
+  renderNotes();
+}
+
+// ── NOTE PHOTO ATTACHMENTS (same compression pattern as List attachments) ──
+function openNoteAttachmentPicker() {
+  if (!noteId) return;
+  document.getElementById('note-attach-input').click();
+}
+
+function handleNoteAttachUpload(event) {
+  const file = event.target.files[0];
+  if (!file || !noteId) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = h * (MAX / w); w = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      const note = S.notes.find(n => n.id === noteId);
+      if (!note) return;
+      if (!Array.isArray(note.attachments)) note.attachments = [];
+      note.attachments.push({ id: gid(), dataUrl, addedAt: Date.now() });
+      note.updatedAt = Date.now();
+      save();
+      renderNoteAttachStrip(note);
+      toast('Photo attached', 'ok');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function deleteNoteAttachment(attachId) {
+  if (!noteId || !confirm('Delete this photo?')) return;
+  const note = S.notes.find(n => n.id === noteId);
+  if (!note) return;
+  note.attachments = (note.attachments || []).filter(a => a.id !== attachId);
+  note.updatedAt = Date.now();
+  save();
+  renderNoteAttachStrip(note);
+  toast('Photo deleted');
+}
+
+function renderNoteAttachStrip(note) {
+  const el = document.getElementById('note-attach-strip');
+  if (!el) return;
+  if (!note || !note.attachments || !note.attachments.length) { el.innerHTML = ''; return; }
+  let html = '<div class="list-attachments"><div class="list-attach-label">Photos</div><div class="list-attach-strip">';
+  note.attachments.forEach(a => {
+    html += '<div class="list-attach-thumb">'
+      + '<img src="' + a.dataUrl + '" onclick="openAttachmentViewer(\'' + a.dataUrl + '\')" alt="attachment">'
+      + '<button class="list-attach-del" onclick="deleteNoteAttachment(\'' + a.id + '\')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + '</div>';
+  });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+// ── NOTE CHECKLIST BLOCKS ──
+// Inserted as plain HTML (not real <input> elements — see CSS comment for why).
+// Toggling is handled via event delegation on the editor (see initNoteChecklistDelegation).
+let _checklistBlockCounter = 0;
+function insertChecklistBlock() {
+  const editor = document.getElementById('note-body-inp');
+  if (!editor) return;
+  editor.focus();
+  const blockId = 'cb' + Date.now() + (_checklistBlockCounter++);
+  const html = '<div class="note-checkbox-block" data-cb-id="' + blockId + '" contenteditable="false">'
+    + '<span class="note-checkbox-box"></span>'
+    + '<span class="note-checkbox-text" contenteditable="true">New item</span>'
+    + '</div><p><br></p>';
+  document.execCommand('insertHTML', false, html);
+  noteChanged();
+}
+
+// One-time event delegation setup: clicking a checkbox box toggles its `checked`
+// class. Bound once at app init rather than per-render, since the editor element
+// itself never gets replaced (only its innerHTML changes).
+function initNoteChecklistDelegation() {
+  const editor = document.getElementById('note-body-inp');
+  if (!editor || editor._cbDelegationBound) return;
+  editor._cbDelegationBound = true;
+  editor.addEventListener('click', e => {
+    const box = e.target.closest('.note-checkbox-box');
+    if (!box) return;
+    const block = box.closest('.note-checkbox-block');
+    if (!block) return;
+    block.classList.toggle('checked');
+    noteChanged();
+  });
 }
 
 
@@ -4790,6 +4993,32 @@ function setFilter(mod, f, btn) {
   if(mod==='todo')renderTodos();else if(mod==='list')renderLists();else if(mod==='rem')renderRem();else renderNotes();
 }
 
+function renderNoteCardHTML(note){
+  const preview = stripHTML(note.body).substring(0,100);
+  const d = new Date(note.updatedAt||note.createdAt);
+  const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  let linkBadge = '';
+  if (note.linkedTo) {
+    const {type,id} = note.linkedTo;
+    let lbl='',icon='';
+    if(type==='todo'){const t=S.todos.find(t=>t.id===id);lbl=t?t.title:'';icon='✓';}
+    else if(type==='list'){const l=S.lists.find(l=>l.id===id);lbl=l?l.name:'';icon='≡';}
+    else if(type==='reminder'){const r=S.reminders.find(r=>r.id===id);lbl=r?r.title:'';icon='BELL';}
+    else if(type==='streak'){const s=S.streaks.find(s=>s.id===id);lbl=s?s.name:'';icon=s?s.emoji:'';}
+    if(lbl) linkBadge = `<span class="note-link-badge">${icon==='BELL'?svg('bell',12):icon} ${esc(lbl.substring(0,20))}</span>`;
+  }
+  const cardClass = 'note-card' + (note.pinned?' pinned':'') + (note.color?' has-color':'');
+  const cardStyle = note.color ? ` style="--note-card-color:${note.color}"` : '';
+  const noteIconHTML = note.icon ? `<span style="margin-right:6px">${esc(note.icon)}</span>` : '';
+  return `<div class="${cardClass}"${cardStyle} onclick="openNoteDetail('${note.id}')">
+    ${note.pinned?`<span class="pin-indicator">${svg('pin',14)}</span>`:''}
+    <div class="note-card-title">${noteIconHTML}${note.title ? renderMentionsHTML(note.title,'note',note.id) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
+    ${preview ? `<div class="note-card-preview">${esc(preview)}</div>` : ''}
+    <div class="note-card-meta">${dateStr}${linkBadge ? ' · '+linkBadge : ''}</div>
+    ${shareChipsHTML(note,'note',note.id) ? `<div class="shared-with-row">${shareChipsHTML(note,'note',note.id)}</div>` : ''}
+  </div>`;
+}
+
 function renderNotes() {
   let notes = S.notes.filter(canSeeItem);
   if (noteFilter==='pinned') notes = notes.filter(n=>n.pinned);
@@ -4799,30 +5028,40 @@ function renderNotes() {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon" style="background:var(--note-soft);border-color:var(--note);color:var(--note)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">No notes yet</div><div class="empty-sub">Tap + to capture an idea, plan, or thought.</div></div>`;
     return;
   }
-  // Pinned first
-  const sorted = [...notes.filter(n=>n.pinned), ...notes.filter(n=>!n.pinned)];
-  el.innerHTML = sorted.map(note => {
-    const preview = stripHTML(note.body).substring(0,100);
-    const d = new Date(note.updatedAt||note.createdAt);
-    const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    let linkBadge = '';
-    if (note.linkedTo) {
-      const {type,id} = note.linkedTo;
-      let lbl='',icon='';
-      if(type==='todo'){const t=S.todos.find(t=>t.id===id);lbl=t?t.title:'';icon='✓';}
-      else if(type==='list'){const l=S.lists.find(l=>l.id===id);lbl=l?l.name:'';icon='≡';}
-      else if(type==='reminder'){const r=S.reminders.find(r=>r.id===id);lbl=r?r.title:'';icon='BELL';}
-      else if(type==='streak'){const s=S.streaks.find(s=>s.id===id);lbl=s?s.name:'';icon=s?s.emoji:'';}
-      if(lbl) linkBadge = `<span class="note-link-badge">${icon==='BELL'?svg('bell',12):icon} ${esc(lbl.substring(0,20))}</span>`;
-    }
-    return `<div class="note-card ${note.pinned?'pinned':''}" onclick="openNoteDetail('${note.id}')">
-      ${note.pinned?`<span class="pin-indicator">${svg('pin',14)}</span>`:''}
-      <div class="note-card-title">${note.title ? renderMentionsHTML(note.title,'note',note.id) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
-      ${preview ? `<div class="note-card-preview">${esc(preview)}</div>` : ''}
-      <div class="note-card-meta">${dateStr}${linkBadge ? ' · '+linkBadge : ''}</div>
-      ${shareChipsHTML(note,'note',note.id) ? `<div class="shared-with-row">${shareChipsHTML(note,'note',note.id)}</div>` : ''}
-    </div>`;
-  }).join('');
+
+  // The "Pinned" filter pill shows a simple flat list (no folder grouping —
+  // you're already narrowing down, no need for further structure).
+  if (noteFilter==='pinned') {
+    el.innerHTML = notes.map(renderNoteCardHTML).join('');
+    return;
+  }
+
+  const pinned = notes.filter(n => n.pinned);
+  const unpinned = notes.filter(n => !n.pinned);
+  const folders = S.noteFolders || [];
+  const folderIds = new Set(folders.map(f => f.id));
+  const unfiled = unpinned.filter(n => !n.folderId || !folderIds.has(n.folderId));
+
+  let html = '';
+  if (pinned.length) {
+    html += '<div class="list-section-label">📌 Pinned</div>' + pinned.map(renderNoteCardHTML).join('');
+  }
+  folders.forEach(f => {
+    const inFolder = unpinned.filter(n => n.folderId === f.id);
+    if (!inFolder.length) return;
+    const collapsed = !!_collapsedNoteFolders[f.id];
+    html += `<div class="list-folder-hdr${collapsed?' collapsed':''}" onclick="toggleNoteFolderCollapse('${f.id}')">`
+      + `<svg class="chev" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><polyline points="6 9 12 15 18 9"/></svg>`
+      + `<span class="list-folder-name">${esc(f.name)}</span>`
+      + `<span class="list-folder-count">${inFolder.length}</span>`
+      + `</div>`
+      + `<div class="list-folder-body${collapsed?' collapsed':''}">${inFolder.map(renderNoteCardHTML).join('')}</div>`;
+  });
+  if (unfiled.length) {
+    if (folders.length) html += '<div class="list-section-label">Unfiled</div>';
+    html += unfiled.map(renderNoteCardHTML).join('');
+  }
+  el.innerHTML = html;
 }
 
 
@@ -6342,6 +6581,68 @@ function openTemplatesManager() {
 }
 
 
+// ── FOLDER MANAGER (shared between Lists and Notes) ──
+// type is 'list' or 'note'. Deleting a folder does NOT delete the lists/notes
+// inside it — they move back to Unfiled, same as if you'd never assigned a
+// folder. Only the folder itself is removed.
+function openFolderManager(type) {
+  const folders = type === 'list' ? (S.listFolders || []) : (S.noteFolders || []);
+  const items = type === 'list' ? (S.lists || []) : (S.notes || []);
+  document.getElementById('folder-manager-title').textContent = (type === 'list' ? 'List' : 'Note') + ' Folders';
+  const body = document.getElementById('folder-manager-body');
+  if (!folders.length) {
+    body.innerHTML = '<div class="empty-state" style="padding:32px 16px">'
+      + '<div class="empty-title">No folders yet</div>'
+      + '<div class="empty-sub">Create one from any ' + (type === 'list' ? 'list' : 'note') + '\u2019s edit screen.</div>'
+      + '</div>';
+    return;
+  }
+  let html = '';
+  folders.forEach(f => {
+    const count = items.filter(i => i.folderId === f.id).length;
+    html += '<div class="template-card">'
+      + '<div class="list-icon" style="background:' + (f.color || '#06b6d4') + '1a;border:2px solid ' + (f.color || '#06b6d4') + '"></div>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div class="list-name">' + esc(f.name) + '</div>'
+      + '<div class="list-meta">' + count + ' ' + (type === 'list' ? 'list' : 'note') + (count !== 1 ? 's' : '') + '</div>'
+      + '</div>'
+      + '<button class="btn-icon btn-xs" onclick="renameFolderPrompt(\'' + type + '\',\'' + f.id + '\')" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+      + '<button class="btn-icon btn-xs" onclick="deleteFolderPrompt(\'' + type + '\',\'' + f.id + '\')" style="color:var(--pri-high)" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
+      + '</div>';
+  });
+  body.innerHTML = html;
+  openModal('modal-folder-manager');
+}
+
+function renameFolderPrompt(type, folderId) {
+  const folders = type === 'list' ? S.listFolders : S.noteFolders;
+  const f = (folders || []).find(x => x.id === folderId);
+  if (!f) return;
+  const name = prompt('Rename folder:', f.name);
+  if (!name || !name.trim()) return;
+  f.name = name.trim();
+  save();
+  openFolderManager(type);
+  if (type === 'list') renderLists(); else renderNotes();
+  toast('Folder renamed', 'ok');
+}
+
+function deleteFolderPrompt(type, folderId) {
+  if (!confirm('Delete this folder? ' + (type === 'list' ? 'Lists' : 'Notes') + ' inside it move to Unfiled \u2014 nothing is deleted except the folder itself.')) return;
+  if (type === 'list') {
+    S.listFolders = (S.listFolders || []).filter(f => f.id !== folderId);
+    (S.lists || []).forEach(l => { if (l.folderId === folderId) l.folderId = null; });
+    renderLists();
+  } else {
+    S.noteFolders = (S.noteFolders || []).filter(f => f.id !== folderId);
+    (S.notes || []).forEach(n => { if (n.folderId === folderId) n.folderId = null; });
+    renderNotes();
+  }
+  save();
+  openFolderManager(type);
+  toast('Folder deleted', 'ok');
+}
+
 function injectTemplateBanner() {
   // Show "Or create from template" button in the list modal if templates exist
   const body = document.querySelector('#modal-list .modal-body');
@@ -6855,6 +7156,28 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.57',
+    date: 'Jun 23, 2026',
+    type: 'major',
+    items: [
+      'Cohesion pass across the app, looking for places one tab got an upgrade another didn\'t: Notes now has an icon picker (was Lists-only), and both List and Note folders can now be renamed or deleted via Settings (previously create-only, with no way to manage them afterward). Deleting a folder moves its contents to Unfiled — nothing inside it is deleted.',
+      'Notes\' new color/folder/icon/photo controls were sitting in an always-visible row at the top of every note, eating into writing space — now collapsed behind a single "Options" toggle, hidden by default, matching the app\'s broader principle of keeping primary views uncluttered',
+      'Confirmed consistent: empty-state wording/structure, color palettes (all 3 color pickers use the identical 6 hex values), and page header structure are all aligned across every tab',
+      'Noted but left as-is: To-Dos and Reminders don\'t have pin/folder support like Lists and Notes do. Their date-based sorting and dashboard surfacing already cover a similar need, so this isn\'t flagged as a gap requiring the same treatment — worth revisiting only if it turns out to matter in practice',
+      'Found a broader version of the same issue: 8 modals across the app (Quick Capture, Quick Tag Manager, list item/card menus, move-to-section, list recurrence, share picker, streak value entry) had the swipe-down handle visually present but did nothing when swiped — the visual affordance existed without the matching behavior. All 18 modals in the app now consistently support swipe-to-dismiss.'
+    ]
+  },
+  {
+    version: '0.04.56',
+    date: 'Jun 23, 2026',
+    type: 'major',
+    items: [
+      'Notes got 4 upgrades, researched from established note apps (Apple Notes, Google Keep, Bear): Color-coding (7 swatches, shown as a left-border accent on the card, same visual language as Lists), Folders (collapsible, optional — separate from List folders since the two collections are conceptually distinct), Checklist blocks inside the rich-text editor (tap to check off, separate from the existing bullet/numbered lists), and Photo attachments (same compression approach already used for List photos)',
+      'Checklist blocks are intentionally NOT real checkbox inputs — native <input> elements inside contenteditable regions have a history of inconsistent behavior on iOS Safari. Instead each is a styled block toggled via a click handler, the same underlying approach apps like Notion use',
+      'Folder collapse state is per-device, not synced — same as List folders'
+    ]
+  },
   {
     version: '0.04.55',
     date: 'Jun 23, 2026',
@@ -8316,7 +8639,7 @@ function attachSwipeDismiss(modalId) {
 
 // Attach to all modals when DOM ready
 function initSwipeDismiss() {
-  ['modal-picker','modal-todo','modal-list','modal-list-menu','modal-reminder','modal-settings','modal-note-link','modal-streak'].forEach(attachSwipeDismiss);
+  ['modal-picker','modal-todo','modal-list','modal-list-menu','modal-reminder','modal-settings','modal-note-link','modal-streak','modal-templates','modal-folder-manager','modal-quick-capture','modal-quicktag-manager','modal-list-item-menu','modal-list-card-menu','modal-move-to-section','modal-list-recurrence','modal-share-picker','modal-streak-value'].forEach(attachSwipeDismiss);
 }
 
 
@@ -8897,11 +9220,44 @@ function initSwipeTabs() {
     <button class="note-tb-btn" onclick="richCmd('outdent')" title="Decrease indent"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="21" y1="10" x2="11" y2="10"/><line x1="21" y1="6" x2="11" y2="6"/><line x1="21" y1="14" x2="11" y2="14"/><line x1="21" y1="18" x2="11" y2="18"/><polyline points="7 8 3 12 7 16"/></svg></button>
     <button class="note-tb-btn" onclick="richCmd('indent')" title="Increase indent"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><line x1="21" y1="10" x2="11" y2="10"/><line x1="21" y1="6" x2="11" y2="6"/><line x1="21" y1="14" x2="11" y2="14"/><line x1="21" y1="18" x2="11" y2="18"/><polyline points="3 8 7 12 3 16"/></svg></button>
     <button class="note-tb-btn" onclick="wrapSelectionInCode()" title="Code"><span style="font-family:monospace;font-size:13px">&lt;/&gt;</span></button>
+    <button class="note-tb-btn" onclick="insertChecklistBlock()" title="Checklist"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><rect x="3" y="3" width="6" height="6" rx="1"/><path d="M3 14h6v6H3z"/><polyline points="5 5.5 6 6.5 8 4.5" transform="translate(0,8)"/><line x1="12" y1="6" x2="21" y2="6"/><line x1="12" y1="17" x2="21" y2="17"/></svg></button>
   </div>
+  <!-- NOTE OPTIONS ROW — color, folder, photo. Sits below the formatting toolbar. -->
+  <button class="note-tb-btn" id="note-options-toggle" onclick="toggleNoteOptionsRow()" style="margin:8px 16px 0">⚙ Options</button>
+  <div class="note-toolbar" id="note-options-row" style="flex-wrap:wrap;align-items:center;gap:10px;display:none">
+    <span style="font-size:11px;color:var(--ink-mute);flex-shrink:0">Color:</span>
+    <div class="streak-color-picker" id="note-color-picker" style="margin:0">
+      <div class="color-swatch" data-color="" style="background:var(--bg-elev);border:1.5px solid var(--line)" onclick="selectNoteColor('',this)" title="None"></div>
+      <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" onclick="selectNoteColor('#f59e0b',this)"></div>
+      <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4" onclick="selectNoteColor('#06b6d4',this)"></div>
+      <div class="color-swatch" data-color="#10b981" style="background:#10b981" onclick="selectNoteColor('#10b981',this)"></div>
+      <div class="color-swatch" data-color="#f43f5e" style="background:#f43f5e" onclick="selectNoteColor('#f43f5e',this)"></div>
+      <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectNoteColor('#8b5cf6',this)"></div>
+      <div class="color-swatch" data-color="#ec4899" style="background:#ec4899" onclick="selectNoteColor('#ec4899',this)"></div>
+    </div>
+    <select id="note-folder-select" onchange="setNoteFolder(this.value)" style="background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 10px;color:var(--ink);font-family:'Inter',sans-serif;font-size:12px">
+      <option value="">No folder</option>
+    </select>
+    <button class="note-tb-btn" onclick="promptNewNoteFolder()">+ Folder</button>
+    <button class="note-tb-btn" onclick="openNoteAttachmentPicker()">📷 Photo</button>
+    <span style="font-size:11px;color:var(--ink-mute);flex-shrink:0;margin-left:6px">Icon:</span>
+    <div class="list-icon-picker" id="note-icon-picker" style="margin:0">
+      <div class="list-icon-swatch" data-icon="" onclick="selectNoteIcon('',this)" title="None">—</div>
+      <div class="list-icon-swatch" data-icon="💡" onclick="selectNoteIcon('💡',this)" title="Idea">💡</div>
+      <div class="list-icon-swatch" data-icon="📌" onclick="selectNoteIcon('📌',this)" title="Important">📌</div>
+      <div class="list-icon-swatch" data-icon="✈️" onclick="selectNoteIcon('✈️',this)" title="Travel">✈️</div>
+      <div class="list-icon-swatch" data-icon="🏠" onclick="selectNoteIcon('🏠',this)" title="Home">🏠</div>
+      <div class="list-icon-swatch" data-icon="💼" onclick="selectNoteIcon('💼',this)" title="Work">💼</div>
+      <div class="list-icon-swatch" data-icon="🔧" onclick="selectNoteIcon('🔧',this)" title="Projects">🔧</div>
+      <div class="list-icon-swatch" data-icon="🐾" onclick="selectNoteIcon('🐾',this)" title="Pets">🐾</div>
+    </div>
+  </div>
+  <input type="file" id="note-attach-input" accept="image/*" style="display:none" onchange="handleNoteAttachUpload(event)">
   <div class="detail-body" id="note-editor-body" onclick="focusNoteBody(event)">
     <div style="padding:16px">
       <input class="note-title-input" id="note-title-inp" placeholder="Note title…" autocomplete="off" oninput="noteChanged()">
       <div class="note-rich-body" id="note-body-inp" contenteditable="true" data-placeholder="Start writing…" oninput="noteChanged()" onkeydown="handleNoteEditorKeydown(event)" onblur="handleNoteEditorBlur()" onpaste="handleNotePaste(event)"></div>
+      <div id="note-attach-strip"></div>
     </div>
   </div>
   <div class="note-link-row" id="note-link-row">
@@ -9049,6 +9405,16 @@ function initSwipeTabs() {
       <button class="btn-icon" onclick="closeModal('modal-templates')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body" id="templates-body"></div>
+  </div>
+</div>
+
+<!-- FOLDER MANAGER MODAL — shared between Lists and Notes (see openFolderManager) -->
+<div class="modal-backdrop" id="modal-folder-manager">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header"><div class="modal-title" id="folder-manager-title">Manage Folders</div>
+      <button class="btn-icon" onclick="closeModal('modal-folder-manager')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="folder-manager-body"></div>
   </div>
 </div>
 
