@@ -604,6 +604,11 @@ html.compact .streak-chain { font-size: 18px; }
 html.compact .dash-item { padding: 8px 0; }
 html.compact .group-header { margin: 12px 0 6px; }
 html.compact .card { padding: 10px 14px; }
+html.compact .li-row { padding: 8px 14px; }
+html.compact .li-chk { width: 18px; height: 18px; }
+html.compact .li-text { font-size: 13px; line-height: 1.3; }
+html.compact .li-section { padding: 10px 14px 6px; }
+html.compact .li-subsection { padding: 6px 14px 3px 24px; }
 
 /* Username / mention styles */
 .mention-tag {
@@ -7156,6 +7161,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.58',
+    date: 'Jun 23, 2026',
+    type: 'medium',
+    items: [
+      'Fixed a real gap in Compact Mode: it already shrinks To-Do/Reminder/Note/Streak cards and the Lists tab\'s own list cards, but list ITEMS (once you open a list) never had matching overrides — they stayed full-size regardless of the setting. Now Compact Mode also applies to list item rows, checkboxes, item text, and section/subsection headers in Nested lists.',
+      'Reminder: headers + checkable items together already exist — set a list\'s type to Nested, then turn on "Show checkboxes" from the list\'s ⋯ menu. No new feature needed; this combination was already fully built.'
+    ]
+  },
   {
     version: '0.04.57',
     date: 'Jun 23, 2026',
