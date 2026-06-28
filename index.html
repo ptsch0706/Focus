@@ -254,7 +254,8 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .subtask-del{background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px;flex-shrink:0;}
 .subtask-progress{font-size:11px;color:var(--ink-soft);font-weight:600;padding:2px 7px;border-radius:20px;background:var(--bg-raised);}
 .li-row:last-child{border-bottom:none;}
-.li-row.checked{opacity:.5;}
+.li-row.checked{opacity:1;}
+.li-row.checked > *{opacity:.5;}
 .li-chk{width:22px;height:22px;border-radius:6px;border:2px solid var(--ink-mute);background:none;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;}
 .li-chk.checked{background:var(--list);border-color:var(--list);}
 .li-chk.checked::after{content:'';width:6px;height:10px;border:2px solid #000;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);display:block;}
@@ -7238,6 +7239,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.60',
+    date: 'Jun 23, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: checked-off items in a checklist (including nested lists with checkboxes on) showed their swipe actions (Done/Delete) faintly visible at all times, not just when actually swiped. Cause: ".checked" dimmed the WHOLE row to 50% opacity, including its background — which is what is supposed to opaquely hide the swipe actions sitting behind it. Fixed by keeping the row itself fully opaque and dimming only its contents (checkbox, text, menu button) instead.'
+    ]
+  },
   {
     version: '0.04.59',
     date: 'Jun 23, 2026',
