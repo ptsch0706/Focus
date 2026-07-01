@@ -6887,18 +6887,18 @@ function pickSmartNudge() {
     };
   }
 
-  // Priority 4: Streak going strong this week
-  const dowAgo = new Date(); dowAgo.setDate(dowAgo.getDate() - 7);
-  const dowAgoStr = dowAgo.getFullYear() + '-' + String(dowAgo.getMonth()+1).padStart(2,'0') + '-' + String(dowAgo.getDate()).padStart(2,'0');
+  // Priority 4: Streak going strong — use actual chain length, not a bounded
+  // 7-day window. The old approach counted logs >= 7 days ago which caps at 8
+  // (inclusive) and would show "8 days" even if the real streak was 11+.
   for (const s of (S.streaks || []).filter(canSeeItem)) {
-    const recentLogs = (s.logs || []).filter(d => d >= dowAgoStr).length;
-    if (recentLogs >= 5) {
+    const chain = getStreakChain(s);
+    if (chain >= 5) {
       return {
         icon: 'flame',
         color: s.color || 'var(--streak)',
         bg: 'var(--streak-soft)',
-        title: 'Strong week for \u201C' + s.name + '\u201D',
-        body: 'Logged ' + recentLogs + ' days this week. Keep going.',
+        title: 'Strong streak for \u201C' + s.name + '\u201D',
+        body: chain + ' day' + (chain !== 1 ? 's' : '') + ' and counting. Keep going.',
         actionLabel: null,
         actionFn: null,
       };
@@ -7239,6 +7239,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.61',
+    date: 'Jun 23, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: the "Strong streak" dashboard encouragement card was showing a count from a fixed 7-day lookback window, not your actual running streak. The window was also 8 days inclusive (not 7), so the number was doubly wrong — capped at 8 even for a streak of 11+. Now uses getStreakChain() which is the same function that computes the streak count displayed everywhere else in the app. Title also updated from "Strong week for" to "Strong streak for" since the count is no longer weekly-bounded.'
+    ]
+  },
   {
     version: '0.04.60',
     date: 'Jun 23, 2026',
