@@ -5526,6 +5526,12 @@ function renderStreakTrendsHTML(s) {
       </div>
     </div>
     ${getStreakHeatmapHTML(s)}
+    <div style="margin-top:12px;text-align:center">
+      <button class="btn-ghost btn-sm" onclick="event.stopPropagation();openPastDayLogger('${s.id}')" style="font-size:12px;gap:6px">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Log a past day
+      </button>
+    </div>
   </div>`;
 }
 
@@ -5653,7 +5659,96 @@ function toggleStreakExpand(id, event) {
 }
 
 
-// ── STREAK 7-DAY BAR CHART (value-based) ──
+// ── LOG A PAST DAY ───────────────────────────────────────────────────────
+// Opens the streak-value modal (reused for its simple title+body layout)
+// with a date picker limited to the past 30 days. Shows that day's current
+// state and lets the user toggle logged/unlogged. Works for both simple
+// boolean streaks and value-based streaks (steps, etc.).
+function openPastDayLogger(streakId) {
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  const modal = document.getElementById('modal-streak-value');
+  const titleEl = modal.querySelector('.modal-title');
+  const body = modal.querySelector('.modal-body');
+  if (!titleEl || !body) return;
+  titleEl.textContent = 'Log a Past Day';
+  // Build date picker: last 30 days, not including today (today has its own button)
+  const today = td();
+  const days = [];
+  for (let i = 1; i <= 30; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const isScheduled = (s.days || []).includes(d.getDay());
+    const isLogged = (s.logs || []).includes(ds);
+    const skipReasonId = (s.skips || {})[ds];
+    const skipReason = skipReasonId ? (S.streakSkipReasons || []).find(r => r.id === skipReasonId) : null;
+    const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    days.push({ ds, label, isScheduled, isLogged, skipReason });
+  }
+  let html = `<div style="font-size:13px;color:var(--ink-mute);margin-bottom:12px">
+    Tap a day to log or un-log it. Unscheduled rest days are shown dimmed.
+  </div>
+  <div style="max-height:320px;overflow-y:auto">`;
+  days.forEach(day => {
+    const bg = day.isLogged ? `${s.color || 'var(--streak)'}22` : 'transparent';
+    const border = day.isLogged ? `border-left:3px solid ${s.color || 'var(--streak)'}` : 'border-left:3px solid transparent';
+    const statusIcon = day.isLogged ? '✓' : day.skipReason ? '⊘' : day.isScheduled ? '○' : '–';
+    const statusColor = day.isLogged ? (s.color || 'var(--streak)') : day.skipReason ? (day.skipReason.color || 'var(--ink-mute)') : 'var(--ink-mute)';
+    const opacity = !day.isScheduled && !day.isLogged ? 'opacity:.45;' : '';
+    const skipLabel = day.skipReason ? ` <span style="font-size:10px;padding:1px 6px;border-radius:20px;background:${day.skipReason.color}33;color:${day.skipReason.color}">${esc(day.skipReason.label)}</span>` : '';
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);background:${bg};${border};margin-bottom:4px;cursor:pointer;${opacity}"
+        onclick="logPastDay('${streakId}','${day.ds}')">
+      <span style="font-size:16px;color:${statusColor};width:18px;text-align:center;flex-shrink:0">${statusIcon}</span>
+      <span style="font-size:14px;color:var(--ink);flex:1">${day.label}${skipLabel}</span>
+      <span style="font-size:11px;color:var(--ink-mute)">${day.isLogged ? 'Tap to un-log' : day.skipReason ? 'Skipped' : day.isScheduled ? 'Tap to log' : 'Rest day'}</span>
+    </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+  openModal('modal-streak-value');
+}
+
+// Toggle a specific past date logged/unlogged for a streak, then refresh
+// the picker so the user can see the change immediately without reopening.
+function logPastDay(streakId, dateStr) {
+  const s = S.streaks.find(x => x.id === streakId);
+  if (!s) return;
+  if (!s.logs) s.logs = [];
+  if (s.logs.includes(dateStr)) {
+    s.logs = s.logs.filter(d => d !== dateStr);
+    // Also clear any value for this date if it's a value-based streak
+    if (s.values) delete s.values[dateStr];
+    toast('Un-logged ' + dateStr);
+  } else {
+    // For value-based streaks, ask for the value
+    if (s.target) {
+      closeModal('modal-streak-value');
+      const input = prompt(`Log ${s.unit || 'value'} for ${dateStr}:`);
+      if (input === null) { openPastDayLogger(streakId); return; }
+      const num = parseInt(input);
+      if (isNaN(num) || num < 0) { toast('Enter a valid number', 'err'); openPastDayLogger(streakId); return; }
+      if (!s.values) s.values = {};
+      s.values[dateStr] = num;
+      const meetsGoal = num >= s.target;
+      if (meetsGoal) s.logs.push(dateStr);
+      save(); renderStreaks(); renderDash();
+      toast(meetsGoal ? `Logged ${num} ${s.unit || ''} ✓` : `Logged ${num} — below goal, not counted`, meetsGoal ? 'ok' : '');
+      return;
+    }
+    // Remove any skip for this date — logged and skipped are mutually exclusive
+    if (s.skips) delete s.skips[dateStr];
+    s.logs.push(dateStr);
+    toast('Logged ' + dateStr, 'ok');
+  }
+  save();
+  renderStreaks();
+  renderDash();
+  // Refresh the picker in place so the user sees the update
+  openPastDayLogger(streakId);
+}
+
+
 function streakBarChartHTML(streak) {
   if (!streak || !streak.target) return '';
   const color = streak.color || '#f43f5e';
@@ -7871,6 +7966,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.64',
+    date: 'Jul 2, 2026',
+    type: 'medium',
+    items: [
+      'Added "Log a past day" to streaks: tap Trends on any expanded streak card, then tap "Log a past day" to see the last 30 days. Each day shows its current state (logged, skipped, rest day, or unlogged). Tap any day to toggle it. For value-based streaks like Steps, it prompts for the value first. Logging a skipped day clears the skip automatically.',
+      'The list refreshes immediately after each tap so you can fix multiple days without reopening.'
+    ]
+  },
   {
     version: '0.04.63',
     date: 'Jul 2, 2026',
