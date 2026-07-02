@@ -432,6 +432,30 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .streak-progress{height:3px;background:var(--line);margin:0 16px;border-radius:2px;}
 .streak-progress-fill{height:100%;background:var(--streak);border-radius:2px;transition:width .4s cubic-bezier(.34,1.56,.64,1);}
 .dot-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;padding:10px 16px 14px;}
+
+/* STREAK TRENDS */
+.streak-trends{padding:0 16px 16px;}
+
+/* PROJECTS */
+.project-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;cursor:pointer;border-left:3px solid var(--project-color,var(--pri-med));}
+.project-card-header{display:flex;align-items:center;gap:10px;}
+.project-card-name{font-size:15px;font-weight:600;color:var(--ink);flex:1;}
+.project-card-meta{font-size:12px;color:var(--ink-mute);margin-top:4px;}
+.project-progress-bar{height:4px;background:var(--line);border-radius:2px;margin-top:10px;overflow:hidden;}
+.project-progress-fill{height:100%;border-radius:2px;background:var(--project-color,var(--pri-med));transition:width .3s;}
+.project-detail-view{position:fixed;inset:0;background:var(--bg);z-index:160;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.project-detail-view.open{transform:translateX(0);}
+.project-section-hdr{font-size:11px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.04em;padding:16px 16px 6px;}
+.project-empty-section{font-size:13px;color:var(--ink-mute);padding:6px 16px 12px;font-style:italic;}
+.streak-trend-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.streak-trend-stat{background:var(--bg-raised);border-radius:var(--radius-sm);padding:10px 12px;text-align:center;}
+.streak-trend-stat-val{font-size:22px;font-weight:800;color:var(--ink);line-height:1;}
+.streak-trend-stat-lbl{font-size:11px;color:var(--ink-mute);margin-top:4px;}
+.streak-heatmap{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px;}
+.streak-heatmap-cell{width:100%;aspect-ratio:1;border-radius:2px;}
+.streak-heatmap-labels{display:flex;justify-content:space-between;margin-bottom:4px;}
+.streak-heatmap-legend{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--ink-mute);}
+.streak-heatmap-legend-cell{width:10px;height:10px;border-radius:2px;}
 .dot{width:100%;aspect-ratio:1;border-radius:2px;background:var(--line);}
 .dot.logged{background:var(--streak);}
 .dot.today{background:var(--streak);outline:2px solid var(--ink-soft);outline-offset:1px;}
@@ -1562,6 +1586,11 @@ input.has-mention, .note-title-input.has-mention {
         </div>
       </div>
       <div class="field-row"><div class="field"><label class="field-label">Due Date</label><input type="date" id="todo-date"></div><div class="field"><label class="field-label">Time</label><input type="time" id="todo-time"></div></div>
+      <div class="field"><label class="field-label">Project (optional)</label>
+        <select id="todo-project-select" style="width:100%;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 14px;color:var(--ink);font-family:'Inter',sans-serif;font-size:15px">
+          <option value="">No project</option>
+        </select>
+      </div>
       <div class="field"><label class="field-label">Priority</label><div class="pill-row" id="pr-priority">
         <button class="pill" data-val="high" onclick="setPill('priority',this)"><span class="pri-dot pri-dot-high"></span>High</button>
         <button class="pill" data-val="med" onclick="setPill('priority',this)"><span class="pri-dot pri-dot-med"></span>Medium</button>
@@ -1659,6 +1688,11 @@ input.has-mention, .note-title-input.has-mention {
         </select>
         <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="promptNewListFolder()">+ New folder</button>
       </div>
+      <div class="field"><label class="field-label">Project (optional)</label>
+        <select id="list-project-select" style="width:100%;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 14px;color:var(--ink);font-family:'Inter',sans-serif;font-size:15px">
+          <option value="">No project</option>
+        </select>
+      </div>
       
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn btn-ghost btn-danger btn-sm" id="list-del-btn" onclick="deleteList()" style="display:none">Delete</button>
@@ -1684,6 +1718,11 @@ input.has-mention, .note-title-input.has-mention {
       <input type="hidden" id="rem-eid">
       <div class="field"><label class="field-label">Title</label><input type="text" id="rem-title" placeholder="What do you want to remember?" autocomplete="off"></div>
       <div class="field"><label class="field-label">Notes</label><textarea id="rem-notes" placeholder="Optional detail..."></textarea></div>
+      <div class="field"><label class="field-label">Project (optional)</label>
+        <select id="rem-project-select" style="width:100%;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 14px;color:var(--ink);font-family:'Inter',sans-serif;font-size:15px">
+          <option value="">No project</option>
+        </select>
+      </div>
       <div class="field-row"><div class="field"><label class="field-label">Date</label><input type="date" id="rem-date"></div><div class="field"><label class="field-label">Time</label><input type="time" id="rem-time"></div></div>
       <div class="field">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--ink-soft)">
@@ -1815,7 +1854,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1869,12 +1908,22 @@ function loadState(){
         if(l.sortMode!=='manual'&&l.sortMode!=='alphabetical')l.sortMode='manual';
       });
       if(!Array.isArray(loaded.noteFolders))loaded.noteFolders=[];
+      if(!Array.isArray(loaded.streakSkipReasons)||!loaded.streakSkipReasons.length)
+        loaded.streakSkipReasons=[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}];
+      if(Array.isArray(loaded.streaks))loaded.streaks.forEach(s=>{
+        if(!s.skips||typeof s.skips!=='object'||Array.isArray(s.skips))s.skips={};
+      });
       if(Array.isArray(loaded.notes))loaded.notes.forEach(n=>{
         if(typeof n.folderId==='undefined')n.folderId=null;
         if(typeof n.color==='undefined')n.color=null;
         if(typeof n.icon==='undefined')n.icon=null;
         if(!Array.isArray(n.attachments))n.attachments=[];
+        if(typeof n.projectId==='undefined')n.projectId=null;
       });
+      if(!Array.isArray(loaded.projects))loaded.projects=[];
+      if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{if(typeof t.projectId==='undefined')t.projectId=null;});
+      if(Array.isArray(loaded.reminders))loaded.reminders.forEach(r=>{if(typeof r.projectId==='undefined')r.projectId=null;});
+      if(Array.isArray(loaded.lists))loaded.lists.forEach(l=>{if(typeof l.projectId==='undefined')l.projectId=null;});
       return loaded;
     }
     const v1=localStorage.getItem('focus_state');
@@ -2015,6 +2064,7 @@ function openTodoModal(id=null){
   tShareRow.innerHTML = renderShareRowHTML('todo', id || '') + renderNotesAboutButtonHTML('todo', id);
   window._pendingShareWith = id ? null : [];
   updateShareChipsInActiveModal();
+  populateProjectSelect('todo-project-select', t ? t.projectId : null);
   openModal('modal-todo');setTimeout(()=>document.getElementById('todo-title').focus(),350);
 }
 function renderSubtaskList() {
@@ -2062,8 +2112,9 @@ function saveTodo(){
   const time=document.getElementById('todo-time').value||'';
   const notes=document.getElementById('todo-notes').value.trim();
   const recurVal = getCurrentRecur('todo');
-  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1){S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal,subtasks:_editingSubtasks};stampOwner(S.todos[i]);applyMentions(S.todos[i],'todo');}toast('Updated','ok');}
-  else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,subtasks:_editingSubtasks,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');if(window._pendingShareWith&&window._pendingShareWith.length){newT.sharedWith=[...new Set([...(newT.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.todos.push(newT);toast('To-Do added','ok');}
+  const projectId = document.getElementById('todo-project-select').value || null;
+  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1){S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal,subtasks:_editingSubtasks,projectId};stampOwner(S.todos[i]);applyMentions(S.todos[i],'todo');}toast('Updated','ok');}
+  else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,subtasks:_editingSubtasks,projectId,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');if(window._pendingShareWith&&window._pendingShareWith.length){newT.sharedWith=[...new Set([...(newT.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.todos.push(newT);toast('To-Do added','ok');}
   save();closeModal('modal-todo');renderTodos();renderDash();tabs();
   syncDueTimeSchedules();
 }
@@ -2487,6 +2538,7 @@ function openListModal(id=null){
   window._pendingShareWith = id ? null : [];
   updateShareChipsInActiveModal();
   injectTemplateBanner();
+  populateProjectSelect('list-project-select', l ? l.projectId : null);
   openModal('modal-list');setTimeout(()=>document.getElementById('list-name').focus(),350);
 }
 function saveList(){
@@ -2496,8 +2548,9 @@ function saveList(){
   let newId=null;
   let editedId=null;
   const folderId=document.getElementById('list-folder-select').value||null;
-  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,icon:selectedListIcon||null,folderId,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');editedId=id;}toast('Updated','ok');}
-  else{const newL={id:gid(),name,color:selectedListColor,icon:selectedListIcon||null,folderId,pinned:false,sortMode:'manual',type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
+  const projectId=document.getElementById('list-project-select').value||null;
+  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,icon:selectedListIcon||null,folderId,projectId,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');editedId=id;}toast('Updated','ok');}
+  else{const newL={id:gid(),name,color:selectedListColor,icon:selectedListIcon||null,folderId,projectId,pinned:false,sortMode:'manual',type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
   save();closeModal('modal-list');renderLists();
   // If we just edited the list currently open in detail view, refresh its header live
   if(editedId&&typeof listId!=='undefined'&&listId===editedId&&typeof renderListDet==='function')renderListDet();
@@ -3295,6 +3348,7 @@ function openReminderModal(id=null){
   rShareRow.innerHTML = renderShareRowHTML('reminder', id || '') + renderNotesAboutButtonHTML('reminder', id);
   window._pendingShareWith = id ? null : [];
   updateShareChipsInActiveModal();
+  populateProjectSelect('rem-project-select', r ? r.projectId : null);
   openModal('modal-reminder');setTimeout(()=>document.getElementById('rem-title').focus(),350);
 }
 function toggleRemEndDateField() {
@@ -3315,8 +3369,9 @@ function saveReminder(){
   const isMultiday = document.getElementById('rem-multiday-toggle').checked;
   let endDate = isMultiday ? (document.getElementById('rem-enddate').value || date) : null;
   if (endDate && endDate < date) { toast('Last day can\'t be before the start date', 'err'); return; }
-  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
-  else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');if(window._pendingShareWith&&window._pendingShareWith.length){newR.sharedWith=[...new Set([...(newR.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.reminders.push(newR);toast('Reminder added','ok');}
+  const projectId = document.getElementById('rem-project-select').value || null;
+  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
+  else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');if(window._pendingShareWith&&window._pendingShareWith.length){newR.sharedWith=[...new Set([...(newR.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.reminders.push(newR);toast('Reminder added','ok');}
   save();closeModal('modal-reminder');renderRem();renderDash();tabs();
   syncDueTimeSchedules();
 }
@@ -3542,7 +3597,7 @@ function renderDash(){
   out += '<div class="rings-grid">';
   out += renderRingCard('TO-DOS', todoPct, 'var(--cyan)', todoSub);
   out += renderRingCard('REMINDERS', remPct, 'var(--reminder)', remSub);
-  out += renderRingCard('STEPS', stepsPct, stepsPct >= 100 ? 'var(--note)' : 'var(--violet)', stepsLabel);
+  out += renderRingCard('STEPS', stepsPct, stepsPct >= 100 ? 'var(--note)' : 'var(--reminder)', stepsLabel);
   out += renderRingCard('STREAKS', streaksPct, 'var(--streak)', streaksSub);
   out += '</div>';
 
@@ -3601,6 +3656,9 @@ function renderDash(){
       + '<div class="week-stat"><div class="week-num">' + wNotes + '</div><div class="week-lbl">Notes added</div></div>'
       + '</div></div>';
   }
+  // projects
+  out += renderProjectsDashHTML();
+
   // upcoming
   const upT=actT.filter(t=>t.date>today&&t.date<=weekAhead).sort((a,b)=>a.date<b.date?-1:1).slice(0,4);
   const upR=actR.filter(r=>r.date>today&&r.date<=weekAhead).sort((a,b)=>a.date<b.date?-1:1).slice(0,2);
@@ -3778,6 +3836,11 @@ function renderSett(){
     +'<button class="sett-row" onclick="settGrace()">'
     +'<div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>'
     +'<div class="sett-text"><div class="sett-label">Late Log Grace Window</div><div class="sett-sub">Log yesterday before '+S.graceWindowHour+':00 AM</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button>'
+    +'<button class="sett-row" onclick="openSkipReasonsManager()">'
+    +'<div class="sett-icon" style="background:var(--streak-soft);color:var(--streak)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Streak Skip Reasons</div><div class="sett-sub">'+((S.streakSkipReasons||[]).length)+' reason'+((S.streakSkipReasons||[]).length!==1?'s':'')+' — Sick, Travel, etc.</div></div>'
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
 
@@ -4473,6 +4536,7 @@ function openNoteDetail(id=null) {
   updateNoteColorPicker(note);
   updateNoteIconPicker(note);
   populateNoteFolderSelect(note ? note.folderId : '');
+  populateProjectSelect('note-project-select', note ? note.projectId : null);
   renderNoteAttachStrip(note);
   initNoteChecklistDelegation();
   document.getElementById('note-options-row').style.display = 'none';
@@ -4859,6 +4923,14 @@ function setNoteFolder(folderId) {
   save();
 }
 
+function setNoteProject(projectId) {
+  const note = S.notes.find(n=>n.id===noteId);
+  if (!note) return;
+  note.projectId = projectId || null;
+  note.updatedAt = Date.now();
+  save();
+}
+
 let _collapsedNoteFolders = {}; // per-device view state, deliberately not part of S
 function toggleNoteFolderCollapse(folderId) {
   _collapsedNoteFolders[folderId] = !_collapsedNoteFolders[folderId];
@@ -5041,19 +5113,21 @@ function jumpToLinked() {
 function openNoteLinkPicker() {
   const body = document.getElementById('note-link-picker-body');
   let html = '<div class="section-label">To-Dos</div>';
-  const actTodos = S.todos.filter(t=>!t.completed).slice(0,8);
+  const actTodos = S.todos.filter(t=>!t.completed&&canSeeItem(t)).slice(0,8);
   if(actTodos.length) html += actTodos.map(t=>`<button class="btn btn-block" style="margin-bottom:6px;justify-content:flex-start;font-size:13px;gap:8px" onclick="linkNoteTo('todo','${t.id}')"><span style="color:var(--cyan)">✓</span>${esc(t.title.substring(0,40))}</button>`).join('');
   else html += '<p style="color:var(--ink-mute);font-size:13px;margin-bottom:8px">No active to-dos</p>';
   html += '<div class="section-label">Lists</div>';
-  if(S.lists.length) html += S.lists.slice(0,6).map(l=>`<button class="btn btn-block" style="margin-bottom:6px;justify-content:flex-start;font-size:13px;gap:8px" onclick="linkNoteTo('list','${l.id}')"><span>${l.icon}</span>${esc(l.name)}</button>`).join('');
+  const actLists = S.lists.filter(canSeeItem).slice(0,6);
+  if(actLists.length) html += actLists.map(l=>`<button class="btn btn-block" style="margin-bottom:6px;justify-content:flex-start;font-size:13px;gap:8px" onclick="linkNoteTo('list','${l.id}')"><span>${l.icon||'≡'}</span>${esc(l.name)}</button>`).join('');
   else html += '<p style="color:var(--ink-mute);font-size:13px;margin-bottom:8px">No lists</p>';
   html += '<div class="section-label">Reminders</div>';
-  const actRem = S.reminders.filter(r=>!r.completed).slice(0,6);
+  const actRem = S.reminders.filter(r=>!r.completed&&canSeeItem(r)).slice(0,6);
   if(actRem.length) html += actRem.map(r=>`<button class="btn btn-block" style="margin-bottom:6px;justify-content:flex-start;font-size:13px;gap:8px" onclick="linkNoteTo('reminder','${r.id}')"><span style="color:var(--reminder);display:inline-flex;align-items:center"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>${esc(r.title.substring(0,40))}</button>`).join('');
   else html += '<p style="color:var(--ink-mute);font-size:13px;margin-bottom:8px">No active reminders</p>';
-  if(S.streaks.length) {
+  const actStreaks = S.streaks.filter(canSeeItem).slice(0,6);
+  if(actStreaks.length) {
     html += '<div class="section-label">Streaks</div>';
-    html += S.streaks.slice(0,6).map(s=>`<button class="btn btn-block" style="margin-bottom:6px;justify-content:flex-start;font-size:13px;gap:8px" onclick="linkNoteTo('streak','${s.id}')"><span>${s.emoji}</span>${esc(s.name)}</button>`).join('');
+    html += actStreaks.map(s=>`<button class="btn btn-block" style="margin-bottom:6px;justify-content:flex-start;font-size:13px;gap:8px" onclick="linkNoteTo('streak','${s.id}')"><span>${s.emoji||'🔥'}</span>${esc(s.name)}</button>`).join('');
   }
   body.innerHTML = html;
   openModal('modal-note-link');
@@ -5265,6 +5339,7 @@ function deleteStreak() {
 
 function getStreakChain(streak) {
   const today = td(), logs = new Set(streak.logs||[]);
+  const skips = streak.skips || {};
   const now = new Date(), graceHour = S.graceWindowHour||9;
   let chain = 0;
   const scheduled = d => {
@@ -5273,20 +5348,15 @@ function getStreakChain(streak) {
   };
   const dStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   let checkDate = new Date();
-  // Grace window (Option 1): if it's before graceHour and yesterday has no log,
-  // forgive that ONE gap exactly once and keep walking back — this lets a log made
-  // before graceHour count as "covering" yesterday, matching the Settings description
-  // ("Log yesterday before X:00 AM"). Once used, grace cannot apply again further back —
-  // a real second gap still breaks the chain. After graceHour passes, an unlogged
-  // yesterday is a real miss with no forgiveness.
   let usedGraceForYesterday = false;
   for (let i = 0; i < 365; i++) {
     const ds = dStr(checkDate);
     if (!scheduled(checkDate)) { checkDate.setDate(checkDate.getDate()-1); continue; }
+    // Skipped days don't break the chain and don't count toward it — treat like a rest day
+    if (skips[ds]) { checkDate.setDate(checkDate.getDate()-1); continue; }
     if (logs.has(ds)) { chain++; checkDate.setDate(checkDate.getDate()-1); continue; }
     const isToday2 = ds === today;
     if (isToday2) {
-      // Today not yet logged — don't break, don't count, keep walking back
       checkDate.setDate(checkDate.getDate()-1);
       continue;
     }
@@ -5297,10 +5367,180 @@ function getStreakChain(streak) {
       checkDate.setDate(checkDate.getDate()-1);
       continue;
     }
-    break; // Real miss — chain ends here
+    break;
   }
   return chain;
 }
+
+// Returns the longest consecutive chain ever achieved for this streak,
+// scanning the full log history. Uses the same scheduled-day logic as
+// getStreakChain — unscheduled days are skipped, not treated as breaks.
+function getLongestChain(streak) {
+  const logs = new Set(streak.logs || []);
+  const skips = streak.skips || {};
+  if (!logs.size) return 0;
+  const dStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const sorted = [...logs].sort();
+  const startDate = parseLocalDate(sorted[0]);
+  const endDate = new Date();
+  let longest = 0, current = 0;
+  const d = new Date(startDate);
+  while (d <= endDate) {
+    const ds = dStr(d);
+    const dayOfWeek = d.getDay();
+    const isScheduled = (streak.days || []).includes(dayOfWeek);
+    if (!isScheduled || skips[ds]) {
+      // Unscheduled OR deliberately skipped — doesn't count, doesn't break
+    } else if (logs.has(ds)) {
+      current++;
+      if (current > longest) longest = current;
+    } else {
+      current = 0; // real miss
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return longest;
+}
+
+// Returns completion % over the last N days (default 30), only counting
+// scheduled days as the denominator. E.g., if the streak is weekdays-only
+// and you logged 18 of the last 22 weekdays, that's 82%.
+function getStreakCompletionRate(streak, days = 30) {
+  const logs = new Set(streak.logs || []);
+  const skips = streak.skips || {};
+  const dStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const today = td();
+  let scheduled = 0, logged = 0;
+  const d = new Date();
+  d.setDate(d.getDate() - (days - 1));
+  while (dStr(d) <= today) {
+    const ds = dStr(d);
+    const dayOfWeek = d.getDay();
+    // Skipped days are excluded from both numerator and denominator
+    if ((streak.days || []).includes(dayOfWeek) && !skips[ds]) {
+      scheduled++;
+      if (logs.has(ds)) logged++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  if (!scheduled) return null;
+  return Math.round((logged / scheduled) * 100);
+}
+
+// Builds the HTML for a 12-week heatmap calendar grid (84 days, Sun–Sat rows,
+// weeks as columns). Each cell shows: logged (streak color), missed-scheduled
+// (muted red), not-scheduled (very faint), future (empty).
+function getStreakHeatmapHTML(streak) {
+  const logs = new Set(streak.logs || []);
+  const skips = streak.skips || {};
+  const skipReasons = {};
+  (S.streakSkipReasons || []).forEach(r => { skipReasons[r.id] = r; });
+  const color = streak.color || 'var(--streak)';
+  const dStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const today = td();
+  // Start from 12 weeks ago, aligned to Sunday
+  const start = new Date();
+  start.setDate(start.getDate() - 83);
+  const offset = start.getDay();
+  start.setDate(start.getDate() - offset);
+  const cells = [];
+  const usedSkipReasons = new Set(); // track which appear in view for legend
+  const d = new Date(start);
+  for (let i = 0; i < 84; i++) {
+    const ds = dStr(d);
+    const isFuture = ds > today;
+    const isScheduled = (streak.days || []).includes(d.getDay());
+    const isLogged = logs.has(ds);
+    const skipReasonId = skips[ds];
+    const skipReason = skipReasonId ? skipReasons[skipReasonId] : null;
+    let bg, title;
+    if (isFuture) {
+      bg = 'var(--line-soft)';
+      title = ds;
+    } else if (skipReason) {
+      bg = skipReason.color;
+      title = `${ds} — Skipped: ${skipReason.label}`;
+      usedSkipReasons.add(skipReasonId);
+    } else if (!isScheduled) {
+      bg = 'var(--bg-raised)';
+      title = `${ds} (rest)`;
+    } else if (isLogged) {
+      bg = color;
+      title = `${ds} ✓`;
+    } else {
+      bg = 'rgba(244,63,94,0.25)';
+      title = `${ds} (missed)`;
+    }
+    const opacity = skipReason ? '0.7' : '1';
+    cells.push(`<div class="streak-heatmap-cell" style="background:${bg};opacity:${opacity}" title="${title}"></div>`);
+    d.setDate(d.getDate() + 1);
+  }
+  // Month labels
+  const monthLabels = [];
+  const label_d = new Date(start);
+  let prevMonth = -1;
+  for (let col = 0; col < 12; col++) {
+    const m = label_d.getMonth();
+    if (m !== prevMonth) {
+      monthLabels.push(`<span style="font-size:9px;color:var(--ink-mute)">${label_d.toLocaleDateString('en-US',{month:'short'})}</span>`);
+      prevMonth = m;
+    } else {
+      monthLabels.push('<span></span>');
+    }
+    label_d.setDate(label_d.getDate() + 7);
+  }
+  // Build legend — static entries + dynamic skip reason entries
+  let legendHTML = `
+    <div class="streak-heatmap-legend-cell" style="background:${color}"></div>Logged
+    <div class="streak-heatmap-legend-cell" style="background:rgba(244,63,94,0.25);margin-left:6px"></div>Missed
+    <div class="streak-heatmap-legend-cell" style="background:var(--bg-raised);margin-left:6px"></div>Rest`;
+  for (const rid of usedSkipReasons) {
+    const r = skipReasons[rid];
+    if (r) legendHTML += `<div class="streak-heatmap-legend-cell" style="background:${r.color};margin-left:6px"></div>${esc(r.label)}`;
+  }
+  return `<div>
+    <div class="streak-heatmap-labels">${monthLabels.join('')}</div>
+    <div class="streak-heatmap">${cells.join('')}</div>
+    <div class="streak-heatmap-legend">${legendHTML}</div>
+  </div>`;
+}
+
+// Builds the full trends panel HTML for one streak
+function renderStreakTrendsHTML(s) {
+  const chain = getStreakChain(s);
+  const longest = getLongestChain(s);
+  const rate30 = getStreakCompletionRate(s, 30);
+  return `<div class="streak-trends">
+    <div class="streak-trend-stats">
+      <div class="streak-trend-stat">
+        <div class="streak-trend-stat-val">${chain}</div>
+        <div class="streak-trend-stat-lbl">Current streak</div>
+      </div>
+      <div class="streak-trend-stat">
+        <div class="streak-trend-stat-val">${longest}</div>
+        <div class="streak-trend-stat-lbl">Best streak</div>
+      </div>
+      <div class="streak-trend-stat">
+        <div class="streak-trend-stat-val">${rate30 !== null ? rate30 + '%' : '—'}</div>
+        <div class="streak-trend-stat-lbl">30-day rate</div>
+      </div>
+    </div>
+    ${getStreakHeatmapHTML(s)}
+  </div>`;
+}
+
+// Toggle the trends section for one streak card. State is kept in _openStreakTrends
+// (a module-level Set) so it survives re-renders within the same session, but is
+// not persisted or synced — purely a view preference.
+const _openStreakTrends = new Set();
+function toggleStreakTrends(id, event) {
+  if (event) event.stopPropagation();
+  if (_openStreakTrends.has(id)) _openStreakTrends.delete(id);
+  else _openStreakTrends.add(id);
+  renderStreaks();
+}
+
+
 
 function isLoggedToday(streak) {
   return (streak.logs||[]).includes(td());
@@ -5335,6 +5575,72 @@ function logStreak(id) {
   }
   save(); renderStreaks(); renderDash();
 }
+
+
+// Open the skip-reason picker for today (or yesterday if within grace window).
+// Shows a popover with the configured reason codes; tapping one marks the day
+// skipped and protects the chain.
+function openSkipPicker(streakId, event) {
+  if (event) event.stopPropagation();
+  const streak = S.streaks.find(s => s.id === streakId);
+  if (!streak) return;
+  const reasons = S.streakSkipReasons || [];
+  const dateToSkip = td(); // for now always today; could extend to yesterday in grace window
+  const alreadySkipped = (streak.skips || {})[dateToSkip];
+  // Build a simple bottom-sheet style by reusing the quick-capture modal body as a temporary host
+  // — actually, easiest approach on mobile is a toast-style popover, but for reliability
+  // use a proper modal. We'll repurpose the streak value modal for this.
+  const modal = document.getElementById('modal-streak-value');
+  const title = modal.querySelector('.modal-title');
+  const body = modal.querySelector('.modal-body');
+  if (!title || !body) return;
+  title.textContent = alreadySkipped ? 'Update or Remove Skip' : 'Skip This Day';
+  let html = `<div style="font-size:13px;color:var(--ink-mute);margin-bottom:14px">
+    Choose a reason. This day won\u2019t break your streak or count against your completion rate.
+  </div>`;
+  if (reasons.length) {
+    html += reasons.map(r =>
+      `<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px;border-left:4px solid ${r.color}" onclick="skipStreakDay('${streakId}','${dateToSkip}','${r.id}')">
+        <span style="width:12px;height:12px;border-radius:3px;background:${r.color};flex-shrink:0"></span>${esc(r.label)}
+        ${alreadySkipped === r.id ? ' <span style=\"margin-left:auto;font-size:11px;color:var(--ink-mute)\">\u2713 current</span>' : ''}
+      </button>`
+    ).join('');
+  } else {
+    html += '<p style="color:var(--ink-mute);font-size:13px">No reason codes configured yet — add some in Settings → Streak Skip Reasons.</p>';
+  }
+  if (alreadySkipped) {
+    html += `<button class="btn btn-ghost btn-danger" style="margin-top:8px;width:100%" onclick="unskipStreakDay('${streakId}','${dateToSkip}')">Remove skip</button>`;
+  }
+  body.innerHTML = html;
+  openModal('modal-streak-value');
+}
+
+function skipStreakDay(streakId, dateStr, reasonId) {
+  const streak = S.streaks.find(s => s.id === streakId);
+  if (!streak) return;
+  if (!streak.skips) streak.skips = {};
+  streak.skips[dateStr] = reasonId;
+  // Remove any log for this date — skip and log are mutually exclusive
+  streak.logs = (streak.logs || []).filter(d => d !== dateStr);
+  save();
+  closeModal('modal-streak-value');
+  renderStreaks();
+  renderDash();
+  const reason = (S.streakSkipReasons || []).find(r => r.id === reasonId);
+  toast(`Skipped — ${reason ? reason.label : reasonId}`, 'ok');
+}
+
+function unskipStreakDay(streakId, dateStr) {
+  const streak = S.streaks.find(s => s.id === streakId);
+  if (!streak || !streak.skips) return;
+  delete streak.skips[dateStr];
+  save();
+  closeModal('modal-streak-value');
+  renderStreaks();
+  renderDash();
+  toast('Skip removed');
+}
+
 
 function toggleStreakExpand(id, event) {
   // Don't toggle when clicking any interactive element inside the card
@@ -5484,18 +5790,28 @@ function renderStreaks() {
     // Build dot grid: 91 days (13 weeks) by default, or 182 days (26 weeks) in extended view
     const rangeDays = s._extendedView ? 181 : 90;
     const dots = [];
+    const skipReasons = {};
+    (S.streakSkipReasons || []).forEach(r => { skipReasons[r.id] = r; });
     for (let i = rangeDays; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate()-i);
       const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const isSchd = (s.days||[]).includes(d.getDay());
       const isLog = (s.logs||[]).includes(ds);
       const isTod = ds === td();
+      const skipReasonId = (s.skips||{})[ds];
+      const skipColor = skipReasonId && skipReasons[skipReasonId] ? skipReasons[skipReasonId].color : null;
       let cls = 'dot';
-      if (isTod && isLog) cls += ' today logged';
+      let inlineStyle = '';
+      if (skipColor) {
+        // Skipped days: show reason color at 60% opacity, regardless of logged state
+        cls += ' skipped';
+        inlineStyle = ` style="background:${skipColor};opacity:.6;border-radius:3px"`;
+      } else if (isTod && isLog) cls += ' today logged';
       else if (isTod) cls += ' today';
       else if (isLog) cls += ' logged';
       else if (isSchd && ds < td()) cls += ' missed';
-      dots.push(`<div class="${cls}" title="${ds}"></div>`);
+      const label = skipColor && skipReasons[skipReasonId] ? ` — ${skipReasons[skipReasonId].label}` : '';
+      dots.push(`<div class="${cls}"${inlineStyle} title="${ds}${label}"></div>`);
     }
     const freqLabel = s.freq==='daily'?'Daily':s.freq==='mon-fri'?'Mon–Fri':'Custom';
     const color = s.color || '#f43f5e';
@@ -5530,7 +5846,11 @@ function renderStreaks() {
       + '<div style="padding:0 16px 8px;text-align:right"><button class="btn-ghost btn-xs" onclick="event.stopPropagation();toggleStreakViewRange(\''+s.id+'\')" style="font-size:11px;color:var(--ink-mute)">' + (s._extendedView?'Show 3 months':'Show 6 months') + '</button></div>'
       + '</div>'
       + '<div style="padding:14px 16px 14px;display:flex;align-items:center;justify-content:space-between">'
-        + '<div style="font-size:12px;color:var(--ink-mute)">' + (scheduled?(logged?'Logged today':'Not yet logged today'):'Rest day') + '</div>'
+        + '<button class="btn-ghost btn-xs" onclick="toggleStreakTrends(\''+s.id+'\',event)" style="font-size:11px;color:var(--ink-mute)">'
+        + (_openStreakTrends.has(s.id) ? '▲ Hide trends' : '📊 Trends') + '</button>'
+        + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<div style="font-size:12px;color:var(--ink-mute)">' + (scheduled?(logged?'Logged today':((s.skips||{})[td()]?'Skipped today':'Not yet logged')):'Rest day') + '</div>'
+        + (scheduled && !s.paused ? '<button class="btn-ghost btn-xs" onclick="openSkipPicker(\''+s.id+'\',event)" style="font-size:11px;border:1px solid var(--line);padding:4px 10px;border-radius:20px;color:'+(s.skips&&s.skips[td()]?'var(--pri-med)':'var(--ink-mute)')+'">'+(s.skips&&s.skips[td()]?'Skipped ✕':'Skip')+'</button>' : '')
         + '<button class="streak-log-btn ' + (logged?'logged':'') + '" id="slb-' + s.id + '" style="border-color:'+color+';' + (logged?'background:'+color:'') + '"'
           + ' onclick="event.stopPropagation();' + (s.target ? ('openValueLogPrompt(\''+s.id+'\')') : ('logStreak(\''+s.id+'\')')) + '"'
           + ' oncontextmenu="return false">'
@@ -5538,8 +5858,9 @@ function renderStreaks() {
             ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>'
             : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color:'+color+'"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>')
         + '</button>'
+        + '</div>'
       + '</div>'
-
+      + (_openStreakTrends.has(s.id) ? renderStreakTrendsHTML(s) : '')
       + (linkedNotesHTML ? '<div style="padding:0 16px 12px">' + linkedNotesHTML + '</div>' : '')
     + '</div>';
   }).join('');
@@ -6668,6 +6989,317 @@ function openTemplatesManager() {
 // type is 'list' or 'note'. Deleting a folder does NOT delete the lists/notes
 // inside it — they move back to Unfiled, same as if you'd never assigned a
 // folder. Only the folder itself is removed.
+// ── PROJECTS ─────────────────────────────────────────────────────────────
+// A Project groups any mix of To-Dos, Reminders, Lists, and Notes under one
+// umbrella. Items opt in by having a projectId field set. Projects are first-
+// class items with their own name, color, deadline, and progress tracking.
+
+let selectedProjectColor = '#06b6d4';
+let currentProjectId = null; // ID of the project currently open in detail view
+
+function selectProjectColor(color, el) {
+  selectedProjectColor = color;
+  document.querySelectorAll('#project-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s === el));
+}
+
+function openProjectModal(id = null) {
+  const p = id ? (S.projects || []).find(p => p.id === id) : null;
+  document.getElementById('project-modal-title').textContent = p ? 'Edit Project' : 'New Project';
+  document.getElementById('project-eid').value = id || '';
+  document.getElementById('project-name').value = p ? p.name : '';
+  document.getElementById('project-deadline').value = p ? (p.deadline || '') : '';
+  document.getElementById('project-del-btn').style.display = p ? '' : 'none';
+  selectedProjectColor = p ? (p.color || '#06b6d4') : '#06b6d4';
+  document.querySelectorAll('#project-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s.dataset.color === selectedProjectColor));
+  openModal('modal-project');
+  setTimeout(() => document.getElementById('project-name').focus(), 150);
+}
+
+function saveProject() {
+  const name = document.getElementById('project-name').value.trim();
+  if (!name) { toast('Add a project name', 'err'); return; }
+  const id = document.getElementById('project-eid').value;
+  const deadline = document.getElementById('project-deadline').value || null;
+  if (!Array.isArray(S.projects)) S.projects = [];
+  if (id) {
+    const p = S.projects.find(p => p.id === id);
+    if (p) { p.name = name; p.color = selectedProjectColor; p.deadline = deadline; }
+  } else {
+    const np = { id: gid(), name, color: selectedProjectColor, deadline, archived: false, createdAt: Date.now() };
+    stampOwner(np);
+    S.projects.push(np);
+  }
+  save();
+  closeModal('modal-project');
+  renderDash();
+  // If we were in the detail view, refresh it
+  if (currentProjectId === id) openProjectDetail(id);
+  toast(id ? 'Project updated' : 'Project created', 'ok');
+}
+
+function deleteProject() {
+  const id = document.getElementById('project-eid').value;
+  if (!id || !confirm('Delete this project? Items assigned to it will become unassigned.')) return;
+  S.projects = (S.projects || []).filter(p => p.id !== id);
+  // Unassign all items
+  (S.todos || []).forEach(t => { if (t.projectId === id) t.projectId = null; });
+  (S.reminders || []).forEach(r => { if (r.projectId === id) r.projectId = null; });
+  (S.lists || []).forEach(l => { if (l.projectId === id) l.projectId = null; });
+  (S.notes || []).forEach(n => { if (n.projectId === id) n.projectId = null; });
+  save();
+  closeModal('modal-project');
+  closeProjectDetail();
+  renderDash();
+  toast('Project deleted');
+}
+
+// Populate a project picker dropdown with current projects.
+// Called from openTodoModal, openReminderModal, openListModal, openNoteDetail.
+function populateProjectSelect(selectId, currentProjectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">No project</option>'
+    + (S.projects || []).filter(canSeeItem).map(p =>
+        `<option value="${p.id}">${esc(p.name)}</option>`
+      ).join('');
+  sel.value = currentProjectId || '';
+}
+
+// Compute project progress: completed todos + completed reminders / total of both.
+// Lists and Notes are context (shown in detail) but not counted in %; that'd be
+// weird since lists/notes don't have a single "done" state.
+function getProjectProgress(projectId) {
+  const todos = (S.todos || []).filter(t => t.projectId === projectId && canSeeItem(t));
+  const rems = (S.reminders || []).filter(r => r.projectId === projectId && canSeeItem(r));
+  const total = todos.length + rems.length;
+  if (!total) return null;
+  const done = todos.filter(t => t.completed).length + rems.filter(r => r.completed).length;
+  return { pct: Math.round((done / total) * 100), done, total };
+}
+
+// Open the slide-in project detail view
+function openProjectDetail(id) {
+  currentProjectId = id;
+  const p = (S.projects || []).find(p => p.id === id);
+  if (!p) return;
+  document.getElementById('project-det-title').textContent = p.name;
+  const prog = getProjectProgress(id);
+  document.getElementById('project-det-sub').textContent = prog
+    ? `${prog.done}/${prog.total} items done · ${prog.pct}%`
+    : 'No trackable items yet';
+  renderProjectDetail(p);
+  const view = document.getElementById('project-detail-view');
+  view.style.display = 'flex';
+  view.style.flexDirection = 'column';
+  requestAnimationFrame(() => view.classList.add('open'));
+}
+
+function closeProjectDetail() {
+  const view = document.getElementById('project-detail-view');
+  view.classList.remove('open');
+  setTimeout(() => { view.style.display = 'none'; }, 300);
+  currentProjectId = null;
+}
+
+function renderProjectDetail(p) {
+  const body = document.getElementById('project-det-body');
+  if (!body) return;
+  const id = p.id;
+  const color = p.color || 'var(--pri-med)';
+  let html = '';
+
+  // Progress bar
+  const prog = getProjectProgress(id);
+  if (prog) {
+    html += `<div style="padding:12px 16px 0">
+      <div class="project-progress-bar" style="--project-color:${color}">
+        <div class="project-progress-fill" style="width:${prog.pct}%"></div>
+      </div>
+      <div style="font-size:11px;color:var(--ink-mute);margin-top:4px;text-align:right">${prog.pct}% complete</div>
+    </div>`;
+  }
+
+  // Deadline chip
+  if (p.deadline) {
+    const daysLeft = Math.ceil((parseLocalDate(p.deadline) - new Date()) / 86400000);
+    const dLabel = daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft}d left`;
+    const dColor = daysLeft < 0 ? 'var(--pri-high)' : daysLeft <= 3 ? 'var(--pri-med)' : 'var(--ink-mute)';
+    html += `<div style="padding:6px 16px"><span style="font-size:12px;color:${dColor};font-weight:600">⏱ ${p.deadline} · ${dLabel}</span></div>`;
+  }
+
+  // To-Dos section
+  const todos = (S.todos || []).filter(t => t.projectId === id && canSeeItem(t));
+  html += `<div class="project-section-hdr">To-Dos (${todos.length})</div>`;
+  if (todos.length) {
+    todos.forEach(t => {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line-soft);cursor:pointer" onclick="openTodoModal('${t.id}')">
+        <div style="width:18px;height:18px;border-radius:5px;border:2px solid var(--line);background:${t.completed?color:'none'};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          ${t.completed?'<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;color:${t.completed?'var(--ink-mute)':'var(--ink)'};${t.completed?'text-decoration:line-through':''};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div>
+          ${t.date?`<div style="font-size:11px;color:var(--ink-mute)">${t.date}</div>`:''}
+        </div>
+      </div>`;
+    });
+  } else html += `<div class="project-empty-section">No to-dos — assign one from the To-Dos tab</div>`;
+
+  // Reminders section
+  const rems = (S.reminders || []).filter(r => r.projectId === id && canSeeItem(r));
+  html += `<div class="project-section-hdr">Reminders (${rems.length})</div>`;
+  if (rems.length) {
+    rems.forEach(r => {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line-soft);cursor:pointer" onclick="openReminderModal('${r.id}')">
+        <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${color};flex-shrink:0;background:${r.completed?color:'none'}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;color:${r.completed?'var(--ink-mute)':'var(--ink)'};${r.completed?'text-decoration:line-through':''}";white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.title)}</div>
+          ${r.date?`<div style="font-size:11px;color:var(--ink-mute)">${r.date}</div>`:''}
+        </div>
+      </div>`;
+    });
+  } else html += `<div class="project-empty-section">No reminders — assign one from the Reminders tab</div>`;
+
+  // Lists section
+  const lists = (S.lists || []).filter(l => l.projectId === id && canSeeItem(l));
+  html += `<div class="project-section-hdr">Lists (${lists.length})</div>`;
+  if (lists.length) {
+    lists.forEach(l => {
+      const itemCount = (l.items || []).filter(i => !i.isSection && !i.isSubsection).length;
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line-soft);cursor:pointer" onclick="openListDetail('${l.id}')">
+        <div style="width:18px;height:18px;border-radius:4px;background:${l.color||color};flex-shrink:0"></div>
+        <div style="flex:1;font-size:14px;color:var(--ink)">${esc(l.name)}</div>
+        <div style="font-size:11px;color:var(--ink-mute)">${itemCount} item${itemCount!==1?'s':''}</div>
+      </div>`;
+    });
+  } else html += `<div class="project-empty-section">No lists — assign one from the Lists tab</div>`;
+
+  // Notes section
+  const notes = (S.notes || []).filter(n => n.projectId === id && canSeeItem(n));
+  html += `<div class="project-section-hdr">Notes (${notes.length})</div>`;
+  if (notes.length) {
+    notes.forEach(n => {
+      html += `<div style="padding:10px 16px;border-bottom:1px solid var(--line-soft);cursor:pointer" onclick="openNoteDetail('${n.id}')">
+        <div style="font-size:14px;color:var(--ink);font-weight:500">${n.title ? esc(n.title) : '<span style="color:var(--ink-mute)">Untitled</span>'}</div>
+        ${n.body?`<div style="font-size:12px;color:var(--ink-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(stripHTML(n.body).substring(0,80))}</div>`:''}
+      </div>`;
+    });
+  } else html += `<div class="project-empty-section">No notes — assign one from the Notes tab</div>`;
+
+  html += '<div style="height:40px"></div>'; // bottom padding
+  body.innerHTML = html;
+}
+
+// Render the Projects section for the dashboard
+function renderProjectsDashHTML() {
+  const projects = (S.projects || []).filter(canSeeItem).filter(p => !p.archived);
+  if (!projects.length) return '';
+  let html = `<div class="dash-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Projects</span>
+    <button class="btn-icon btn-xs" onclick="openProjectModal()" style="color:var(--ink-mute)" title="New project"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+  </div>`;
+  projects.forEach(p => {
+    const prog = getProjectProgress(p.id);
+    const color = p.color || '#06b6d4';
+    const daysLeft = p.deadline ? Math.ceil((parseLocalDate(p.deadline) - new Date()) / 86400000) : null;
+    const deadlineTxt = daysLeft !== null
+      ? (daysLeft < 0 ? ` · <span style="color:var(--pri-high)">${Math.abs(daysLeft)}d overdue</span>` : daysLeft === 0 ? ' · <span style="color:var(--pri-med)">Due today</span>' : ` · ${daysLeft}d left`)
+      : '';
+    html += `<div class="project-card" style="--project-color:${color}" onclick="openProjectDetail('${p.id}')">
+      <div class="project-card-header">
+        <div style="width:12px;height:12px;border-radius:3px;background:${color};flex-shrink:0"></div>
+        <div class="project-card-name">${esc(p.name)}</div>
+        <button class="btn-icon btn-xs" onclick="event.stopPropagation();openProjectModal('${p.id}')" style="color:var(--ink-mute)" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>
+      </div>
+      <div class="project-card-meta">${prog ? `${prog.done}/${prog.total} items` : 'No trackable items'}${deadlineTxt}</div>
+      ${prog ? `<div class="project-progress-bar" style="--project-color:${color}"><div class="project-progress-fill" style="width:${prog.pct}%"></div></div>` : ''}
+    </div>`;
+  });
+  return html;
+}
+
+// ── STREAK SKIP REASONS MANAGER ──────────────────────────────────────────
+// Manages the reason codes that show up when you skip a streak day.
+// Reuses the folder manager modal (it's just a list with add/edit/delete).
+function openSkipReasonsManager() {
+  const reasons = S.streakSkipReasons || [];
+  document.getElementById('folder-manager-title').textContent = 'Streak Skip Reasons';
+  const body = document.getElementById('folder-manager-body');
+  let html = '<div style="margin-bottom:12px">';
+  if (reasons.length) {
+    reasons.forEach((r, idx) => {
+      html += `<div class="template-card" style="border-left:3px solid ${r.color}">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <div style="width:16px;height:16px;border-radius:4px;background:${r.color};flex-shrink:0"></div>
+          <div style="font-size:14px;font-weight:500;color:var(--ink)">${esc(r.label)}</div>
+        </div>
+        <button class="btn-icon btn-xs" onclick="editSkipReason(${idx})" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon btn-xs" onclick="deleteSkipReason(${idx})" style="color:var(--pri-high)" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+      </div>`;
+    });
+  } else {
+    html += '<p style="color:var(--ink-mute);font-size:13px;padding:8px 0">No reason codes yet. Add one below.</p>';
+  }
+  html += `</div>
+    <div style="border-top:1px solid var(--line);padding-top:14px">
+      <div class="field-label" style="margin-bottom:8px">Add reason code</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="skip-reason-label-input" placeholder="Label (e.g. Sick)" style="flex:1;min-width:120px">
+        <div class="streak-color-picker" id="skip-reason-color-picker" style="margin:0">
+          <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b;width:28px;height:28px" onclick="selectSkipReasonColor('#f59e0b',this)"></div>
+          <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4;width:28px;height:28px" onclick="selectSkipReasonColor('#06b6d4',this)"></div>
+          <div class="color-swatch" data-color="#10b981" style="background:#10b981;width:28px;height:28px" onclick="selectSkipReasonColor('#10b981',this)"></div>
+          <div class="color-swatch" data-color="#f43f5e" style="background:#f43f5e;width:28px;height:28px" onclick="selectSkipReasonColor('#f43f5e',this)"></div>
+          <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6;width:28px;height:28px" onclick="selectSkipReasonColor('#8b5cf6',this)"></div>
+          <div class="color-swatch" data-color="#ec4899" style="background:#ec4899;width:28px;height:28px" onclick="selectSkipReasonColor('#ec4899',this)"></div>
+        </div>
+        <button class="btn btn-sm" onclick="addSkipReason()">Add</button>
+      </div>
+    </div>`;
+  body.innerHTML = html;
+  // Pre-select first color
+  document.querySelector('#skip-reason-color-picker .color-swatch').classList.add('selected');
+  openModal('modal-folder-manager');
+}
+
+let _selectedSkipReasonColor = '#f59e0b';
+function selectSkipReasonColor(color, el) {
+  _selectedSkipReasonColor = color;
+  document.querySelectorAll('#skip-reason-color-picker .color-swatch').forEach(s => s.classList.toggle('selected', s === el));
+}
+
+function addSkipReason() {
+  const label = document.getElementById('skip-reason-label-input').value.trim();
+  if (!label) { toast('Enter a label', 'err'); return; }
+  if (!Array.isArray(S.streakSkipReasons)) S.streakSkipReasons = [];
+  const id = label.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  S.streakSkipReasons.push({ id: id + '-' + gid().slice(0,4), label, color: _selectedSkipReasonColor });
+  save();
+  openSkipReasonsManager(); // refresh
+  toast('Reason code added', 'ok');
+}
+
+function editSkipReason(idx) {
+  const r = (S.streakSkipReasons || [])[idx];
+  if (!r) return;
+  const newLabel = prompt('Rename reason code:', r.label);
+  if (!newLabel || !newLabel.trim()) return;
+  S.streakSkipReasons[idx].label = newLabel.trim();
+  save();
+  openSkipReasonsManager();
+  renderStreaks();
+  toast('Reason renamed', 'ok');
+}
+
+function deleteSkipReason(idx) {
+  const r = (S.streakSkipReasons || [])[idx];
+  if (!r || !confirm(`Delete "${r.label}"? Skips recorded with this reason will show no label but won't be lost.`)) return;
+  S.streakSkipReasons.splice(idx, 1);
+  save();
+  openSkipReasonsManager();
+  renderStreaks();
+  toast('Reason deleted');
+}
+
 function openFolderManager(type) {
   const folders = type === 'list' ? (S.listFolders || []) : (S.noteFolders || []);
   const items = type === 'list' ? (S.lists || []) : (S.notes || []);
@@ -7239,6 +7871,27 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.63',
+    date: 'Jul 2, 2026',
+    type: 'major',
+    items: [
+      'Streak skips: tap "Skip" on any expanded streak card to exempt a day from your streak without breaking it. Pick a reason code (Sick, Travel, Alt Workout, or any custom ones you configure) and that day shows up in its own color in both the dot grid and the trends heatmap. Skipped days don\'t break the chain, don\'t count against your completion rate, and protect your longest-ever streak calculation too.',
+      'Reason codes: manage them in Settings → Streak Skip Reasons. Three ship by default (Sick/amber, Travel/cyan, Alt Workout/purple). Add, rename, or delete any of them. Each shows up as its own color in the dot grid and the heatmap legend, so you can see at a glance what kinds of skips you have in your history.',
+      'Technical detail: skips are stored as a per-streak dictionary keyed by date (e.g. {"2026-06-21": "sick"}), separate from the existing logs array. Skipping a day removes any log for that day so the two states can\'t conflict. The skip button only appears on scheduled non-paused streaks for today.'
+    ]
+  },
+  {
+    version: '0.04.62',
+    date: 'Jul 2, 2026',
+    type: 'major',
+    items: [
+      'Bug fix: Steps ring card on the dashboard had no color when steps were below goal — it was referencing a CSS variable (--violet) that was never defined. Now uses --reminder, which is the same purple already in the palette.',
+      'Bug fix: The "Link note to an item" picker (Note editor → Link button) showed all household todos, reminders, lists, and streaks without filtering by ownership — a real privacy leak. Now applies canSeeItem() consistently across all four item types in that picker.',
+      'Streak Trends: tap "Trends" on any expanded streak card to see your current chain, best-ever chain, 30-day completion rate, and a 12-week heatmap calendar (green = logged, muted red = missed, grey = rest day). State stays open while you\'re on the Streaks tab but doesn\'t sync or persist.',
+      'Projects: a new cross-module grouping layer. Create a project with a name, color, and optional deadline from the Dashboard. Assign any To-Do, Reminder, List, or Note to a project from its own edit screen. The project card on the dashboard shows a progress bar (based on completed to-dos + reminders) and a deadline countdown. Tapping a project card opens a full detail view showing all assigned items across every module in one scrollable list.'
+    ]
+  },
   {
     version: '0.04.61',
     date: 'Jun 23, 2026',
@@ -8758,7 +9411,7 @@ function attachSwipeDismiss(modalId) {
 
 // Attach to all modals when DOM ready
 function initSwipeDismiss() {
-  ['modal-picker','modal-todo','modal-list','modal-list-menu','modal-reminder','modal-settings','modal-note-link','modal-streak','modal-templates','modal-folder-manager','modal-quick-capture','modal-quicktag-manager','modal-list-item-menu','modal-list-card-menu','modal-move-to-section','modal-list-recurrence','modal-share-picker','modal-streak-value','modal-paste-items'].forEach(attachSwipeDismiss);
+  ['modal-picker','modal-todo','modal-list','modal-list-menu','modal-reminder','modal-settings','modal-note-link','modal-streak','modal-templates','modal-folder-manager','modal-quick-capture','modal-quicktag-manager','modal-list-item-menu','modal-list-card-menu','modal-move-to-section','modal-list-recurrence','modal-share-picker','modal-streak-value','modal-paste-items','modal-project'].forEach(attachSwipeDismiss);
 }
 
 
@@ -9309,6 +9962,16 @@ function initSwipeTabs() {
   </div>
 </div>
 
+<!-- PROJECT DETAIL VIEW — slide-in panel showing all items belonging to a project -->
+<div class="project-detail-view" id="project-detail-view">
+  <div class="detail-hdr">
+    <button class="detail-back" onclick="closeProjectDetail()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>Projects</button>
+    <div class="detail-title-wrap"><div class="detail-title" id="project-det-title"></div><div class="detail-sub" id="project-det-sub"></div></div>
+    <button class="btn-icon" onclick="openProjectModal(currentProjectId)" title="Edit project"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+  </div>
+  <div class="detail-body" id="project-det-body" style="padding:0"></div>
+</div>
+
 <!-- NOTE DETAIL VIEW -->
 <div class="detail-view" id="note-detail-view">
   <div class="detail-hdr">
@@ -9370,6 +10033,10 @@ function initSwipeTabs() {
       <div class="list-icon-swatch" data-icon="🔧" onclick="selectNoteIcon('🔧',this)" title="Projects">🔧</div>
       <div class="list-icon-swatch" data-icon="🐾" onclick="selectNoteIcon('🐾',this)" title="Pets">🐾</div>
     </div>
+    <span style="font-size:11px;color:var(--ink-mute);flex-shrink:0;margin-left:6px">Project:</span>
+    <select id="note-project-select" onchange="setNoteProject(this.value)" style="background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 10px;color:var(--ink);font-family:'Inter',sans-serif;font-size:12px">
+      <option value="">No project</option>
+    </select>
   </div>
   <input type="file" id="note-attach-input" accept="image/*" style="display:none" onchange="handleNoteAttachUpload(event)">
   <div class="detail-body" id="note-editor-body" onclick="focusNoteBody(event)">
@@ -9534,6 +10201,35 @@ function initSwipeTabs() {
       <button class="btn-icon" onclick="closeModal('modal-folder-manager')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body" id="folder-manager-body"></div>
+  </div>
+</div>
+
+<!-- PROJECT MODAL — create or edit a project -->
+<div class="modal-backdrop" id="modal-project">
+  <div class="modal"><div class="modal-handle-zone"><div class="modal-handle"></div></div>
+    <div class="modal-header">
+      <div class="modal-title" id="project-modal-title">New Project</div>
+      <button class="btn-icon" onclick="closeModal('modal-project')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="project-eid">
+      <div class="field"><label class="field-label">Project Name</label><input type="text" id="project-name" placeholder="e.g. Bathroom Renovation"></div>
+      <div class="field"><label class="field-label">Color</label>
+        <div class="streak-color-picker" id="project-color-picker">
+          <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" onclick="selectProjectColor('#f59e0b',this)"></div>
+          <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4" onclick="selectProjectColor('#06b6d4',this)"></div>
+          <div class="color-swatch" data-color="#10b981" style="background:#10b981" onclick="selectProjectColor('#10b981',this)"></div>
+          <div class="color-swatch" data-color="#f43f5e" style="background:#f43f5e" onclick="selectProjectColor('#f43f5e',this)"></div>
+          <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectProjectColor('#8b5cf6',this)"></div>
+          <div class="color-swatch" data-color="#ec4899" style="background:#ec4899" onclick="selectProjectColor('#ec4899',this)"></div>
+        </div>
+      </div>
+      <div class="field"><label class="field-label">Deadline (optional)</label><input type="date" id="project-deadline"></div>
+      <div class="field-row" style="gap:8px;margin-top:4px">
+        <button class="btn btn-block" onclick="saveProject()">Save</button>
+        <button class="btn btn-ghost" id="project-del-btn" onclick="deleteProject()" style="flex-shrink:0">Delete</button>
+      </div>
+    </div>
   </div>
 </div>
 
