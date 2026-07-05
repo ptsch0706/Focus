@@ -1876,7 +1876,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],dismissedStaleLists:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1928,6 +1928,7 @@ function loadState(){
       if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
       if(!Array.isArray(loaded.dismissedStreakPlaceholders))loaded.dismissedStreakPlaceholders=[];
       if(!Array.isArray(loaded.dismissedSharedItems))loaded.dismissedSharedItems=[];
+      if(!Array.isArray(loaded.dismissedStaleLists))loaded.dismissedStaleLists=[];
       if(typeof loaded.usHolidaysEnabled!=='boolean')loaded.usHolidaysEnabled=false;
       if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{
         if(!Array.isArray(t.subtasks))t.subtasks=[];
@@ -7926,14 +7927,22 @@ function pickSmartNudge() {
     }
   }
 
-  // Priority 3: Stale list (not touched in 14 days)
+  // Priority 3: Stale list (not touched in 14 days). Skips any list already
+  // dismissed for its CURRENT staleness period — keyed on id+updatedAt, so if
+  // the list is eventually touched again and later goes stale a second time,
+  // the nudge can legitimately reappear (it's a new staleness period, not the
+  // same one being re-shown).
   const now = Date.now();
   const twoWeeksAgo = now - (14 * 24 * 60 * 60 * 1000);
+  const dismissedStale = S.dismissedStaleLists || [];
   const staleList = (S.lists || []).filter(canSeeItem).find(l => {
     const lastTouched = l.updatedAt || l.createdAt || 0;
-    return lastTouched < twoWeeksAgo && (l.items || []).length > 0;
+    if (lastTouched >= twoWeeksAgo || !(l.items || []).length) return false;
+    const key = l.id + ':' + lastTouched;
+    return !dismissedStale.includes(key);
   });
   if (staleList) {
+    const lastTouched = staleList.updatedAt || staleList.createdAt || 0;
     return {
       icon: 'inbox',
       color: 'var(--list)',
@@ -7942,6 +7951,7 @@ function pickSmartNudge() {
       body: 'Untouched for 2+ weeks. Still need it?',
       actionLabel: null,
       actionFn: null,
+      dismissFn: 'dismissStaleListNudge(\'' + staleList.id + '\',' + lastTouched + ')',
     };
   }
 
@@ -7976,10 +7986,24 @@ function smartNudgeDeferOverdue() {
   toast('Deferred ' + overdue.length + ' to-dos to tomorrow', 'ok');
 }
 
+// Dismisses the "has been quiet" nudge for one list, for its CURRENT
+// staleness period only (keyed on id+updatedAt at time of dismissal). If the
+// list is later edited (new updatedAt) and eventually goes stale again, this
+// specific dismissal won't match anymore and the nudge can reappear — this
+// is "stop nagging me about THIS lull," not "never mention this list again."
+function dismissStaleListNudge(listId, lastTouched) {
+  if (!Array.isArray(S.dismissedStaleLists)) S.dismissedStaleLists = [];
+  const key = listId + ':' + lastTouched;
+  if (!S.dismissedStaleLists.includes(key)) S.dismissedStaleLists.push(key);
+  save();
+  renderDash();
+}
+
 function renderSmartNudgeCard() {
   const n = pickSmartNudge();
   if (!n) return '';
-  return '<div class="smart-nudge-card" style="border-color:' + n.color + ';background:' + n.bg + '">'
+  return '<div class="smart-nudge-card" style="border-color:' + n.color + ';background:' + n.bg + ';position:relative">'
+    + (n.dismissFn ? '<button class="dash-row-dismiss" onclick="event.stopPropagation();' + n.dismissFn + '" title="Dismiss" style="position:absolute;top:10px;right:10px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' : '')
     + '<div class="smart-nudge-title" style="color:' + n.color + '">' + svg(n.icon, 14) + ' ' + esc(n.title) + '</div>'
     + '<div class="smart-nudge-body">' + esc(n.body) + '</div>'
     + (n.actionLabel ? '<button class="btn btn-sm" style="margin-top:8px;background:' + n.color + ';color:#fff;border-color:' + n.color + '" onclick="' + n.actionFn + '">' + esc(n.actionLabel) + '</button>' : '')
@@ -8297,6 +8321,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.71',
+    date: 'Jul 5, 2026',
+    type: 'medium',
+    items: [
+      'Fixed: the "[List] has been quiet" dashboard nudge had no way to dismiss it \u2014 if you genuinely didn\'t want to touch that list right now, the exact same nudge kept reappearing every time you opened the app, forever, since the underlying condition (list untouched for 14+ days) stayed true. Added a small ✕ dismiss button to the nudge card.',
+      'Dismissing is scoped to that specific quiet period, not the list forever: it\'s keyed on the list\'s ID plus its last-updated timestamp at the moment you dismiss it. If you eventually edit the list again and then let it go quiet for another 14+ days later, the nudge can legitimately reappear \u2014 this is "stop nagging me about this right now," not "never mention this list again."'
+    ]
+  },
   {
     version: '0.04.70',
     date: 'Jul 5, 2026',
