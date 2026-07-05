@@ -3623,6 +3623,7 @@ function saveReminder(){
   const paused = document.getElementById('rem-paused').checked;
   if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId,paused};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
   else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId,paused,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');if(window._pendingShareWith&&window._pendingShareWith.length){newR.sharedWith=[...new Set([...(newR.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.reminders.push(newR);toast('Reminder added','ok');}
+  save();closeModal('modal-reminder');renderRem();renderDash();tabs();
   syncDueTimeSchedules();
 }
 function checkRem(id){
@@ -8296,6 +8297,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.70',
+    date: 'Jul 5, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed a real bug: saving a new reminder showed the "Reminder added" toast but never actually closed the modal or refreshed the Reminders tab \u2014 tapping Save a second time (since there was no visible confirmation) created a duplicate reminder with the same details. saveReminder() was missing the save()/closeModal()/renderRem() calls that every other save function (To-Dos, Lists, Streaks, Projects) already has. Confirmed via direct comparison against all four that this was an isolated omission, not a wider pattern.',
+      'If you already hit this bug: the duplicate reminder it created is still sitting in your Reminders tab and will need to be deleted manually \u2014 this fix prevents it from happening again but doesn\'t retroactively clean up existing duplicates.'
+    ]
+  },
   {
     version: '0.04.69',
     date: 'Jul 4, 2026',
