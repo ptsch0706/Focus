@@ -350,6 +350,8 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 /* TOAST */
 .toast-wrap{position:fixed;bottom:calc(var(--safe-bot) + 90px);left:50%;transform:translateX(-50%);z-index:300;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:8px;}
 .toast{background:var(--bg-raised);border:1px solid var(--line);border-radius:20px;padding:10px 18px;font-size:13px;font-weight:500;color:var(--ink);box-shadow:var(--shadow-lg);white-space:nowrap;animation:tIn .25s cubic-bezier(.34,1.56,.64,1);pointer-events:auto;}
+.toast.undo{display:flex;align-items:center;gap:12px;}
+.toast-undo-btn{background:none;border:none;color:var(--cyan);font-weight:700;font-size:13px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
 .toast.ok{border-color:var(--cyan);color:var(--cyan);}
 .toast.err{border-color:var(--pri-high);color:var(--pri-high);}
 @keyframes tIn{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -1916,6 +1918,13 @@ function loadState(){
       if(!Array.isArray(loaded.templates))loaded.templates=[];
       if(!Array.isArray(loaded.quickTags))loaded.quickTags=['Kids','Everyone'];
       if(!loaded.dailyStats||typeof loaded.dailyStats!=='object')loaded.dailyStats={};
+      // Ensure every existing dailyStats day has a byOwner field (empty for old entries
+      // that predate per-owner tracking — see countCompletedInRange for how this is used).
+      Object.keys(loaded.dailyStats).forEach(dateKey=>{
+        if(!loaded.dailyStats[dateKey].byOwner||typeof loaded.dailyStats[dateKey].byOwner!=='object'){
+          loaded.dailyStats[dateKey].byOwner={};
+        }
+      });
       if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
       if(!Array.isArray(loaded.dismissedStreakPlaceholders))loaded.dismissedStreakPlaceholders=[];
       if(!Array.isArray(loaded.dismissedSharedItems))loaded.dismissedSharedItems=[];
@@ -2179,6 +2188,56 @@ function toast(msg,type=''){
   w.appendChild(t);setTimeout(()=>t.remove(),2800);
 }
 
+// ── UNDO SYSTEM ──────────────────────────────────────────────────────────
+// Deletion still happens immediately (same as before — save()/sync fires
+// right away, no delayed-delete timer that could race with sync). What's
+// new: a copy of the deleted item is kept in memory for a few seconds, and
+// tapping Undo just re-adds it — indistinguishable from creating it fresh.
+// This deliberately does NOT touch the sync/save timing anywhere; it only
+// adds a way to reverse a delete shortly after it happens.
+//
+// _recentlyDeleted is intentionally NOT part of S — it's per-device,
+// in-memory only, and disappears if the app is closed. That's fine: undo
+// is a "did I just misclick" safety net, not a trash bin meant to persist.
+let _recentlyDeleted = null; // holds at most one entry: {type, item, restoreFn}
+let _undoTimeoutId = null;
+
+function showUndoToast(msg, restoreFn) {
+  const w = document.getElementById('toast-wrap');
+  // An undo toast replaces any other undo toast in progress (only one
+  // undo-able action is tracked at a time, to keep this simple and avoid
+  // stacking multiple pending restores that could get confusing).
+  const existing = w.querySelector('.toast.undo');
+  if (existing) existing.remove();
+  if (_undoTimeoutId) clearTimeout(_undoTimeoutId);
+
+  const t = document.createElement('div');
+  t.className = 'toast undo';
+  t.innerHTML = '<span>' + esc(msg) + '</span><button class="toast-undo-btn" onclick="performUndo()">Undo</button>';
+  const MAX_TOASTS = 2;
+  while (w.children.length >= MAX_TOASTS) w.firstChild.remove();
+  w.appendChild(t);
+
+  _undoTimeoutId = setTimeout(() => {
+    t.remove();
+    _recentlyDeleted = null;
+    _undoTimeoutId = null;
+  }, 5000);
+
+  _recentlyDeleted = { restoreFn };
+}
+
+function performUndo() {
+  if (!_recentlyDeleted) return;
+  if (_undoTimeoutId) { clearTimeout(_undoTimeoutId); _undoTimeoutId = null; }
+  const w = document.getElementById('toast-wrap');
+  const existing = w.querySelector('.toast.undo');
+  if (existing) existing.remove();
+  _recentlyDeleted.restoreFn();
+  _recentlyDeleted = null;
+  toast('Restored', 'ok');
+}
+
 // ── TODOS ──
 function openTodoModal(id=null){
   const t=id?S.todos.find(t=>t.id===id):null;
@@ -2294,7 +2353,13 @@ function deleteTodo(){
   const id=document.getElementById('todo-eid').value;
   if(!id||!confirm('Delete this to-do?'))return;
   cancelDueTimeSchedule('todo',id);
-  S.todos=S.todos.filter(t=>t.id!==id);save();closeModal('modal-todo');renderTodos();renderDash();tabs();toast('Deleted');
+  const deletedItem=S.todos.find(t=>t.id===id);
+  const deletedIndex=S.todos.findIndex(t=>t.id===id);
+  S.todos=S.todos.filter(t=>t.id!==id);save();closeModal('modal-todo');renderTodos();renderDash();tabs();
+  showUndoToast('To-do deleted', () => {
+    S.todos.splice(Math.min(deletedIndex,S.todos.length),0,deletedItem);
+    save();renderTodos();renderDash();tabs();
+  });
 }
 
 function renderTodos(){
@@ -2521,19 +2586,29 @@ function swipeDeferRem(id) {
 }
 function swipeDeleteTodo(id) {
   if (!confirm('Delete this to-do?')) return;
+  const deletedItem=S.todos.find(t=>t.id===id);
+  const deletedIndex=S.todos.findIndex(t=>t.id===id);
   S.todos = S.todos.filter(t => t.id !== id);
   save();
   renderTodos();
   renderDash();
-  toast('Deleted');
+  showUndoToast('To-do deleted', () => {
+    S.todos.splice(Math.min(deletedIndex,S.todos.length),0,deletedItem);
+    save();renderTodos();renderDash();
+  });
 }
 function swipeDeleteRem(id) {
   if (!confirm('Delete this reminder?')) return;
+  const deletedItem=S.reminders.find(r=>r.id===id);
+  const deletedIndex=S.reminders.findIndex(r=>r.id===id);
   S.reminders = S.reminders.filter(r => r.id !== id);
   save();
   renderRem();
   renderDash();
-  toast('Deleted');
+  showUndoToast('Reminder deleted', () => {
+    S.reminders.splice(Math.min(deletedIndex,S.reminders.length),0,deletedItem);
+    save();renderRem();renderDash();
+  });
 }
 
 // Attach swipe handlers after each render of todos/reminders
@@ -2728,7 +2803,13 @@ function saveList(){
 function deleteList(){
   const id=document.getElementById('list-eid').value;
   if(!id||!confirm('Delete this list and all its items?'))return;
-  S.lists=S.lists.filter(l=>l.id!==id);save();closeModal('modal-list');renderLists();toast('Deleted');
+  const deletedItem=S.lists.find(l=>l.id===id);
+  const deletedIndex=S.lists.findIndex(l=>l.id===id);
+  S.lists=S.lists.filter(l=>l.id!==id);save();closeModal('modal-list');renderLists();
+  showUndoToast('List deleted', () => {
+    S.lists.splice(Math.min(deletedIndex,S.lists.length),0,deletedItem);
+    save();renderLists();
+  });
 }
 function renderListCardHTML(l){
   const regularItemsCard=(l.items||[]).filter(i=>!i.isSection&&!i.isSubsection);
@@ -3571,7 +3652,13 @@ function checkRem(id){
 function deleteReminder(){
   const id=document.getElementById('rem-eid').value;if(!id||!confirm('Delete this reminder?'))return;
   cancelDueTimeSchedule('rem',id);
-  S.reminders=S.reminders.filter(r=>r.id!==id);save();closeModal('modal-reminder');renderRem();renderDash();tabs();toast('Deleted');
+  const deletedItem=S.reminders.find(r=>r.id===id);
+  const deletedIndex=S.reminders.findIndex(r=>r.id===id);
+  S.reminders=S.reminders.filter(r=>r.id!==id);save();closeModal('modal-reminder');renderRem();renderDash();tabs();
+  showUndoToast('Reminder deleted', () => {
+    S.reminders.splice(Math.min(deletedIndex,S.reminders.length),0,deletedItem);
+    save();renderRem();renderDash();tabs();
+  });
 }
 function renderRem(){
   const today=td();
@@ -5256,6 +5343,8 @@ function insertMDLine(prefix) {
 
 function deleteNoteFromDet() {
   if (!noteId || !confirm('Delete this note?')) return;
+  const deletedItem=S.notes.find(n=>n.id===noteId);
+  const deletedIndex=S.notes.findIndex(n=>n.id===noteId);
   S.notes = S.notes.filter(n=>n.id!==noteId);
   save();
   document.getElementById('note-detail-view').classList.remove('show');
@@ -5263,7 +5352,10 @@ function deleteNoteFromDet() {
   hideNoteToolbar();
   noteId = null;
   renderNotes();
-  toast('Note deleted');
+  showUndoToast('Note deleted', () => {
+    S.notes.splice(Math.min(deletedIndex,S.notes.length),0,deletedItem);
+    save();renderNotes();
+  });
 }
 
 function updateNoteLinkChips(note) {
@@ -5523,8 +5615,14 @@ function saveStreak() {
 function deleteStreak() {
   const id = document.getElementById('streak-eid').value;
   if (!id||!confirm('Delete this streak and all logs?')) return;
+  const deletedItem=S.streaks.find(s=>s.id===id);
+  const deletedIndex=S.streaks.findIndex(s=>s.id===id);
   S.streaks = S.streaks.filter(s=>s.id!==id);
-  save(); closeModal('modal-streak'); renderStreaks(); toast('Deleted');
+  save(); closeModal('modal-streak'); renderStreaks();
+  showUndoToast('Streak deleted', () => {
+    S.streaks.splice(Math.min(deletedIndex,S.streaks.length),0,deletedItem);
+    save();renderStreaks();
+  });
 }
 
 function getStreakChain(streak) {
@@ -6145,7 +6243,7 @@ function renderStreaks() {
         + '</button>'
         + '</div>'
       + '</div>'
-      + (s.shortcutName ? '<div style="padding:0 16px 12px"><a href="shortcuts://run-shortcut?name='+encodeURIComponent(s.shortcutName)+'" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:'+color+';text-decoration:none;border:1px solid '+color+';padding:6px 12px;border-radius:20px"><svg xmlns="http://www.w3.org/2000/svg" fill="'+color+'" viewBox="0 0 24 24" style="width:11px;height:11px"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run "'+esc(s.shortcutName)+'" Shortcut</a></div>' : '')
+      + (s.shortcutName ? '<div style="padding:0 16px 12px"><a href="shortcuts://run-shortcut?name='+encodeURIComponent(s.shortcutName)+'" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:'+color+';text-decoration:none;border:1px solid '+color+';padding:6px 12px;border-radius:20px"><svg xmlns="http://www.w3.org/2000/svg" fill="'+color+'" viewBox="0 0 24 24" style="width:11px;height:11px"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run Shortcut</a></div>' : '')
       + (_openStreakTrends.has(s.id) ? renderStreakTrendsHTML(s) : '')
       + (linkedNotesHTML ? '<div style="padding:0 16px 12px">' + linkedNotesHTML + '</div>' : '')
     + '</div>';
@@ -6595,8 +6693,8 @@ function cleanupOldCompleted() {
   if (!S.dailyStats || typeof S.dailyStats !== 'object') S.dailyStats = {};
   const toRemoveTodos = (S.todos || []).filter(t => t.completed && t.completedAt && t.completedAt < cutoff);
   const toRemoveReminders = (S.reminders || []).filter(r => r.completed && r.completedAt && r.completedAt < cutoff);
-  toRemoveTodos.forEach(t => recordDailyCompletion('todo', t.completedAt));
-  toRemoveReminders.forEach(r => recordDailyCompletion('reminder', r.completedAt));
+  toRemoveTodos.forEach(t => recordDailyCompletion('todo', t.completedAt, t.ownerUsername));
+  toRemoveReminders.forEach(r => recordDailyCompletion('reminder', r.completedAt, r.ownerUsername));
 
   S.todos = (S.todos || []).filter(t => {
     if (!t.completed) return true;
@@ -6622,13 +6720,25 @@ function cleanupOldCompleted() {
 // only call this from cleanupOldCompleted BEFORE actual removal. That gives
 // us an accurate per-day archive: each completed-and-purged item contributes
 // exactly once to the count for its completion date.
-function recordDailyCompletion(kind, completedAtMs) {
+//
+// Stores BOTH a flat household total (todosCompleted/remindersCompleted —
+// unchanged, so anything reading the old shape still works) AND a new
+// byOwner breakdown. Entries recorded before this update have no owner info
+// captured at the time, so byOwner is only accurate going forward — there's
+// no way to retroactively reconstruct who completed what for older history
+// that was already archived without that detail.
+function recordDailyCompletion(kind, completedAtMs, ownerUsername) {
   if (!S.dailyStats) S.dailyStats = {};
   const d = new Date(completedAtMs);
   const dateKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  if (!S.dailyStats[dateKey]) S.dailyStats[dateKey] = { todosCompleted: 0, remindersCompleted: 0 };
+  if (!S.dailyStats[dateKey]) S.dailyStats[dateKey] = { todosCompleted: 0, remindersCompleted: 0, byOwner: {} };
+  if (!S.dailyStats[dateKey].byOwner) S.dailyStats[dateKey].byOwner = {}; // migrate old entries missing this field
   if (kind === 'todo') S.dailyStats[dateKey].todosCompleted = (S.dailyStats[dateKey].todosCompleted || 0) + 1;
   else if (kind === 'reminder') S.dailyStats[dateKey].remindersCompleted = (S.dailyStats[dateKey].remindersCompleted || 0) + 1;
+  const owner = normalizeUsername(ownerUsername || '') || '_unknown'; // items with no owner recorded bucket under _unknown
+  if (!S.dailyStats[dateKey].byOwner[owner]) S.dailyStats[dateKey].byOwner[owner] = { todos: 0, reminders: 0 };
+  if (kind === 'todo') S.dailyStats[dateKey].byOwner[owner].todos++;
+  else if (kind === 'reminder') S.dailyStats[dateKey].byOwner[owner].reminders++;
 }
 
 // Counts items completed within a date range. Uses live items (within 24h) +
@@ -6645,15 +6755,38 @@ function countCompletedInRange(startDate, endDate) {
     if (r.completed && canSeeItem(r) && r.completedAt && r.completedAt >= startMs && r.completedAt <= endMs) remCount++;
   });
   // Archived items (only added once they're purged — so no double-counting with live items).
-  // NOTE: archived daily stats are NOT per-owner broken down, so they're counted as-is here.
-  // This is a known minor gap: once an item is purged into S.dailyStats, its per-item
-  // ownership info is gone, so this count may include household totals for older history
-  // rather than just "my" items for dates beyond the live-item retention window.
+  // Uses the per-owner breakdown when it's present (entries recorded after this feature
+  // shipped). Older archived entries never captured per-owner data, so for those we fall
+  // back to the flat household total — there's no way to retroactively know who completed
+  // what for history that predates this change.
+  //
+  // KNOWN LIMITATION: byOwner only tracks the item's OWNER, not who it was shared with
+  // (canSeeItem's broader "own it OR shared with me" check isn't replicated here for
+  // archived data — only the live-item count above gets that). So a to-do Allie owns and
+  // shares with Phil will count under Allie's archived total, even though Phil could see
+  // it in his live list before it aged out. Fully solving this would require archiving
+  // each day's full sharedWith list too, not just one owner — a bigger change than this
+  // pass covers. Worth revisiting only if shared-item accuracy in old weekly summaries
+  // turns out to matter in practice.
+  const me = S.myUsername ? normalizeUsername(S.myUsername) : null;
   if (S.dailyStats) {
     for (const dateKey in S.dailyStats) {
       if (dateKey >= startDate && dateKey <= endDate) {
-        todoCount += S.dailyStats[dateKey].todosCompleted || 0;
-        remCount += S.dailyStats[dateKey].remindersCompleted || 0;
+        const day = S.dailyStats[dateKey];
+        if (!me) {
+          // No username set — single-user mode, household total is correct as-is
+          todoCount += day.todosCompleted || 0;
+          remCount += day.remindersCompleted || 0;
+        } else if (day.byOwner && Object.keys(day.byOwner).length) {
+          // Per-owner data exists for this day — count only mine
+          const mine = day.byOwner[me];
+          if (mine) { todoCount += mine.todos || 0; remCount += mine.reminders || 0; }
+        } else {
+          // Pre-existing entry from before this feature — no per-owner data captured,
+          // so this falls back to the household total (a known, unavoidable gap for old history)
+          todoCount += day.todosCompleted || 0;
+          remCount += day.remindersCompleted || 0;
+        }
       }
     }
   }
@@ -7067,8 +7200,9 @@ function renderSearch() {
   const reminders = (S.reminders || []).filter(canSeeItem).filter(r => matchFn(r.title) || matchFn(r.notes));
   const notes = (S.notes || []).filter(canSeeItem).filter(n => matchFn(n.title) || matchFn(stripHTML(n.body || '')));
   const streaks = (S.streaks || []).filter(canSeeItem).filter(s => matchFn(s.name));
+  const projects = (S.projects || []).filter(canSeeItem).filter(p => matchFn(p.name));
 
-  const total = todos.length + lists.length + reminders.length + notes.length + streaks.length;
+  const total = todos.length + lists.length + reminders.length + notes.length + streaks.length + projects.length;
   if (total === 0) {
     el.innerHTML = '<p style="text-align:center;color:var(--ink-mute);font-size:13px;padding:40px 16px">No matches.</p>';
     return;
@@ -7112,6 +7246,11 @@ function renderSearch() {
   section('Streaks', streaks, s => `<div class="search-result" onclick="closeSearch();switchView('streaks')">
     <div class="search-result-icon" style="background:${s.color || '#f43f5e'}1a;color:${s.color || '#f43f5e'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
     <div class="search-result-body"><div class="search-result-title">${hl(s.name)}</div></div>
+  </div>`);
+
+  section('Projects', projects, p => `<div class="search-result" onclick="closeSearch();openProjectDetail('${p.id}')">
+    <div class="search-result-icon" style="background:${p.color || '#06b6d4'}1a;color:${p.color || '#06b6d4'}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+    <div class="search-result-body"><div class="search-result-title">${hl(p.name)}</div></div>
   </div>`);
 
   el.innerHTML = html;
@@ -8157,6 +8296,25 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.69',
+    date: 'Jul 4, 2026',
+    type: 'major',
+    items: [
+      'Projects now show up in Search. Previously the newest module wasn\'t wired into the global search at all \u2014 tapping a Project result opens its detail view directly.',
+      'Added Undo to every delete across the app (To-Dos, Reminders, Lists, Notes, Streaks): a 5-second toast with an Undo button appears after any delete. The item is genuinely removed immediately (same as before, so sync timing is unaffected) \u2014 tapping Undo just re-adds a copy. The held copy lives only in memory on your device, not synced, so it disappears if you close the app before tapping Undo.',
+      'dailyStats (the archive used for weekly/monthly summaries once items auto-purge after 24h) now tracks a per-owner breakdown going forward, closing part of a known privacy gap where archived history only had household totals with no per-person split. This is NOT retroactive \u2014 entries recorded before this update have no owner captured, so those days still show the household total. A remaining known limitation: the per-owner breakdown tracks the item\'s OWNER only, not who it was shared with, so a shared-and-then-purged item may still undercount for the person it was shared with (documented in code for anyone extending this further).'
+    ]
+  },
+  {
+    version: '0.04.68',
+    date: 'Jul 4, 2026',
+    type: 'minor',
+    items: [
+      'Confirmed working on-device: the Run Shortcut link on streak cards successfully opens Shortcuts and runs it directly. Promoted from experimental to a permanent feature \u2014 modal text updated to drop the "may not work reliably" hedging.',
+      'Simplified the pill button from Run "Log Steps" Shortcut to a generic Run Shortcut with the play icon. The link itself still correctly targets the exact Shortcut name you configured \u2014 only the visible label changed.'
+    ]
+  },
   {
     version: '0.04.67',
     date: 'Jul 4, 2026',
@@ -10639,9 +10797,9 @@ function initSwipeTabs() {
     <div class="modal-body">
       <input type="hidden" id="streak-eid">
       <div class="field"><label class="field-label">Habit Name</label><input type="text" id="streak-name" placeholder="e.g. Exercise, Read, Meditate…" autocomplete="off"></div>
-      <div class="field"><label class="field-label">iOS Shortcut Name (optional, experimental)</label>
+      <div class="field"><label class="field-label">iOS Shortcut Name (optional)</label>
         <input type="text" id="streak-shortcut-name" placeholder="e.g. Log Steps" autocomplete="off">
-        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Must match the exact name of the Shortcut in your Shortcuts app. Adds a "▶ Run Shortcut" link on this streak's card. This is experimental — Safari sometimes blocks this handoff, so it may not work reliably.</div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Must match the exact name of the Shortcut in your Shortcuts app. Adds a "▶ Run Shortcut" link on this streak's card that opens Shortcuts and runs it directly.</div>
       </div>
       <div class="field"><label class="field-label">Color</label>
         <div class="streak-color-picker" id="streak-color-picker">
