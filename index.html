@@ -1876,7 +1876,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],dismissedStaleLists:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],dismissedStaleLists:[],dismissedStreakNudges:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1929,6 +1929,7 @@ function loadState(){
       if(!Array.isArray(loaded.dismissedStreakPlaceholders))loaded.dismissedStreakPlaceholders=[];
       if(!Array.isArray(loaded.dismissedSharedItems))loaded.dismissedSharedItems=[];
       if(!Array.isArray(loaded.dismissedStaleLists))loaded.dismissedStaleLists=[];
+      if(!Array.isArray(loaded.dismissedStreakNudges))loaded.dismissedStreakNudges=[];
       if(typeof loaded.usHolidaysEnabled!=='boolean')loaded.usHolidaysEnabled=false;
       if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{
         if(!Array.isArray(t.subtasks))t.subtasks=[];
@@ -7898,11 +7899,16 @@ function pickSmartNudge() {
     };
   }
 
-  // Priority 2: Streak about to hit a milestone
+  // Priority 2: Streak about to hit a milestone. Dismissal is keyed on
+  // streakId + the specific chain number — since these fire once at an exact
+  // number (6, then later 29), dismissing "chain 6 for Streak X" only
+  // silences THAT milestone; if the streak keeps going and later hits 29,
+  // that's a different key and can still show.
+  const dismissedStreakNudges = S.dismissedStreakNudges || [];
   if (S.streaks && S.streaks.length) {
     for (const s of S.streaks.filter(canSeeItem)) {
       const chain = getStreakChain(s);
-      if (chain === 6) {
+      if (chain === 6 && !dismissedStreakNudges.includes(s.id + ':milestone6')) {
         return {
           icon: 'flame',
           color: 'var(--streak)',
@@ -7911,9 +7917,10 @@ function pickSmartNudge() {
           body: 'One more day for a week!',
           actionLabel: null,
           actionFn: null,
+          dismissFn: 'dismissStreakNudge(\'' + s.id + ':milestone6\')',
         };
       }
-      if (chain === 29) {
+      if (chain === 29 && !dismissedStreakNudges.includes(s.id + ':milestone29')) {
         return {
           icon: 'flame',
           color: 'var(--streak)',
@@ -7922,6 +7929,7 @@ function pickSmartNudge() {
           body: 'One more for the 30-day milestone.',
           actionLabel: null,
           actionFn: null,
+          dismissFn: 'dismissStreakNudge(\'' + s.id + ':milestone29\')',
         };
       }
     }
@@ -7958,9 +7966,20 @@ function pickSmartNudge() {
   // Priority 4: Streak going strong — use actual chain length, not a bounded
   // 7-day window. The old approach counted logs >= 7 days ago which caps at 8
   // (inclusive) and would show "8 days" even if the real streak was 11+.
+  //
+  // This nudge is dismissable, but only for the CURRENT week — unlike the
+  // milestone nudges above (which fire once at an exact number and never
+  // again), this condition (chain >= 5) stays true every single day for as
+  // long as a long-running streak continues, so a permanent dismissal would
+  // silence it forever the first time it's dismissed. Keying on a week
+  // bucket means dismissing it quiets it for the rest of this week, then it
+  // can show again next week if the streak's still going — closer to "okay,
+  // I get it, stop telling me today" than "never mention this again."
+  const weekBucket = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
   for (const s of (S.streaks || []).filter(canSeeItem)) {
     const chain = getStreakChain(s);
-    if (chain >= 5) {
+    const dismissKey = s.id + ':strong:' + weekBucket;
+    if (chain >= 5 && !dismissedStreakNudges.includes(dismissKey)) {
       return {
         icon: 'flame',
         color: s.color || 'var(--streak)',
@@ -7969,6 +7988,7 @@ function pickSmartNudge() {
         body: chain + ' day' + (chain !== 1 ? 's' : '') + ' and counting. Keep going.',
         actionLabel: null,
         actionFn: null,
+        dismissFn: 'dismissStreakNudge(\'' + dismissKey + '\')',
       };
     }
   }
@@ -7984,6 +8004,18 @@ function smartNudgeDeferOverdue() {
   save();
   renderDash(); renderTodos();
   toast('Deferred ' + overdue.length + ' to-dos to tomorrow', 'ok');
+}
+
+// Dismisses any of the three streak nudge types (chain-6 milestone, chain-29
+// milestone, or the recurring "strong streak" nudge). All three pass their
+// own fully-formed key here; this function just records it and re-renders.
+// See pickSmartNudge() for how each key is constructed and what makes it
+// expire/reappear naturally over time.
+function dismissStreakNudge(key) {
+  if (!Array.isArray(S.dismissedStreakNudges)) S.dismissedStreakNudges = [];
+  if (!S.dismissedStreakNudges.includes(key)) S.dismissedStreakNudges.push(key);
+  save();
+  renderDash();
 }
 
 // Dismisses the "has been quiet" nudge for one list, for its CURRENT
@@ -8321,6 +8353,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.72',
+    date: 'Jul 5, 2026',
+    type: 'medium',
+    items: [
+      'Extended the dismiss button (✕) added for stale-list nudges to all 3 streak nudge cards: the 6-day milestone, the 29-day milestone, and "Strong streak" (5+ days and counting).',
+      'Each type is dismissed with different logic matching how it actually behaves. The two milestone nudges fire once at an exact chain number — dismissing "6-day chain for Steps" only silences that specific milestone; if the streak keeps going and later hits 29, that is a different, separately-dismissable nudge. "Strong streak" is different: since it is true every day for as long as a long streak continues, dismissing it silences it only for the current week — it can reappear the following week if the streak is still active, rather than being silenced forever the first time you dismiss it.',
+      'Verified the dismissal key logic with a standalone test covering all 8 relevant cases (each milestone dismissed independently, week-bucket expiring after 7 days, etc.) before shipping.'
+    ]
+  },
   {
     version: '0.04.71',
     date: 'Jul 5, 2026',
