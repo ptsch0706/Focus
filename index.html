@@ -1457,6 +1457,7 @@ input.has-mention, .note-title-input.has-mention {
       <button class="filter-chip" onclick="setFilter('todo','upcoming',this)">Upcoming</button>
       <button class="filter-chip" onclick="setFilter('todo','high',this)"><span class="pri-dot pri-dot-high"></span>High</button>
       <button class="filter-chip" onclick="setFilter('todo','overdue',this)">Overdue</button>
+      <button class="filter-chip" onclick="setFilter('todo','paused',this)">⏸ Paused</button>
     </div>
     <div id="todo-list"></div>
   </div>
@@ -1486,6 +1487,7 @@ input.has-mention, .note-title-input.has-mention {
       <button class="filter-chip" onclick="setFilter('rem','upcoming',this)">Upcoming</button>
       <button class="filter-chip" onclick="setFilter('rem','completed',this)">Completed</button>
       <button class="filter-chip" onclick="setFilter('rem','all',this)">All</button>
+      <button class="filter-chip" onclick="setFilter('rem','paused',this)">⏸ Paused</button>
     </div>
     <div id="rem-list"></div>
   </div>
@@ -1590,6 +1592,15 @@ input.has-mention, .note-title-input.has-mention {
         <select id="todo-project-select" style="width:100%;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 14px;color:var(--ink);font-family:'Inter',sans-serif;font-size:15px">
           <option value="">No project</option>
         </select>
+      </div>
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--ink)">
+          <input type="checkbox" id="todo-paused" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--ink-mute);-webkit-appearance:checkbox;appearance:checkbox">
+          <div>
+            <div style="font-weight:500">Pause this to-do</div>
+            <div style="font-size:12px;color:var(--ink-mute);margin-top:1px">Hides it from all views until unpaused — find it again under the Paused filter</div>
+          </div>
+        </label>
       </div>
       <div class="field"><label class="field-label">Priority</label><div class="pill-row" id="pr-priority">
         <button class="pill" data-val="high" onclick="setPill('priority',this)"><span class="pri-dot pri-dot-high"></span>High</button>
@@ -1723,6 +1734,15 @@ input.has-mention, .note-title-input.has-mention {
           <option value="">No project</option>
         </select>
       </div>
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--ink)">
+          <input type="checkbox" id="rem-paused" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--ink-mute);-webkit-appearance:checkbox;appearance:checkbox">
+          <div>
+            <div style="font-weight:500">Pause this reminder</div>
+            <div style="font-size:12px;color:var(--ink-mute);margin-top:1px">Hides it from all views until unpaused — find it again under the Paused filter</div>
+          </div>
+        </label>
+      </div>
       <div class="field-row"><div class="field"><label class="field-label">Date</label><input type="date" id="rem-date"></div><div class="field"><label class="field-label">Time</label><input type="time" id="rem-time"></div></div>
       <div class="field">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--ink-soft)">
@@ -1854,7 +1874,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
@@ -1899,7 +1919,11 @@ function loadState(){
       if(typeof loaded.dismissedSundayWeek!=='string')loaded.dismissedSundayWeek='';
       if(!Array.isArray(loaded.dismissedStreakPlaceholders))loaded.dismissedStreakPlaceholders=[];
       if(!Array.isArray(loaded.dismissedSharedItems))loaded.dismissedSharedItems=[];
-      if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{if(!Array.isArray(t.subtasks))t.subtasks=[];});
+      if(typeof loaded.usHolidaysEnabled!=='boolean')loaded.usHolidaysEnabled=false;
+      if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{
+        if(!Array.isArray(t.subtasks))t.subtasks=[];
+        if(typeof t.paused!=='boolean')t.paused=false;
+      });
       if(!Array.isArray(loaded.listFolders))loaded.listFolders=[];
       if(Array.isArray(loaded.lists))loaded.lists.forEach(l=>{
         if(typeof l.folderId==='undefined')l.folderId=null;
@@ -1912,6 +1936,7 @@ function loadState(){
         loaded.streakSkipReasons=[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}];
       if(Array.isArray(loaded.streaks))loaded.streaks.forEach(s=>{
         if(!s.skips||typeof s.skips!=='object'||Array.isArray(s.skips))s.skips={};
+        if(typeof s.shortcutName==='undefined')s.shortcutName=null;
       });
       if(Array.isArray(loaded.notes))loaded.notes.forEach(n=>{
         if(typeof n.folderId==='undefined')n.folderId=null;
@@ -1922,7 +1947,11 @@ function loadState(){
       });
       if(!Array.isArray(loaded.projects))loaded.projects=[];
       if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{if(typeof t.projectId==='undefined')t.projectId=null;});
-      if(Array.isArray(loaded.reminders))loaded.reminders.forEach(r=>{if(typeof r.projectId==='undefined')r.projectId=null;});
+      if(Array.isArray(loaded.reminders))loaded.reminders.forEach(r=>{
+        if(typeof r.projectId==='undefined')r.projectId=null;
+        if(typeof r.paused!=='boolean')r.paused=false;
+        if(typeof r.isHoliday!=='boolean')r.isHoliday=false;
+      });
       if(Array.isArray(loaded.lists))loaded.lists.forEach(l=>{if(typeof l.projectId==='undefined')l.projectId=null;});
       return loaded;
     }
@@ -1935,6 +1964,128 @@ function save(){
   if(db&&S.syncCode)pushDebounced();
 }
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+// ── US HOLIDAYS ──────────────────────────────────────────────────────────
+// Two kinds of holiday dates, calculated fresh for any year (never hardcoded
+// to a specific year, so this keeps working correctly forever without
+// maintenance):
+//
+// 1. FIXED-DATE holidays — same month/day every year (e.g. July 4th).
+// 2. FLOATING holidays — defined by a rule like "3rd Monday of January."
+//    These need actual date math: find the Nth occurrence of a weekday
+//    within a month. getNthWeekdayOfMonth() below does exactly that.
+
+// Returns the date of the Nth occurrence of `weekday` (0=Sun..6=Sat) in
+// `month` (0-indexed) of `year`. n=-1 means "last" occurrence (for Memorial Day,
+// which is defined as the LAST Monday of May, not a numbered one).
+function getNthWeekdayOfMonth(year, month, weekday, n) {
+  if (n === -1) {
+    // Walk backward from the last day of the month to find the last matching weekday
+    const lastDay = new Date(year, month + 1, 0); // day 0 of next month = last day of this month
+    const diff = (lastDay.getDay() - weekday + 7) % 7;
+    lastDay.setDate(lastDay.getDate() - diff);
+    return lastDay;
+  }
+  const first = new Date(year, month, 1);
+  const diff = (weekday - first.getDay() + 7) % 7;
+  const day = 1 + diff + (n - 1) * 7;
+  return new Date(year, month, day);
+}
+
+function dateToStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// Returns all 11 federal US holidays for a given year as {title, date} objects.
+function getUSHolidaysForYear(year) {
+  return [
+    { title: "New Year's Day", date: dateToStr(new Date(year, 0, 1)) },
+    { title: 'Martin Luther King Jr. Day', date: dateToStr(getNthWeekdayOfMonth(year, 0, 1, 3)) },       // 3rd Monday of Jan
+    { title: "Presidents' Day", date: dateToStr(getNthWeekdayOfMonth(year, 1, 1, 3)) },                   // 3rd Monday of Feb
+    { title: 'Memorial Day', date: dateToStr(getNthWeekdayOfMonth(year, 4, 1, -1)) },                     // Last Monday of May
+    { title: 'Juneteenth', date: dateToStr(new Date(year, 5, 19)) },
+    { title: 'Independence Day', date: dateToStr(new Date(year, 6, 4)) },
+    { title: 'Labor Day', date: dateToStr(getNthWeekdayOfMonth(year, 8, 1, 1)) },                          // 1st Monday of Sep
+    { title: 'Columbus Day', date: dateToStr(getNthWeekdayOfMonth(year, 9, 1, 2)) },                       // 2nd Monday of Oct
+    { title: 'Veterans Day', date: dateToStr(new Date(year, 10, 11)) },
+    { title: 'Thanksgiving Day', date: dateToStr(getNthWeekdayOfMonth(year, 10, 4, 4)) },                  // 4th Thursday of Nov
+    { title: 'Christmas Day', date: dateToStr(new Date(year, 11, 25)) },
+  ];
+}
+
+// Generates holiday reminders for one year and adds them to S.reminders,
+// skipping any that already exist (checked by title+date match, so toggling
+// on/off/on repeatedly or re-running for a year that's already populated
+// never creates duplicates).
+function generateHolidaysForYear(year) {
+  const holidays = getUSHolidaysForYear(year);
+  const existing = new Set(
+    S.reminders.filter(r => r.isHoliday).map(r => r.title + '|' + r.date)
+  );
+  let added = 0;
+  holidays.forEach(h => {
+    const key = h.title + '|' + h.date;
+    if (existing.has(key)) return;
+    const newR = {
+      id: gid(), title: h.title, date: h.date, time: '', notes: '',
+      priority: 'low', recur: 'none', endDate: null, projectId: null,
+      paused: false, completed: false, isHoliday: true, createdAt: Date.now()
+    };
+    stampOwner(newR);
+    S.reminders.push(newR);
+    added++;
+  });
+  return added;
+}
+
+// Toggled from Settings. Generates the rest of this year (skips holidays
+// already in the past) plus all of next year, so turning it on in, say,
+// October doesn't leave you looking at an almost-empty holiday list.
+function enableUSHolidays() {
+  const thisYear = new Date().getFullYear();
+  const added1 = generateHolidaysForYear(thisYear);
+  const added2 = generateHolidaysForYear(thisYear + 1);
+  S.usHolidaysEnabled = true;
+  save();
+  renderRem();
+  renderDash();
+  toast(`Added ${added1 + added2} US holidays`, 'ok');
+}
+
+// Removes only the holiday-generated reminders (identified by isHoliday: true),
+// leaving every personal reminder untouched.
+function disableUSHolidays() {
+  const before = S.reminders.length;
+  S.reminders = S.reminders.filter(r => !r.isHoliday);
+  const removed = before - S.reminders.length;
+  S.usHolidaysEnabled = false;
+  save();
+  renderRem();
+  renderDash();
+  toast(`Removed ${removed} US holidays`, 'ok');
+}
+
+function toggleUSHolidays(checkbox) {
+  if (checkbox.checked) enableUSHolidays();
+  else disableUSHolidays();
+}
+
+// Called once on app load: if holidays are enabled and we've rolled into a
+// new year that hasn't been populated yet, generate it silently. This is
+// what makes "set it and forget it" actually true — no manual re-trigger
+// needed every January.
+function ensureCurrentYearHolidaysIfEnabled() {
+  if (!S.usHolidaysEnabled) return;
+  const year = new Date().getFullYear();
+  const hasThisYear = S.reminders.some(r => r.isHoliday && r.date.startsWith(String(year)));
+  if (!hasThisYear) {
+    generateHolidaysForYear(year);
+    generateHolidaysForYear(year + 1);
+    save();
+  }
+}
+
+
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function td(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 // Parses a 'YYYY-MM-DD' string as LOCAL midnight, not UTC midnight.
@@ -2043,6 +2194,7 @@ function openTodoModal(id=null){
   // Deep-copy so editing in the modal doesn't mutate S.todos until Save is tapped
   _editingSubtasks = t && Array.isArray(t.subtasks) ? t.subtasks.map(st => ({...st})) : [];
   renderSubtaskList();
+  document.getElementById('todo-paused').checked = t ? !!t.paused : false;
   // Show any linked notes
   const linkedHTML = id ? renderLinkedNotes('todo', id) : '';
   const existing = document.getElementById('todo-linked-notes');
@@ -2113,8 +2265,9 @@ function saveTodo(){
   const notes=document.getElementById('todo-notes').value.trim();
   const recurVal = getCurrentRecur('todo');
   const projectId = document.getElementById('todo-project-select').value || null;
-  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1){S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal,subtasks:_editingSubtasks,projectId};stampOwner(S.todos[i]);applyMentions(S.todos[i],'todo');}toast('Updated','ok');}
-  else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,subtasks:_editingSubtasks,projectId,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');if(window._pendingShareWith&&window._pendingShareWith.length){newT.sharedWith=[...new Set([...(newT.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.todos.push(newT);toast('To-Do added','ok');}
+  const paused = document.getElementById('todo-paused').checked;
+  if(id){const i=S.todos.findIndex(t=>t.id===id);if(i!==-1){S.todos[i]={...S.todos[i],title,date,time,notes,priority:P.priority,recur:recurVal,subtasks:_editingSubtasks,projectId,paused};stampOwner(S.todos[i]);applyMentions(S.todos[i],'todo');}toast('Updated','ok');}
+  else{const newT={id:gid(),title,date,time,notes,priority:P.priority,recur:recurVal,completed:false,subtasks:_editingSubtasks,projectId,paused,createdAt:Date.now()};stampOwner(newT);applyMentions(newT,'todo');if(window._pendingShareWith&&window._pendingShareWith.length){newT.sharedWith=[...new Set([...(newT.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.todos.push(newT);toast('To-Do added','ok');}
   save();closeModal('modal-todo');renderTodos();renderDash();tabs();
   syncDueTimeSchedules();
 }
@@ -2122,6 +2275,7 @@ function checkTodo(id){
   const t=S.todos.find(t=>t.id===id);if(!t)return;
   if(!t.completed){
     t.completed=true;t.completedAt=Date.now();
+    t.paused=false; // completing always unpauses
     cancelDueTimeSchedule('todo',t.id);
     if(t.recur&&t.recur!=='none'){
       const carriedSubtasks=(t.subtasks||[]).map(st=>({id:gid(),text:st.text,completed:false}));
@@ -2144,8 +2298,22 @@ function deleteTodo(){
 }
 
 function renderTodos(){
-  const today=td(),act=S.todos.filter(t=>!t.completed&&canSeeItem(t)),comp=S.todos.filter(t=>t.completed&&canSeeItem(t));
+  const today=td();
+  // Paused items are excluded from the active list entirely — they're set aside
+  // and only visible when the Paused filter chip is selected.
+  const paused=S.todos.filter(t=>!t.completed&&t.paused&&canSeeItem(t));
+  const act=S.todos.filter(t=>!t.completed&&!t.paused&&canSeeItem(t));
+  const comp=S.todos.filter(t=>t.completed&&canSeeItem(t));
   const po={high:0,med:1,low:2};let fil=act;
+  if(tf==='paused'){
+    const h=paused.length
+      ? '<div class="grp-hdr"><span class="grp-title">Paused</span><span class="grp-count">'+paused.length+'</span></div>'+paused.map(tHTML).join('')
+      : emptyHTML('No paused to-dos','Pause a to-do from its edit screen to set it aside without losing it.');
+    document.getElementById('todo-list').innerHTML=h;
+    attachItemSwipes();
+    document.getElementById('todo-sub').textContent=`${act.length} open${act.filter(t=>t.date<today).length?' · '+act.filter(t=>t.date<today).length+' overdue':''}`;
+    return;
+  }
   if(tf==='today')fil=act.filter(t=>t.date===today);
   else if(tf==='upcoming')fil=act.filter(t=>t.date>today);
   else if(tf==='overdue')fil=act.filter(t=>t.date<today);
@@ -2412,7 +2580,7 @@ function tHTML(t){
   <button class="todo-chk ${cc}" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
   <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date ${o?'ov':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
-  ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${t.priority==='high'?'<span class="t-tag high">High</span>':t.priority==='med'?'<span class="t-tag med">Med</span>':''}${(t.subtasks&&t.subtasks.length)?`<span class="subtask-progress">${t.subtasks.filter(s=>s.completed).length}/${t.subtasks.length}</span>`:''}</div>
+  ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${t.priority==='high'?'<span class="t-tag high">High</span>':t.priority==='med'?'<span class="t-tag med">Med</span>':''}${(t.subtasks&&t.subtasks.length)?`<span class="subtask-progress">${t.subtasks.filter(s=>s.completed).length}/${t.subtasks.length}</span>`:''}${t.paused?'<span class="t-tag" style="background:var(--bg-raised);color:var(--ink-mute)">⏸ Paused</span>':''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
   ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>
   </div>
@@ -3349,6 +3517,7 @@ function openReminderModal(id=null){
   window._pendingShareWith = id ? null : [];
   updateShareChipsInActiveModal();
   populateProjectSelect('rem-project-select', r ? r.projectId : null);
+  document.getElementById('rem-paused').checked = r ? !!r.paused : false;
   openModal('modal-reminder');setTimeout(()=>document.getElementById('rem-title').focus(),350);
 }
 function toggleRemEndDateField() {
@@ -3370,15 +3539,16 @@ function saveReminder(){
   let endDate = isMultiday ? (document.getElementById('rem-enddate').value || date) : null;
   if (endDate && endDate < date) { toast('Last day can\'t be before the start date', 'err'); return; }
   const projectId = document.getElementById('rem-project-select').value || null;
-  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
-  else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');if(window._pendingShareWith&&window._pendingShareWith.length){newR.sharedWith=[...new Set([...(newR.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.reminders.push(newR);toast('Reminder added','ok');}
-  save();closeModal('modal-reminder');renderRem();renderDash();tabs();
+  const paused = document.getElementById('rem-paused').checked;
+  if(id){const i=S.reminders.findIndex(r=>r.id===id);if(i!==-1){S.reminders[i]={...S.reminders[i],title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId,paused};stampOwner(S.reminders[i]);applyMentions(S.reminders[i],'reminder');}toast('Updated','ok');}
+  else{const newR={id:gid(),title,date,time,notes,priority:P.rpriority,recur:recurVal,endDate,projectId,paused,completed:false,createdAt:Date.now()};stampOwner(newR);applyMentions(newR,'reminder');if(window._pendingShareWith&&window._pendingShareWith.length){newR.sharedWith=[...new Set([...(newR.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.reminders.push(newR);toast('Reminder added','ok');}
   syncDueTimeSchedules();
 }
 function checkRem(id){
   const r=S.reminders.find(r=>r.id===id);if(!r)return;
   if(!r.completed){
     r.completed=true;r.completedAt=Date.now();
+    r.paused=false; // completing always unpauses
     cancelDueTimeSchedule('rem',r.id);
     if(r.recur&&r.recur!=='none'){
       const nextStart = nextDate(r.date,r.recur);
@@ -3406,12 +3576,23 @@ function deleteReminder(){
 function renderRem(){
   const today=td();
   const visible = S.reminders.filter(canSeeItem);
-  const act = visible.filter(r => !r.completed);
+  // Paused items excluded from the active pool — only visible in the Paused filter
+  const pausedRems = visible.filter(r => !r.completed && r.paused);
+  const act = visible.filter(r => !r.completed && !r.paused);
 
   const oc = act.filter(r => isRemOverdue(r)).length;
   document.getElementById('rem-sub').textContent = act.length + ' active' + (oc ? ' · ' + oc + ' overdue' : '');
 
   const el = document.getElementById('rem-list');
+
+  // ── Paused filter ──
+  if (rf === 'paused') {
+    el.innerHTML = pausedRems.length
+      ? '<div class="grp-hdr"><span class="grp-title">Paused</span><span class="grp-count">' + pausedRems.length + '</span></div>' + pausedRems.map(rHTML).join('')
+      : remEmpty('No paused reminders', 'Pause a reminder from its edit screen to set it aside without losing it.');
+    attachItemSwipes();
+    return;
+  }
 
   if (rf === 'today') {
     const todayItems = act.filter(r => isRemActiveToday(r) && !isRemOverdue(r)).sort((a,b) => a.date < b.date ? -1 : 1);
@@ -3507,6 +3688,7 @@ function rHTML(r){
     ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':''}
     ${isRanged?`<span class="t-tag rem" style="background:var(--reminder-soft);color:var(--reminder)">${esc(fmtD(r.date))} \u2192 ${esc(fmtD(r.endDate))}</span>`:''}
     ${r.recur&&r.recur!=='none'?`<span class="t-tag rem">↻ ${describeRecur(r.recur)}</span>`:''}
+    ${r.isHoliday?`<span class="t-tag rem" style="background:var(--bg-raised);color:var(--ink-mute)">🎆 Holiday</span>`:''}
   </div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
   ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div>${t2?`<div class="rem-today-right">${rangeLabel||'Today'}</div>`:''}</div>
@@ -3544,10 +3726,10 @@ function renderDash(){
   const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   document.getElementById('dash-date').textContent=`${days[now.getDay()]}, ${mons[now.getMonth()]} ${now.getDate()}`;
   document.getElementById('dash-hello').innerHTML=`${greet()}${S.myUsername?', <span class="accent">@'+esc(S.myUsername)+'</span>':''}`;
-  const actT=S.todos.filter(t=>!t.completed&&canSeeItem(t)),todT=actT.filter(t=>t.date===today),ovT=actT.filter(t=>t.date<today),hiOv=ovT.filter(t=>t.priority==='high');
+  const actT=S.todos.filter(t=>!t.completed&&!t.paused&&canSeeItem(t)),todT=actT.filter(t=>t.date===today),ovT=actT.filter(t=>t.date<today),hiOv=ovT.filter(t=>t.priority==='high');
   const compToday=S.todos.filter(t=>t.completed&&canSeeItem(t)&&t.completedAt&&new Date(t.completedAt).toDateString()===now.toDateString());
   const totT=todT.length+compToday.length,pct=totT>0?Math.round((compToday.length/totT)*100):0;
-  const actR=S.reminders.filter(r=>!r.completed&&canSeeItem(r)),todR=actR.filter(r=>isRemActiveToday(r)&&!isRemOverdue(r)),ovR=actR.filter(r=>isRemOverdue(r));
+  const actR=S.reminders.filter(r=>!r.completed&&!r.paused&&canSeeItem(r)),todR=actR.filter(r=>isRemActiveToday(r)&&!isRemOverdue(r)),ovR=actR.filter(r=>isRemOverdue(r));
   let out='';
 
   // ─── ALERT CARD: high-priority overdue todos AND any overdue reminders ───
@@ -3793,6 +3975,11 @@ function renderSett(){
     +'<div class="sett-icon" style="background:var(--list-soft);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>'
     +'<div class="sett-text"><div class="sett-label">Compact Mode</div><div class="sett-sub">'+(S.compactMode?'On — smaller, denser layout':'Off — comfortable spacing')+'</div></div>'
     +'<label class="switch"><input type="checkbox" id="compact-toggle" '+(S.compactMode?'checked':'')+' onchange="toggleCompactMode()"><span class="slider"></span></label>'
+    +'</div>'
+    +'<div class="sett-row" style="cursor:default">'
+    +'<div class="sett-icon" style="background:var(--reminder-soft);color:var(--reminder)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">US Holidays</div><div class="sett-sub">'+(S.usHolidaysEnabled?'On — added to Reminders':'Off — add all 11 federal holidays')+'</div></div>'
+    +'<label class="switch"><input type="checkbox" id="holidays-toggle" '+(S.usHolidaysEnabled?'checked':'')+' onchange="toggleUSHolidays(this)"><span class="slider"></span></label>'
     +'</div></div>'
     +'<div class="sett-group" style="padding:14px 16px;margin-top:10px"><div class="theme-toggle-wrap">'+tbHTML+'</div></div>'
     +'<div class="sett-group" style="padding:14px 16px;margin-top:10px">'
@@ -4468,6 +4655,7 @@ function init(){
   applyCompactMode();
   cleanupAllMentions();
   cleanupOldCompleted();
+  ensureCurrentYearHolidaysIfEnabled();
   initSwipeDismiss();
   initSwipeTabs();
   initItemSwipes();
@@ -5265,6 +5453,7 @@ function openStreakModal(id=null) {
   document.getElementById('streak-modal-title').textContent = s ? 'Edit Streak' : 'New Streak';
   document.getElementById('streak-eid').value = id||'';
   document.getElementById('streak-name').value = s ? s.name : '';
+  document.getElementById('streak-shortcut-name').value = s ? (s.shortcutName || '') : '';
   selectedStreakColor = s ? (s.color || '#f43f5e') : '#f43f5e';
   document.querySelectorAll('#streak-color-picker .color-swatch').forEach(sw => sw.classList.toggle('selected', sw.dataset.color === selectedStreakColor));
   document.getElementById('streak-target').value = s && s.target ? s.target : '';
@@ -5315,16 +5504,17 @@ function saveStreak() {
   const days = freq==='custom' ? streakDays : freq==='mon-fri' ? [1,2,3,4,5] : [0,1,2,3,4,5,6];
   const reminderHourRaw = document.getElementById('streak-reminder-hour').value;
   const reminderHour = reminderHourRaw === '' ? null : parseInt(reminderHourRaw);
+  const shortcutName = document.getElementById('streak-shortcut-name').value.trim() || null;
   if (id) {
     const i = S.streaks.findIndex(s=>s.id===id);
     const target_e = parseInt(document.getElementById('streak-target').value) || null;
     const unit_e = document.getElementById('streak-unit').value.trim() || '';
-    if (i!==-1) { S.streaks[i] = {...S.streaks[i],name,color,freq,days,target:target_e,unit:unit_e,reminderHour}; stampOwner(S.streaks[i]); applyMentions(S.streaks[i],'streak'); }
+    if (i!==-1) { S.streaks[i] = {...S.streaks[i],name,color,freq,days,target:target_e,unit:unit_e,reminderHour,shortcutName}; stampOwner(S.streaks[i]); applyMentions(S.streaks[i],'streak'); }
     toast('Streak updated','ok');
   } else {
     const target = parseInt(document.getElementById('streak-target').value) || null;
   const unit = document.getElementById('streak-unit').value.trim() || '';
-  const newS={id:gid(),name,color,freq,days,target,unit,reminderHour,logs:[],values:{},_expanded:false,createdAt:Date.now()};stampOwner(newS);applyMentions(newS,'streak');if(window._pendingShareWith&&window._pendingShareWith.length){newS.sharedWith=[...new Set([...(newS.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.streaks.push(newS);
+  const newS={id:gid(),name,color,freq,days,target,unit,reminderHour,shortcutName,logs:[],values:{},_expanded:false,createdAt:Date.now()};stampOwner(newS);applyMentions(newS,'streak');if(window._pendingShareWith&&window._pendingShareWith.length){newS.sharedWith=[...new Set([...(newS.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.streaks.push(newS);
     toast('Streak created','ok');
   }
   save(); closeModal('modal-streak'); renderStreaks();
@@ -5955,6 +6145,7 @@ function renderStreaks() {
         + '</button>'
         + '</div>'
       + '</div>'
+      + (s.shortcutName ? '<div style="padding:0 16px 12px"><a href="shortcuts://run-shortcut?name='+encodeURIComponent(s.shortcutName)+'" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:'+color+';text-decoration:none;border:1px solid '+color+';padding:6px 12px;border-radius:20px"><svg xmlns="http://www.w3.org/2000/svg" fill="'+color+'" viewBox="0 0 24 24" style="width:11px;height:11px"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run "'+esc(s.shortcutName)+'" Shortcut</a></div>' : '')
       + (_openStreakTrends.has(s.id) ? renderStreakTrendsHTML(s) : '')
       + (linkedNotesHTML ? '<div style="padding:0 16px 12px">' + linkedNotesHTML + '</div>' : '')
     + '</div>';
@@ -7966,6 +8157,37 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.67',
+    date: 'Jul 4, 2026',
+    type: 'experimental',
+    items: [
+      'Experimental: added an optional "iOS Shortcut Name" field to any streak (edit a streak \u2192 fill in the exact name of your Shortcut). If set, a "\u25b6 Run Shortcut" link appears on that streak\'s card, using the shortcuts://run-shortcut?name=... URL scheme.',
+      'This is genuinely experimental \u2014 Safari (which is what installed PWAs like Focus run inside on iOS) has historically blocked this kind of custom-URL handoff for security reasons, unlike Chrome/Firefox/Edge which have their own workarounds. It may not work reliably, or at all, depending on iOS version. Worth testing directly on your device to see what actually happens.',
+      'If it does not work: the Shortcut can still be run from its own Home Screen icon (Shortcuts already supports adding any shortcut to the Home Screen directly), which is just as fast as a working in-app link would be.'
+    ]
+  },
+  {
+    version: '0.04.66',
+    date: 'Jul 4, 2026',
+    type: 'medium',
+    items: [
+      'Added US Holidays toggle (Settings \u2192 Customize View). Turning it on adds all 11 federal holidays as reminders for the rest of this year plus all of next year. Dates are calculated fresh each time (not hardcoded to one year), so this keeps working correctly forever \u2014 including floating holidays like Presidents\' Day, Memorial Day, Labor Day, Columbus Day, and Thanksgiving, which move to a different date every year.',
+      'Turning it off removes only the holiday reminders, leaving every personal reminder untouched. Each holiday reminder shows a small 🎆 Holiday badge so it\'s easy to tell apart from your own.',
+      'On each app load, if holidays are enabled and a new year has started, that year\'s holidays generate automatically \u2014 no need to manually re-toggle every January.',
+      'Note: holiday dates use the actual calendar date (e.g. July 4th), not the federally-observed weekend-shifted date some years use (e.g. the Friday before, when July 4th falls on a Saturday).'
+    ]
+  },
+  {
+    version: '0.04.65',
+    date: 'Jul 4, 2026',
+    type: 'medium',
+    items: [
+      'Added pause to To-Dos and Reminders: open any to-do or reminder to edit it, check "Pause this to-do/reminder", and it disappears from all views (Today, Upcoming, Overdue, All, Coming Up on dashboard, ring percent, overdue count). A new Paused filter chip at the top of each tab is the only place paused items appear.',
+      'Completing a paused item automatically unpauses it first, so the history stays clean.',
+      'Paused items show a small Paused badge on their card so you know why they look different when viewing them in the Paused filter.'
+    ]
+  },
   {
     version: '0.04.64',
     date: 'Jul 2, 2026',
@@ -10417,6 +10639,10 @@ function initSwipeTabs() {
     <div class="modal-body">
       <input type="hidden" id="streak-eid">
       <div class="field"><label class="field-label">Habit Name</label><input type="text" id="streak-name" placeholder="e.g. Exercise, Read, Meditate…" autocomplete="off"></div>
+      <div class="field"><label class="field-label">iOS Shortcut Name (optional, experimental)</label>
+        <input type="text" id="streak-shortcut-name" placeholder="e.g. Log Steps" autocomplete="off">
+        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Must match the exact name of the Shortcut in your Shortcuts app. Adds a "▶ Run Shortcut" link on this streak's card. This is experimental — Safari sometimes blocks this handoff, so it may not work reliably.</div>
+      </div>
       <div class="field"><label class="field-label">Color</label>
         <div class="streak-color-picker" id="streak-color-picker">
           <div class="color-swatch" data-color="#f43f5e" style="background:#f43f5e" onclick="selectStreakColor('#f43f5e',this)"></div>
