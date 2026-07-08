@@ -588,11 +588,14 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .table-list-toolbar{display:flex;align-items:center;gap:8px;padding:10px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line-soft);}
 .table-list-toolbar select{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--ink);font-family:'Inter',sans-serif;}
 .table-item-card{background:var(--bg-elev);border-bottom:1px solid var(--line-soft);padding:14px 16px;position:relative;}
-.table-item-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px;padding-right:28px;}
+.table-item-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px;padding-right:56px;}
 .table-item-fields{display:flex;flex-wrap:wrap;gap:6px 16px;}
 .table-item-field{font-size:12px;color:var(--ink-soft);}
 .table-item-field-label{color:var(--ink-mute);margin-right:4px;}
 .table-item-menu-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px;}
+.table-item-move-btns{position:absolute;top:8px;right:36px;display:flex;flex-direction:column;gap:0;}
+.table-item-move-btn{background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:2px;display:flex;align-items:center;justify-content:center;}
+.table-item-move-btn:disabled{opacity:.25;cursor:default;}
 .column-manager-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);}
 .column-manager-row:last-child{border-bottom:none;}
 .column-type-badge{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--bg-raised);color:var(--ink-mute);flex-shrink:0;}
@@ -3008,15 +3011,27 @@ function renderTableListDet(l) {
   if (!items.length) {
     h += '<div class="empty-state" style="padding:40px 24px"><div class="empty-title">No items yet</div><div class="empty-sub">' + (columns.length ? 'Add your first item below.' : 'Add a column first (⚙ Columns), then start adding items.') + '</div></div>';
   } else {
-    sortedItems.forEach(item => {
+    // Manual reorder (up/down arrows) only makes sense when no column sort is
+    // active — with a column sort applied, "move up" has no clear meaning
+    // (up relative to the sort order, or the underlying storage order?).
+    // This is also what finally gives "Sort: Manual" an actual action to
+    // perform, rather than just being a label with nothing behind it.
+    const manualMode = !l.sortColumnId;
+    sortedItems.forEach((item, displayIdx) => {
       const values = item.values || {};
       // First column acts as the de facto title, shown most prominently.
       // If there are no columns yet, fall back to a generic label so
       // existing items aren't blank while columns are being set up.
       const titleCol = columns[0];
       const title = titleCol ? (values[titleCol.id] || '(untitled)') : (item._draftTitle || '(untitled)');
+      const canMoveUp = manualMode && displayIdx > 0;
+      const canMoveDown = manualMode && displayIdx < sortedItems.length - 1;
       h += '<div class="table-item-card">'
         + '<button class="table-item-menu-btn" onclick="openTableItemMenu(\'' + l.id + '\',\'' + item.id + '\')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>'
+        + (manualMode ? '<div class="table-item-move-btns">'
+            + '<button class="table-item-move-btn" ' + (canMoveUp ? 'onclick="moveTableItem(\'' + l.id + '\',\'' + item.id + '\',-1)"' : 'disabled') + '><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2.5"><polyline points="18 15 12 9 6 15"/></svg></button>'
+            + '<button class="table-item-move-btn" ' + (canMoveDown ? 'onclick="moveTableItem(\'' + l.id + '\',\'' + item.id + '\',1)"' : 'disabled') + '><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2.5"><polyline points="6 9 12 15 18 9"/></svg></button>'
+            + '</div>' : '')
         + '<div class="table-item-title" onclick="editTableCell(\'' + l.id + '\',\'' + item.id + '\',\'' + (titleCol ? titleCol.id : '') + '\')">' + esc(title) + '</div>'
         + '<div class="table-item-fields">'
         + columns.slice(1).map(c =>
@@ -3043,6 +3058,25 @@ function renderTableListDet(l) {
 
 // Adds a new row to a table list — called from the existing addListItem()
 // add-row when the list type is 'table' (see addListItem for the branch).
+// Moves a table item up (dir=-1) or down (dir=1) within l.items. Same swap
+// pattern as moveListCard(). Only meaningful/available when no column sort
+// is active (see renderTableListDet's manualMode check) — reordering while
+// a sort is applied would have no clear meaning.
+function moveTableItem(listId, itemId, dir) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l || !Array.isArray(l.items)) return;
+  const idx = l.items.findIndex(i => i.id === itemId);
+  if (idx < 0) return;
+  const swapIdx = idx + dir;
+  if (swapIdx < 0 || swapIdx >= l.items.length) return;
+  const tmp = l.items[idx];
+  l.items[idx] = l.items[swapIdx];
+  l.items[swapIdx] = tmp;
+  l.updatedAt = Date.now();
+  save();
+  renderTableListDet(l);
+}
+
 function addTableListItem(l, firstValue) {
   if (!Array.isArray(l.items)) l.items = [];
   const newItem = { id: gid(), values: {}, createdAt: Date.now() };
@@ -8672,6 +8706,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.74',
+    date: 'Jul 5, 2026',
+    type: 'minor',
+    items: [
+      'Added manual reordering for Table lists. When "Sort: Manual" is selected (the default), each item card shows small up/down arrows to move it — same swap-position approach already used for reordering lists themselves, chosen over touch-drag since HTML5 drag-and-drop is notoriously unreliable on iOS Safari.',
+      'Arrows only appear in Manual mode — if a column sort is active (e.g. Sort: Priority), reordering would not have a clear meaning, so the arrows are hidden and the column sort takes over positioning instead. This also gives "Sort: Manual" an actual function for the first time; previously it was just a label with no corresponding action.'
+    ]
+  },
   {
     version: '0.04.73',
     date: 'Jul 5, 2026',
