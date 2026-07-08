@@ -583,6 +583,19 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 /* SORT TOGGLE inside list detail view */
 .sort-toggle-row{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:var(--ink-soft);}
+
+/* TABLE-TYPE LISTS */
+.table-list-toolbar{display:flex;align-items:center;gap:8px;padding:10px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line-soft);}
+.table-list-toolbar select{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--ink);font-family:'Inter',sans-serif;}
+.table-item-card{background:var(--bg-elev);border-bottom:1px solid var(--line-soft);padding:14px 16px;position:relative;}
+.table-item-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px;padding-right:28px;}
+.table-item-fields{display:flex;flex-wrap:wrap;gap:6px 16px;}
+.table-item-field{font-size:12px;color:var(--ink-soft);}
+.table-item-field-label{color:var(--ink-mute);margin-right:4px;}
+.table-item-menu-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--ink-mute);cursor:pointer;padding:4px;}
+.column-manager-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);}
+.column-manager-row:last-child{border-bottom:none;}
+.column-type-badge{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--bg-raised);color:var(--ink-mute);flex-shrink:0;}
 .sort-toggle-btn{background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--ink-soft);}
 .sort-toggle-btn.active{background:var(--cyan-soft);color:var(--cyan);border-color:var(--cyan);font-weight:600;}
 
@@ -1668,8 +1681,9 @@ input.has-mention, .note-title-input.has-mention {
           <button class="pill sel" data-val="checklist" onclick="setPill('listtype',this)">Checklist</button>
           <button class="pill" data-val="freeform" onclick="setPill('listtype',this)">Freeform</button>
           <button class="pill" data-val="nested" onclick="setPill('listtype',this)">Nested</button>
+          <button class="pill" data-val="table" onclick="setPill('listtype',this)">Table</button>
         </div>
-        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Checklist = tappable items. Freeform = text-only. Nested = supports section headers (e.g. days, categories).</div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-top:4px">Checklist = tappable items. Freeform = text-only. Nested = supports section headers (e.g. days, categories). Table = custom columns per item (e.g. tracking shows: Type, Streaming, Priority).</div>
       </div>
       <div class="field"><label class="field-label">Color</label>
         <div class="streak-color-picker" id="list-color-picker">
@@ -1941,6 +1955,8 @@ function loadState(){
         if(typeof l.pinned!=='boolean')l.pinned=false;
         if(typeof l.icon==='undefined')l.icon=null;
         if(l.sortMode!=='manual'&&l.sortMode!=='alphabetical')l.sortMode='manual';
+        if(!Array.isArray(l.columns))l.columns=[];
+        if(typeof l.sortColumnId==='undefined')l.sortColumnId=null;
       });
       if(!Array.isArray(loaded.noteFolders))loaded.noteFolders=[];
       if(!Array.isArray(loaded.streakSkipReasons)||!loaded.streakSkipReasons.length)
@@ -2685,6 +2701,16 @@ function toggleNestedCheckboxes(id) {
 function convertListType(id) {
   const l = S.lists.find(x => x.id === id);
   if (!l) return;
+  // Table lists are deliberately excluded from this quick-cycle button.
+  // Their items store {values: {...}} keyed by column id, not {text, checked}
+  // — cycling into checklist/freeform/nested here would silently destroy all
+  // column data with no warning. Changing a table list's type should be a
+  // conscious choice, not something that happens via a tap meant for the
+  // other three simpler, structurally-compatible types.
+  if (l.type === 'table') {
+    toast('Table lists can\'t be quick-switched — recreate as a different type if needed', 'err');
+    return;
+  }
   // Cycle: checklist -> freeform -> nested -> checklist
   const next = l.type === 'checklist' ? 'freeform' : (l.type === 'freeform' ? 'nested' : 'checklist');
   l.type = next;
@@ -2928,11 +2954,298 @@ function deleteListFromMenu(listIdToDelete) {
 function openListDetail(id){
   listId=id;const l=S.lists.find(l=>l.id===id);if(!l)return;
   document.getElementById('det-title').innerHTML=esc(l.name);
+  // Reset to visible before rendering — renderTableListDet hides it again for
+  // table-type lists specifically. Without this reset, viewing a table list
+  // then a normal list would leave the button incorrectly hidden.
+  const pasteBtn=document.getElementById('li-paste-items-btn');
+  if(pasteBtn)pasteBtn.style.display='';
   renderListDet();document.getElementById('list-detail-view').classList.add('show');document.body.style.overflow='hidden';
 }
 function closeListDetail(){document.getElementById('list-detail-view').classList.remove('show');document.body.style.overflow='';listId=null;renderLists();}
+// ── TABLE-TYPE LISTS ─────────────────────────────────────────────────────
+// A table list stores custom columns (up to 10) instead of using the plain
+// text+checked shape every other list type uses. Each item's values are
+// keyed by COLUMN ID, not column name — this means renaming a column later
+// doesn't orphan existing data, since the id never changes even if the
+// display name does.
+const MAX_TABLE_COLUMNS = 10;
+
+function renderTableListDet(l) {
+  const items = (l.items || []).filter(canSeeItem);
+  const columns = l.columns || [];
+  document.getElementById('det-title').innerHTML = esc(l.name);
+  document.getElementById('det-sub').textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
+
+  // Sort by the selected column, if any. Select-type columns sort by the
+  // column's defined option ORDER (so "High/Med/Low" sorts sensibly), not
+  // alphabetically — alphabetical would put "High" before "Low" before "Med",
+  // which doesn't match what "sort by priority" actually means to a person.
+  let sortedItems = [...items];
+  if (l.sortColumnId) {
+    const col = columns.find(c => c.id === l.sortColumnId);
+    if (col) {
+      if (col.fieldType === 'select' && Array.isArray(col.options)) {
+        const orderIndex = v => { const i = col.options.indexOf(v); return i === -1 ? col.options.length : i; };
+        sortedItems.sort((a, b) => orderIndex((a.values||{})[col.id]) - orderIndex((b.values||{})[col.id]));
+      } else if (col.fieldType === 'number') {
+        sortedItems.sort((a, b) => (parseFloat((a.values||{})[col.id]) || 0) - (parseFloat((b.values||{})[col.id]) || 0));
+      } else {
+        sortedItems.sort((a, b) => String((a.values||{})[col.id]||'').localeCompare(String((b.values||{})[col.id]||''), undefined, {sensitivity:'base'}));
+      }
+    }
+  }
+
+  let h = '<div class="table-list-toolbar">';
+  h += '<button class="btn-ghost btn-sm" onclick="openColumnManager(\'' + l.id + '\')">⚙ Columns (' + columns.length + '/' + MAX_TABLE_COLUMNS + ')</button>';
+  if (columns.length) {
+    h += '<select onchange="setTableSortColumn(\'' + l.id + '\', this.value)">'
+      + '<option value="">Sort: Manual</option>'
+      + columns.map(c => '<option value="' + c.id + '"' + (l.sortColumnId === c.id ? ' selected' : '') + '>Sort: ' + esc(c.name) + '</option>').join('')
+      + '</select>';
+  }
+  h += '</div>';
+
+  if (!items.length) {
+    h += '<div class="empty-state" style="padding:40px 24px"><div class="empty-title">No items yet</div><div class="empty-sub">' + (columns.length ? 'Add your first item below.' : 'Add a column first (⚙ Columns), then start adding items.') + '</div></div>';
+  } else {
+    sortedItems.forEach(item => {
+      const values = item.values || {};
+      // First column acts as the de facto title, shown most prominently.
+      // If there are no columns yet, fall back to a generic label so
+      // existing items aren't blank while columns are being set up.
+      const titleCol = columns[0];
+      const title = titleCol ? (values[titleCol.id] || '(untitled)') : (item._draftTitle || '(untitled)');
+      h += '<div class="table-item-card">'
+        + '<button class="table-item-menu-btn" onclick="openTableItemMenu(\'' + l.id + '\',\'' + item.id + '\')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg></button>'
+        + '<div class="table-item-title" onclick="editTableCell(\'' + l.id + '\',\'' + item.id + '\',\'' + (titleCol ? titleCol.id : '') + '\')">' + esc(title) + '</div>'
+        + '<div class="table-item-fields">'
+        + columns.slice(1).map(c =>
+            '<div class="table-item-field" onclick="editTableCell(\'' + l.id + '\',\'' + item.id + '\',\'' + c.id + '\')"><span class="table-item-field-label">' + esc(c.name) + ':</span>' + (esc(values[c.id] || '—')) + '</div>'
+          ).join('')
+        + '</div>'
+        + '</div>';
+    });
+  }
+  document.getElementById('det-items').innerHTML = h;
+
+  // Reuse the existing "Add item" input row, but repurpose it: for a table
+  // list, typing here and hitting Add creates a new row with just the first
+  // column filled in — the rest get filled in by tapping each field after.
+  const addInput = document.getElementById('li-add-input');
+  if (addInput) addInput.placeholder = columns.length ? 'Add ' + columns[0].name + '…' : 'Add columns first…';
+  const nestedBtns = document.getElementById('li-nested-btn-row');
+  if (nestedBtns) nestedBtns.style.display = 'none';
+  // Paste Items doesn't map onto multi-column rows (it produces plain
+  // text+checked items, not {values: {...}}) — hidden entirely for table lists.
+  const pasteBtn = document.getElementById('li-paste-items-btn');
+  if (pasteBtn) pasteBtn.style.display = 'none';
+}
+
+// Adds a new row to a table list — called from the existing addListItem()
+// add-row when the list type is 'table' (see addListItem for the branch).
+function addTableListItem(l, firstValue) {
+  if (!Array.isArray(l.items)) l.items = [];
+  const newItem = { id: gid(), values: {}, createdAt: Date.now() };
+  if (l.columns && l.columns.length) newItem.values[l.columns[0].id] = firstValue;
+  stampOwner(newItem);
+  l.items.push(newItem);
+  l.updatedAt = Date.now();
+  save();
+  renderTableListDet(l);
+  renderLists();
+}
+
+// Tapping any field (title or column value) on a table item opens a simple
+// prompt to edit that one cell. Deliberately kept as a single-field prompt
+// rather than a full modal — table items can have up to 10 fields, and a
+// modal-per-item would be heavier than needed for "just fix this one typo."
+function editTableCell(listId, itemId, columnId) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  const item = (l.items || []).find(i => i.id === itemId);
+  if (!item) return;
+  const col = (l.columns || []).find(c => c.id === columnId);
+  if (!col) return;
+  if (!item.values) item.values = {};
+
+  if (col.fieldType === 'select' && Array.isArray(col.options) && col.options.length) {
+    openTableSelectPicker(listId, itemId, columnId);
+    return;
+  }
+  const current = item.values[columnId] || '';
+  const input = prompt('Edit ' + col.name + ':', current);
+  if (input === null) return; // cancelled
+  item.values[columnId] = input.trim();
+  item.updatedAt = Date.now();
+  l.updatedAt = Date.now();
+  save();
+  renderTableListDet(l);
+}
+
+// For select-type columns, show a quick tap-to-pick list instead of a prompt
+// (typing an option that doesn't exactly match one of the defined options
+// would silently break sort-by-this-column, so picking from a fixed list
+// avoids that entirely).
+function openTableSelectPicker(listId, itemId, columnId) {
+  const l = S.lists.find(x => x.id === listId);
+  const item = (l.items || []).find(i => i.id === itemId);
+  const col = (l.columns || []).find(c => c.id === columnId);
+  if (!l || !item || !col) return;
+  const current = (item.values || {})[columnId];
+  const modal = document.getElementById('modal-folder-manager'); // reused generic modal
+  modal.querySelector('.modal-title').textContent = col.name;
+  const body = modal.querySelector('.modal-body');
+  let html = col.options.map(opt =>
+    '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start' + (current === opt ? ';background:var(--cyan-soft);border-color:var(--cyan)' : '') + '" onclick="setTableCellValue(\'' + listId + '\',\'' + itemId + '\',\'' + columnId + '\',\'' + esc(opt).replace(/'/g,"\\'") + '\')">' + esc(opt) + (current === opt ? ' ✓' : '') + '</button>'
+  ).join('');
+  html += '<button class="btn btn-ghost btn-block" onclick="setTableCellValue(\'' + listId + '\',\'' + itemId + '\',\'' + columnId + '\',\'\')">Clear</button>';
+  body.innerHTML = html;
+  openModal('modal-folder-manager');
+}
+
+function setTableCellValue(listId, itemId, columnId, value) {
+  const l = S.lists.find(x => x.id === listId);
+  const item = (l.items || []).find(i => i.id === itemId);
+  if (!l || !item) return;
+  if (!item.values) item.values = {};
+  item.values[columnId] = value;
+  item.updatedAt = Date.now();
+  l.updatedAt = Date.now();
+  save();
+  closeModal('modal-folder-manager');
+  renderTableListDet(l);
+}
+
+function setTableSortColumn(listId, columnId) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  l.sortColumnId = columnId || null;
+  save();
+  renderTableListDet(l);
+}
+
+function openTableItemMenu(listId, itemId) {
+  if (!confirm('Delete this item?')) return;
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  const deletedItem = (l.items || []).find(i => i.id === itemId);
+  const deletedIndex = (l.items || []).findIndex(i => i.id === itemId);
+  l.items = (l.items || []).filter(i => i.id !== itemId);
+  l.updatedAt = Date.now();
+  save();
+  renderTableListDet(l);
+  renderLists();
+  showUndoToast('Item deleted', () => {
+    l.items.splice(Math.min(deletedIndex, l.items.length), 0, deletedItem);
+    save();
+    renderTableListDet(l);
+    renderLists();
+  });
+}
+
+// ── COLUMN MANAGER ──
+function openColumnManager(listId) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  if (!Array.isArray(l.columns)) l.columns = [];
+  document.getElementById('folder-manager-title').textContent = 'Columns';
+  const body = document.getElementById('folder-manager-body');
+  let html = '<div style="margin-bottom:12px">';
+  if (l.columns.length) {
+    l.columns.forEach((c, idx) => {
+      html += '<div class="column-manager-row">'
+        + '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:var(--ink)">' + esc(c.name) + (idx === 0 ? ' <span style="font-size:10px;color:var(--ink-mute)">(title)</span>' : '') + '</div></div>'
+        + '<span class="column-type-badge">' + c.fieldType + '</span>'
+        + '<button class="btn-icon btn-xs" onclick="renameTableColumn(\'' + listId + '\',\'' + c.id + '\')" title="Rename"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+        + '<button class="btn-icon btn-xs" onclick="deleteTableColumn(\'' + listId + '\',\'' + c.id + '\')" style="color:var(--pri-high)" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
+        + '</div>';
+    });
+  } else {
+    html += '<p style="color:var(--ink-mute);font-size:13px;padding:8px 0">No columns yet. The first column you add becomes each item\'s title.</p>';
+  }
+  html += '</div>';
+  if (l.columns.length < MAX_TABLE_COLUMNS) {
+    html += '<div style="border-top:1px solid var(--line);padding-top:14px">'
+      + '<div class="field-label" style="margin-bottom:8px">Add column</div>'
+      + '<input type="text" id="new-column-name" placeholder="e.g. Streaming, Priority, Rating" style="margin-bottom:8px">'
+      + '<select id="new-column-type" style="width:100%;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:11px 14px;color:var(--ink);font-family:\'Inter\',sans-serif;font-size:14px;margin-bottom:8px">'
+      + '<option value="text">Text (type anything)</option>'
+      + '<option value="number">Number</option>'
+      + '<option value="select">Dropdown (pick from a fixed list)</option>'
+      + '</select>'
+      + '<div id="new-column-options-wrap" style="display:none;margin-bottom:8px">'
+      + '<input type="text" id="new-column-options" placeholder="Comma-separated: High, Med, Low">'
+      + '</div>'
+      + '<button class="btn btn-block" onclick="addTableColumn(\'' + listId + '\')">Add Column</button>'
+      + '</div>';
+  } else {
+    html += '<p style="color:var(--ink-mute);font-size:12px;text-align:center;padding-top:10px">Maximum of ' + MAX_TABLE_COLUMNS + ' columns reached.</p>';
+  }
+  body.innerHTML = html;
+  const typeSelect = document.getElementById('new-column-type');
+  if (typeSelect) {
+    typeSelect.onchange = () => {
+      document.getElementById('new-column-options-wrap').style.display = typeSelect.value === 'select' ? 'block' : 'none';
+    };
+  }
+  openModal('modal-folder-manager');
+}
+
+function addTableColumn(listId) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  if (!Array.isArray(l.columns)) l.columns = [];
+  if (l.columns.length >= MAX_TABLE_COLUMNS) { toast('Maximum of ' + MAX_TABLE_COLUMNS + ' columns reached', 'err'); return; }
+  const name = document.getElementById('new-column-name').value.trim();
+  if (!name) { toast('Enter a column name', 'err'); return; }
+  const fieldType = document.getElementById('new-column-type').value;
+  const col = { id: gid(), name, fieldType };
+  if (fieldType === 'select') {
+    const optionsRaw = document.getElementById('new-column-options').value.trim();
+    col.options = optionsRaw.split(',').map(o => o.trim()).filter(Boolean);
+    if (!col.options.length) { toast('Add at least one option', 'err'); return; }
+  }
+  l.columns.push(col);
+  save();
+  openColumnManager(listId);
+  renderTableListDet(l);
+  toast('Column added', 'ok');
+}
+
+function renameTableColumn(listId, columnId) {
+  const l = S.lists.find(x => x.id === listId);
+  const col = (l.columns || []).find(c => c.id === columnId);
+  if (!col) return;
+  const newName = prompt('Rename column:', col.name);
+  if (!newName || !newName.trim()) return;
+  col.name = newName.trim();
+  save();
+  openColumnManager(listId);
+  renderTableListDet(l);
+  toast('Column renamed', 'ok');
+}
+
+function deleteTableColumn(listId, columnId) {
+  const l = S.lists.find(x => x.id === listId);
+  if (!l) return;
+  if (!confirm('Delete this column? Values stored in it for every item will be lost.')) return;
+  l.columns = (l.columns || []).filter(c => c.id !== columnId);
+  // Clean up orphaned values so old data doesn't linger invisibly
+  (l.items || []).forEach(item => { if (item.values) delete item.values[columnId]; });
+  if (l.sortColumnId === columnId) l.sortColumnId = null;
+  save();
+  openColumnManager(listId);
+  renderTableListDet(l);
+  toast('Column deleted');
+}
+
 function renderListDet(){
   const l=S.lists.find(l=>l.id===listId);if(!l)return;
+  // Table-type lists have a completely different item shape (columns + values,
+  // not text + checked) and no checkable/sortable-by-alpha semantics — handled
+  // entirely by its own renderer, returning early rather than threading table
+  // logic through all the checklist/freeform/nested branches below.
+  if (l.type === 'table') { renderTableListDet(l); return; }
   // Filter items by visibility: section/subsection headers always show (structural);
   // regular items only show if owned by me or shared with me (same pattern as canSeeItem)
   const items=(l.items||[]).filter(i=>{
@@ -3494,6 +3807,12 @@ function confirmPasteItems() {
 function addListItem(){
   const inp=document.getElementById('li-add-input'),text=inp.value.trim();if(!text)return;
   const l=S.lists.find(l=>l.id===listId);if(!l)return;
+  if(l.type==='table'){
+    if(!l.columns||!l.columns.length){toast('Add a column first (⚙ Columns)','err');return;}
+    addTableListItem(l,text);
+    inp.value='';inp.focus();
+    return;
+  }
   if(!l.items)l.items=[];l.items.push({id:gid(),text,checked:false,createdAt:Date.now()});
   inp.value='';save();renderListDet();inp.focus();
 }
@@ -8353,6 +8672,18 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.73',
+    date: 'Jul 5, 2026',
+    type: 'major',
+    items: [
+      'Added a 4th list type: Table. Define up to 10 custom columns per list (Text, Number, or Dropdown with your own options), then track items with multiple fields — e.g. a TV/movie watchlist with Type, Streaming Service, and Priority columns. Each item renders as a card with the first column as its title and the rest stacked below (chosen over a literal side-scrolling spreadsheet layout, which doesn\'t work well on a phone screen).',
+      'Sort by any column from a dropdown at the top of the list. Dropdown-type columns sort by the ORDER you defined the options in (so "High, Med, Low" sorts as priority actually means, not alphabetically as "High, Low, Med") — verified with a standalone test before shipping.',
+      'Columns are managed from a dedicated screen (⚙ Columns): add, rename, or delete any column. Deleting a column removes its stored value from every item (with a confirmation first) rather than leaving orphaned data behind.',
+      'Table lists are intentionally excluded from the quick "switch type" cycle button used by the other 3 types — caught this during testing: cycling a table list into Checklist would have silently destroyed all its column data with no warning, since checklist items expect a different shape entirely. Changing a table list\'s type now requires deliberately recreating it.',
+      'Paste Items (bulk text import) is hidden for table lists, since plain pasted lines don\'t map onto multiple typed columns the way they do for a simple checklist.'
+    ]
+  },
   {
     version: '0.04.72',
     date: 'Jul 5, 2026',
