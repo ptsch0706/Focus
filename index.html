@@ -3023,14 +3023,32 @@ function openListCardMenu(listIdForMenu) {
   const icoCopy = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   const icoUp = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
   const icoDown = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+  const icoArchive = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;flex-shrink:0;stroke-width:2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>';
   html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');openListModal(\''+listIdForMenu+'\')">'+icoEdit+'Edit</button>';
   html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');duplicateList(\''+listIdForMenu+'\')">'+icoCopy+'Duplicate</button>';
+  html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="toggleListArchivedFromMenu(\''+listIdForMenu+'\')">'+icoArchive+(l.archived?'Unarchive':'Archive')+'</button>';
   if (canMoveUp) html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');moveListCard(\''+listIdForMenu+'\',-1)">'+icoUp+'Move up</button>';
   if (canMoveDown) html += '<button class="btn btn-block" style="margin-bottom:8px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');moveListCard(\''+listIdForMenu+'\',1)">'+icoDown+'Move down</button>';
   html += '<button class="btn btn-block btn-danger" style="margin-top:6px;justify-content:flex-start;gap:12px" onclick="closeModal(\'modal-list-card-menu\');deleteListFromMenu(\''+listIdForMenu+'\')">'+svg('trash',18)+'Delete</button>';
   document.getElementById('list-card-menu-title').textContent = l.name || 'List';
   document.getElementById('list-card-menu-body').innerHTML = html;
   openModal('modal-list-card-menu');
+}
+
+// Toggles a list's archived state directly from either "⋯" menu — the main
+// Lists page card menu, or the one inside a list's own detail view. Closes
+// whichever modal is actually open rather than assuming one specific menu.
+function toggleListArchivedFromMenu(listId3) {
+  const l = S.lists.find(x => x.id === listId3);
+  if (!l) return;
+  l.archived = !l.archived;
+  l.updatedAt = Date.now();
+  save();
+  closeModal('modal-list-card-menu');
+  closeModal('modal-list-menu');
+  renderLists();
+  if (typeof listId !== 'undefined' && listId === listId3 && typeof renderListDet === 'function') renderListDet();
+  toast(l.archived ? 'List archived' : 'List unarchived', 'ok');
 }
 
 function deleteListFromMenu(listIdToDelete) {
@@ -3404,10 +3422,7 @@ function renderListDet(){
     h+=`<div class="sort-toggle-row">Sort: `
       + `<button class="sort-toggle-btn${l.sortMode!=='alphabetical'?' active':''}" onclick="setListSortMode('${l.id}','manual')">Manual</button>`
       + `<button class="sort-toggle-btn${l.sortMode==='alphabetical'?' active':''}" onclick="setListSortMode('${l.id}','alphabetical')">A–Z</button>`
-      + (hasChks&&chk.length?`<button class="sort-toggle-btn" style="margin-left:auto" onclick="uncheckAllListItems('${l.id}')">Uncheck all (${chk.length})</button>`:'')
       + `</div>`;
-  } else if(hasChks&&chk.length){
-    h+=`<div class="sort-toggle-row"><button class="sort-toggle-btn" style="margin-left:auto" onclick="uncheckAllListItems('${l.id}')">Uncheck all (${chk.length})</button></div>`;
   }
   if(!items.length){
     h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;
@@ -3944,24 +3959,6 @@ function toggleLI(iid){const l=S.lists.find(l=>l.id===listId);if(!l)return;const
 // Unchecks every checked (non-structural) item in a list in one tap — useful
 // for recurring checklists like a packing list, so you don't have to tap
 // each item individually before your next trip.
-function uncheckAllListItems(listId2) {
-  const l = S.lists.find(l => l.id === listId2);
-  if (!l) return;
-  const checkedCount = (l.items || []).filter(i => !i.isSection && !i.isSubsection && i.checked).length;
-  if (!checkedCount) return;
-  if (!confirm('Uncheck all ' + checkedCount + ' checked item' + (checkedCount !== 1 ? 's' : '') + '?')) return;
-  (l.items || []).forEach(i => {
-    if (i.isSection || i.isSubsection) return;
-    i.checked = false;
-    i.checkedAt = null;
-  });
-  l.updatedAt = Date.now();
-  save();
-  renderListDet();
-  renderLists();
-  toast('Unchecked ' + checkedCount + ' item' + (checkedCount !== 1 ? 's' : ''), 'ok');
-}
-
 // ── LIST ITEM EDIT: plain text while focused, mention pills when blurred ──
 function liTextFocus(el, itemId) {
   const l = S.lists.find(l => l.id === listId);
@@ -4001,6 +3998,8 @@ function openListMenu(){
   document.getElementById('list-menu-body').innerHTML=`
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="closeModal('modal-list-menu');openListModal('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit name &amp; color</button>
+    <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="toggleListArchivedFromMenu('${l.id}')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>${l.archived?'Unarchive':'Archive'}</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="closeModal('modal-list-menu');saveListAsTemplate('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Save as template</button>
     <button class="btn btn-block" style="margin-bottom:10px;justify-content:flex-start;gap:12px${l.recurrence ? ';border-color:var(--list);color:var(--list)' : ''}" onclick="openListRecurrenceModal('${l.id}')">
@@ -4013,7 +4012,7 @@ function openListMenu(){
       <span style="display:flex;align-items:center;gap:12px"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2"/>${l.showCheckboxes?'<polyline points="9 11 12 14 22 4"/>':''}</svg>Show checkboxes</span>
       <span style="font-size:12px;font-weight:600;color:${l.showCheckboxes?'var(--cyan)':'var(--ink-mute)'}">${l.showCheckboxes?'ON':'OFF'}</span>
     </button>`:''}
-    ${isC?`<button class="btn btn-block btn-amber" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="uncheckAll('${l.id}')">
+    ${(isC||(l.type==='nested'&&l.showCheckboxes))?`<button class="btn btn-block btn-amber" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="uncheckAll('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Uncheck all items</button>
     <button class="btn btn-block btn-danger" style="margin-bottom:10px;justify-content:flex-start;gap:12px" onclick="clearChecked('${l.id}')">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Clear checked items</button>`:''}
@@ -4021,8 +4020,31 @@ function openListMenu(){
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:18px;height:18px;stroke-width:2;flex-shrink:0"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete this list</button>`;
   openModal('modal-list-menu');
 }
-function uncheckAll(lid){const l=S.lists.find(l=>l.id===lid);if(!l||!confirm('Uncheck all items?'))return;(l.items||[]).forEach(i=>{i.checked=false;i.checkedAt=null;});save();closeModal('modal-list-menu');renderListDet();toast('All unchecked');}
-function clearChecked(lid){const l=S.lists.find(l=>l.id===lid);if(!l||!confirm('Remove all checked items?'))return;l.items=(l.items||[]).filter(i=>!i.checked);save();closeModal('modal-list-menu');renderListDet();toast('Checked items cleared');}
+function uncheckAll(lid){
+  const l=S.lists.find(l=>l.id===lid);
+  if(!l)return;
+  const checkedCount=(l.items||[]).filter(i=>!i.isSection&&!i.isSubsection&&i.checked).length;
+  if(!checkedCount){toast('Nothing to uncheck');return;}
+  if(!confirm('Uncheck all '+checkedCount+' checked item'+(checkedCount!==1?'s':'')+'?'))return;
+  (l.items||[]).forEach(i=>{
+    if(i.isSection||i.isSubsection)return;
+    i.checked=false;i.checkedAt=null;
+  });
+  l.updatedAt=Date.now();
+  save();closeModal('modal-list-menu');renderListDet();renderLists();
+  toast('Unchecked '+checkedCount+' item'+(checkedCount!==1?'s':''),'ok');
+}
+function clearChecked(lid){
+  const l=S.lists.find(l=>l.id===lid);
+  if(!l)return;
+  const checkedCount=(l.items||[]).filter(i=>!i.isSection&&!i.isSubsection&&i.checked).length;
+  if(!checkedCount){toast('Nothing checked to clear');return;}
+  if(!confirm('Remove all '+checkedCount+' checked item'+(checkedCount!==1?'s':'')+'?'))return;
+  l.items=(l.items||[]).filter(i=>i.isSection||i.isSubsection||!i.checked);
+  l.updatedAt=Date.now();
+  save();closeModal('modal-list-menu');renderListDet();renderLists();
+  toast('Cleared '+checkedCount+' item'+(checkedCount!==1?'s':''));
+}
 function deleteListFromDet(lid){if(!confirm('Delete this list?'))return;S.lists=S.lists.filter(l=>l.id!==lid);save();closeModal('modal-list-menu');closeListDetail();toast('List deleted');}
 
 // ── REMINDERS ──
@@ -8827,6 +8849,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.87',
+    date: 'Jul 6, 2026',
+    type: 'major',
+    items: [
+      'Added Archive/Unarchive as an option in the ⋯ menu on each list card on the main Lists page — no more needing to open the full Edit screen just to archive something. Also added the same toggle to the ⋯ menu inside a list\'s own detail view, so it\'s reachable from either place.',
+      'Removed the "Uncheck all" pill from the list toolbar (it was awkward there). While removing it, found that an "Uncheck all items" option already existed in the list\'s own ⋯ menu — rather than keeping two separate uncheck-all implementations, merged the toolbar version\'s improvements (skips section/subsection headers correctly, shows the actual count) into the existing menu option and removed the duplicate.',
+      'Uncheck all / Clear checked items now also work on Nested lists with checkboxes turned on, not just Checklist-type lists — previously gated to checklists only, which excluded a case that should have been included from the start.'
+    ]
+  },
   {
     version: '0.04.86',
     date: 'Jul 6, 2026',
