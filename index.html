@@ -178,18 +178,23 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .empty-sub{font-size:14px;color:var(--ink-mute);line-height:1.5;}
 
 /* TODO ITEMS */
-.todo-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;position:relative;overflow:hidden;transition:background .15s;}
+.todo-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;position:relative;z-index:2;overflow:hidden;transition:background .15s;}
 .todo-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
 .todo-item.pri-high::before{background:var(--pri-high);}
 .todo-item.pri-med::before{background:var(--pri-med);}
 .todo-item.pri-low::before{background:var(--cyan);}
 .todo-item.done{opacity:.45;}
 .todo-item:active{background:var(--bg-raised);}
-.todo-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink-mute);background:none;cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.todo-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink-mute);background:none;cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative;}
+/* Enlarges the actual tappable area to ~44px (Apple's minimum recommended
+   touch target) without changing the visible 22px circle. A near-miss tap
+   just outside the drawn circle now still lands on the checkbox instead of
+   accidentally opening the card behind it. */
+.todo-chk::before{content:'';position:absolute;top:50%;left:50%;width:44px;height:44px;transform:translate(-50%,-50%);}
 .todo-chk.checked{background:var(--cyan);border-color:var(--cyan);}
 .todo-chk.checked::after{content:'';width:6px;height:10px;border:2px solid #000;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);display:block;}
 .todo-chk.ph{border-color:var(--pri-high);} .todo-chk.pm{border-color:var(--pri-med);}
-.todo-body{flex:1;min-width:0;}
+.todo-body{flex:1;min-width:0;cursor:pointer;}
 .todo-title{font-size:15px;font-weight:500;color:var(--ink);line-height:1.4;word-break:break-word;}
 .todo-item.done .todo-title,.rem-item.done .todo-title{text-decoration:line-through;color:var(--ink-soft);}
 .todo-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;}
@@ -213,12 +218,13 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .done-toggle.open svg{transform:rotate(90deg);}
 
 /* REMINDER ITEMS */
-.rem-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;position:relative;overflow:hidden;cursor:pointer;transition:background .15s;}
+.rem-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;position:relative;z-index:2;overflow:hidden;transition:background .15s;}
 .rem-today-right{font-size:12px;color:var(--cyan);font-weight:600;flex-shrink:0;align-self:flex-start;padding-top:2px;}
 .rem-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--reminder);border-radius:3px 0 0 3px;}
 .rem-item:active{background:var(--bg-raised);}
 .rem-item.done{opacity:.45;}
-.rem-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--reminder);background:none;cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.rem-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--reminder);background:none;cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative;}
+.rem-chk::before{content:'';position:absolute;top:50%;left:50%;width:44px;height:44px;transform:translate(-50%,-50%);}
 .rem-chk.checked{background:var(--reminder);border-color:var(--reminder);}
 .rem-chk.checked::after{content:'';width:6px;height:10px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);display:block;}
 
@@ -294,6 +300,18 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 
 /* Multi-ring dashboard layout: 3 small rings in a grid */
 .rings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+
+/* DASHBOARD WEEK-STRIP CALENDAR PREVIEW */
+.week-strip-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;cursor:pointer;}
+.week-strip-header{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px;}
+.week-strip-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.week-strip-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:var(--radius-sm);cursor:pointer;}
+.week-strip-cell.today{background:var(--cyan-soft);}
+.week-strip-daylabel{font-size:10px;color:var(--ink-mute);font-weight:600;}
+.week-strip-datenum{font-size:14px;font-weight:600;color:var(--ink);}
+.week-strip-cell.today .week-strip-datenum{color:var(--cyan);}
+.week-strip-dots{display:flex;gap:2px;height:5px;}
+.week-strip-dot{width:4px;height:4px;border-radius:50%;}
 .ring-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;}
 .info-stats-row{display:flex;gap:10px;margin-bottom:10px;}
 .info-stat-card{flex:1;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;}
@@ -941,6 +959,30 @@ input.has-mention, .note-title-input.has-mention {
   border-radius:var(--radius);
   margin-bottom:8px;
   background:transparent;
+  display:flex;
+  align-items:stretch;
+  gap:10px;
+}
+/* Checkbox sits OUTSIDE the sliding/swipeable card content — a sibling of
+   .swipe-content, not a child of it. This means swiping the card to reveal
+   Delete/Defer only moves the card itself; the checkbox stays fixed in
+   place the whole time, since it was never part of what translates. */
+.todo-chk-standalone{
+  flex-shrink:0;
+  width:44px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top:14px;
+  z-index:3;
+}
+/* Same flex-row treatment as .swipe-wrap, for completed cards which don't
+   use the swipe wrapper at all (no swipe actions on completed items) */
+.standalone-chk-row{
+  display:flex;
+  align-items:stretch;
+  gap:10px;
+  margin-bottom:8px;
 }
 .swipe-content{
   position:relative;
@@ -948,10 +990,16 @@ input.has-mention, .note-title-input.has-mention {
   transition:transform .25s cubic-bezier(.32,.72,0,1);
   will-change:transform;
   z-index:2;
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  border-radius:var(--radius);
 }
 .swipe-content.swiping{transition:none;}
 .swipe-content > .todo-item,
-.swipe-content > .rem-item{margin-bottom:0;}
+.swipe-content > .rem-item,
+.standalone-chk-row > .todo-item,
+.standalone-chk-row > .rem-item{margin-bottom:0;}
 .swipe-actions{
   position:absolute;
   top:0;right:0;bottom:0;
@@ -1470,11 +1518,11 @@ input.has-mention, .note-title-input.has-mention {
   </div>
   <div style="padding:0 16px">
     <div class="filter-bar">
-      <button class="filter-chip act-cyan" onclick="setFilter('todo','all',this)">All</button>
-      <button class="filter-chip" onclick="setFilter('todo','today',this)">Today</button>
+      <button class="filter-chip act-cyan" onclick="setFilter('todo','today',this)">Today</button>
+      <button class="filter-chip" onclick="setFilter('todo','overdue',this)">Overdue</button>
       <button class="filter-chip" onclick="setFilter('todo','upcoming',this)">Upcoming</button>
       <button class="filter-chip" onclick="setFilter('todo','high',this)"><span class="pri-dot pri-dot-high"></span>High</button>
-      <button class="filter-chip" onclick="setFilter('todo','overdue',this)">Overdue</button>
+      <button class="filter-chip" onclick="setFilter('todo','all',this)">All</button>
       <button class="filter-chip" onclick="setFilter('todo','paused',this)">⏸ Paused</button>
     </div>
     <div id="todo-list"></div>
@@ -1515,7 +1563,6 @@ input.has-mention, .note-title-input.has-mention {
 <div id="view-notes" class="view">
   <div class="page-header">
     <div><div class="page-title display">Notes</div><div class="page-subtitle" id="note-sub"></div></div>
-    <button class="header-btn" onclick="openNoteDetail()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
   </div>
   <div style="padding:0 16px">
     <div class="filter-bar">
@@ -1723,6 +1770,15 @@ input.has-mention, .note-title-input.has-mention {
           <option value="">No project</option>
         </select>
       </div>
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--ink)">
+          <input type="checkbox" id="list-archived" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--ink-mute);-webkit-appearance:checkbox;appearance:checkbox">
+          <div>
+            <div style="font-weight:500">Archived</div>
+            <div style="font-size:12px;color:var(--ink-mute);margin-top:1px">Not part of your regular rotation right now (e.g. a packing list only needed when traveling) — moves to a separate Archived section, still fully usable</div>
+          </div>
+        </label>
+      </div>
       
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn btn-ghost btn-danger btn-sm" id="list-del-btn" onclick="deleteList()" style="display:none">Delete</button>
@@ -1908,7 +1964,7 @@ function pushConfigured(){
       && VAPID_PUBLIC_KEY && !VAPID_PUBLIC_KEY.startsWith('PASTE_');
 }
 applyTheme(S.theme||'light');
-let tf='all',lf='all',rf='today',noteFilter='all',doneOpen=false,listId=null;
+let tf='today',lf='all',rf='today',noteFilter='all',doneOpen=false,listId=null;
 const P={priority:'low',recur:'none',listtype:'checklist',rrecur:'none'};
 // Pending subtask edits while the to-do modal is open. Read into S.todos only
 // when Save is tapped — same "edit in a buffer, commit on save" pattern as
@@ -1960,6 +2016,8 @@ function loadState(){
         if(l.sortMode!=='manual'&&l.sortMode!=='alphabetical')l.sortMode='manual';
         if(!Array.isArray(l.columns))l.columns=[];
         if(typeof l.sortColumnId==='undefined')l.sortColumnId=null;
+        if(typeof l.archived!=='boolean')l.archived=(typeof l.standby==='boolean')?l.standby:false;
+        delete l.standby; // field renamed — clean up the old key after carrying its value forward
       });
       if(!Array.isArray(loaded.noteFolders))loaded.noteFolders=[];
       if(!Array.isArray(loaded.streakSkipReasons)||!loaded.streakSkipReasons.length)
@@ -2656,25 +2714,27 @@ function tHTML(t){
   const chips=shareChipsHTML(t,'todo',t.id);
   // Completed todos render without swipe actions (no Defer/Done/Delete reveal)
   if (t.completed) {
-    return `<div class="todo-item done ${pc}" onclick="openTodoModal('${t.id}')">
-  <button class="todo-chk checked" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
+    return `<div class="standalone-chk-row">
+  <div class="todo-chk-standalone"><button class="todo-chk checked" onclick="checkTodo('${t.id}')"></button></div>
+  <div class="todo-item done ${pc}">
+  <div class="todo-body" onclick="openTodoModal('${t.id}')"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
   ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${(()=>{const ln=getLinkedNotes('todo',t.id);return ln.length?`<span class="t-tag linked-note-chip" title="${ln.length} linked note${ln.length>1?'s':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:11px;height:11px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ${ln.length}</span>`:'';})()}${(t.subtasks&&t.subtasks.length)?`<span class="subtask-progress">${t.subtasks.filter(s=>s.completed).length}/${t.subtasks.length}</span>`:''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
-  ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>`;
+  ${t.notes?`<div class="todo-notes">${esc(t.notes)}</div>`:''}</div></div>
+  </div>`;
   }
   return`<div class="swipe-wrap" data-item-type="todo" data-item-id="${t.id}">
+  <div class="todo-chk-standalone"><button class="todo-chk ${cc}" onclick="checkTodo('${t.id}')"></button></div>
+  <div class="swipe-content">
   <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="swipe-actions">
     <button class="swipe-action defer" onclick="event.stopPropagation();swipeDeferTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Defer</button>
     <button class="swipe-action complete" onclick="event.stopPropagation();swipeCompleteTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</button>
     <button class="swipe-action delete" onclick="event.stopPropagation();swipeDeleteTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>
   </div>
-  <div class="swipe-content">
-  <div class="todo-item ${t.completed?'done':''} ${pc}" onclick="openTodoModal('${t.id}')">
-  <button class="todo-chk ${cc}" onclick="event.stopPropagation();checkTodo('${t.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
+  <div class="todo-item ${t.completed?'done':''} ${pc}">
+  <div class="todo-body" onclick="openTodoModal('${t.id}')"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date ${o?'ov':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
   ${t.recur&&t.recur!=='none'?`<span class="t-tag recur">↻ ${describeRecur(t.recur)}</span>`:''}${t.priority==='high'?'<span class="t-tag high">High</span>':t.priority==='med'?'<span class="t-tag med">Med</span>':''}${(t.subtasks&&t.subtasks.length)?`<span class="subtask-progress">${t.subtasks.filter(s=>s.completed).length}/${t.subtasks.length}</span>`:''}${t.paused?'<span class="t-tag" style="background:var(--bg-raised);color:var(--ink-mute)">⏸ Paused</span>':''}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
@@ -2780,6 +2840,15 @@ function toggleListFolderCollapse(folderId) {
   renderLists();
 }
 
+// Archived section starts collapsed (undefined -> treated as collapsed in
+// renderLists via `!== false`), then remembers your choice for the rest of
+// this session. Same per-device, non-synced pattern as folder collapse state.
+let _archivedSectionCollapsed = undefined;
+function toggleArchivedListsSection() {
+  _archivedSectionCollapsed = _archivedSectionCollapsed === false ? true : false;
+  renderLists();
+}
+
 // ── LISTS ──
 function openListModal(id=null){
   const l=id?S.lists.find(l=>l.id===id):null;
@@ -2813,6 +2882,7 @@ function openListModal(id=null){
   updateShareChipsInActiveModal();
   injectTemplateBanner();
   populateProjectSelect('list-project-select', l ? l.projectId : null);
+  document.getElementById('list-archived').checked = l ? !!l.archived : false;
   openModal('modal-list');setTimeout(()=>document.getElementById('list-name').focus(),350);
 }
 function saveList(){
@@ -2823,8 +2893,9 @@ function saveList(){
   let editedId=null;
   const folderId=document.getElementById('list-folder-select').value||null;
   const projectId=document.getElementById('list-project-select').value||null;
-  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,icon:selectedListIcon||null,folderId,projectId,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');editedId=id;}toast('Updated','ok');}
-  else{const newL={id:gid(),name,color:selectedListColor,icon:selectedListIcon||null,folderId,projectId,pinned:false,sortMode:'manual',type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
+  const archived=document.getElementById('list-archived').checked;
+  if(id){const i=S.lists.findIndex(l=>l.id===id);if(i!==-1){S.lists[i]={...S.lists[i],name,color:selectedListColor,icon:selectedListIcon||null,folderId,projectId,archived,type:P.listtype};stampOwner(S.lists[i]);applyMentions(S.lists[i],'list');editedId=id;}toast('Updated','ok');}
+  else{const newL={id:gid(),name,color:selectedListColor,icon:selectedListIcon||null,folderId,projectId,archived,pinned:false,sortMode:'manual',type:P.listtype||'checklist',items:[],createdAt:Date.now()};stampOwner(newL);applyMentions(newL,'list');if(window._pendingShareWith&&window._pendingShareWith.length){newL.sharedWith=[...new Set([...(newL.sharedWith||[]),...window._pendingShareWith])];}window._pendingShareWith=null;S.lists.push(newL);newId=newL.id;toast('List created','ok');}
   save();closeModal('modal-list');renderLists();
   // If we just edited the list currently open in detail view, refresh its header live
   if(editedId&&typeof listId!=='undefined'&&listId===editedId&&typeof renderListDet==='function')renderListDet();
@@ -2866,8 +2937,14 @@ function renderLists(){
   const el=document.getElementById('list-grid');
   if(!lists.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon" style="background:var(--list-soft);border-color:var(--list);color:var(--list)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/></svg></div><div class="empty-title">No lists yet</div><div class="empty-sub">Tap + to create a grocery, packing, or idea list.</div></div>`;return;}
 
-  const pinned = lists.filter(l => l.pinned);
-  const unpinned = lists.filter(l => !l.pinned);
+  // Archived lists are excluded from every other section (Pinned/Folders/Unfiled)
+  // and shown in their own section at the very bottom instead, collapsed by
+  // default — "not part of my regular rotation," out of the way but not deleted.
+  const archivedLists = lists.filter(l => l.archived);
+  const rotationLists = lists.filter(l => !l.archived);
+
+  const pinned = rotationLists.filter(l => l.pinned);
+  const unpinned = rotationLists.filter(l => !l.pinned);
   const folders = S.listFolders || [];
   const folderIds = new Set(folders.map(f => f.id));
   const unfiled = unpinned.filter(l => !l.folderId || !folderIds.has(l.folderId));
@@ -2890,6 +2967,15 @@ function renderLists(){
   if (unfiled.length) {
     if (folders.length) html += '<div class="list-section-label">Unfiled</div>';
     html += unfiled.map(renderListCardHTML).join('');
+  }
+  if (archivedLists.length) {
+    const archivedCollapsed = _archivedSectionCollapsed !== false; // collapsed by default on first load
+    html += `<div class="list-folder-hdr${archivedCollapsed?' collapsed':''}" onclick="toggleArchivedListsSection()">`
+      + `<svg class="chev" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2"><polyline points="6 9 12 15 18 9"/></svg>`
+      + `<span class="list-folder-name">Archived</span>`
+      + `<span class="list-folder-count">${archivedLists.length}</span>`
+      + `</div>`
+      + `<div class="list-folder-body${archivedCollapsed?' collapsed':''}">${archivedLists.map(renderListCardHTML).join('')}</div>`;
   }
   el.innerHTML = html;
 }
@@ -3318,7 +3404,10 @@ function renderListDet(){
     h+=`<div class="sort-toggle-row">Sort: `
       + `<button class="sort-toggle-btn${l.sortMode!=='alphabetical'?' active':''}" onclick="setListSortMode('${l.id}','manual')">Manual</button>`
       + `<button class="sort-toggle-btn${l.sortMode==='alphabetical'?' active':''}" onclick="setListSortMode('${l.id}','alphabetical')">A–Z</button>`
+      + (hasChks&&chk.length?`<button class="sort-toggle-btn" style="margin-left:auto" onclick="uncheckAllListItems('${l.id}')">Uncheck all (${chk.length})</button>`:'')
       + `</div>`;
+  } else if(hasChks&&chk.length){
+    h+=`<div class="sort-toggle-row"><button class="sort-toggle-btn" style="margin-left:auto" onclick="uncheckAllListItems('${l.id}')">Uncheck all (${chk.length})</button></div>`;
   }
   if(!items.length){
     h=`<div class="empty-state" style="padding:40px 24px"><div class="empty-title">Empty list</div><div class="empty-sub">Add your first item below.</div></div>`;
@@ -3852,6 +3941,27 @@ function addListItem(){
 }
 function toggleLI(iid){const l=S.lists.find(l=>l.id===listId);if(!l)return;const i=(l.items||[]).find(i=>i.id===iid);if(i){if(i.isSection||i.isSubsection)return;i.checked=!i.checked;i.checkedAt=i.checked?Date.now():null;}save();renderListDet();}
 
+// Unchecks every checked (non-structural) item in a list in one tap — useful
+// for recurring checklists like a packing list, so you don't have to tap
+// each item individually before your next trip.
+function uncheckAllListItems(listId2) {
+  const l = S.lists.find(l => l.id === listId2);
+  if (!l) return;
+  const checkedCount = (l.items || []).filter(i => !i.isSection && !i.isSubsection && i.checked).length;
+  if (!checkedCount) return;
+  if (!confirm('Uncheck all ' + checkedCount + ' checked item' + (checkedCount !== 1 ? 's' : '') + '?')) return;
+  (l.items || []).forEach(i => {
+    if (i.isSection || i.isSubsection) return;
+    i.checked = false;
+    i.checkedAt = null;
+  });
+  l.updatedAt = Date.now();
+  save();
+  renderListDet();
+  renderLists();
+  toast('Unchecked ' + checkedCount + ' item' + (checkedCount !== 1 ? 's' : ''), 'ok');
+}
+
 // ── LIST ITEM EDIT: plain text while focused, mention pills when blurred ──
 function liTextFocus(el, itemId) {
   const l = S.lists.find(l => l.id === listId);
@@ -4109,23 +4219,25 @@ function rHTML(r){
   const chips=shareChipsHTML(r,'reminder',r.id);
   // Completed reminders render without swipe actions
   if (r.completed) {
-    return `<div class="rem-item done" onclick="openReminderModal('${r.id}')">
-  <button class="rem-chk checked" onclick="event.stopPropagation();checkRem('${r.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
+    return `<div class="standalone-chk-row">
+  <div class="todo-chk-standalone"><button class="rem-chk checked" onclick="checkRem('${r.id}')"></button></div>
+  <div class="rem-item done">
+  <div class="todo-body" onclick="openReminderModal('${r.id}')"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   ${chips?`<div class="shared-with-row">${chips}</div>`:''}
-  ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>`;
+  ${r.notes?`<div class="todo-notes">${esc(r.notes)}</div>`:''}</div></div>
+  </div>`;
   }
   return`<div class="swipe-wrap" data-item-type="reminder" data-item-id="${r.id}">
+  <div class="todo-chk-standalone"><button class="rem-chk ${r.completed?'checked':''}" onclick="checkRem('${r.id}')"></button></div>
+  <div class="swipe-content">
   <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="swipe-actions">
     <button class="swipe-action defer" onclick="event.stopPropagation();swipeDeferRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Defer</button>
     <button class="swipe-action complete" onclick="event.stopPropagation();swipeCompleteRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</button>
     <button class="swipe-action delete" onclick="event.stopPropagation();swipeDeleteRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>
   </div>
-  <div class="swipe-content">
-  <div class="rem-item ${r.completed?'done':''}" onclick="openReminderModal('${r.id}')">
-  <button class="rem-chk ${r.completed?'checked':''}" onclick="event.stopPropagation();checkRem('${r.id}')"></button>
-  <div class="todo-body"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
+  <div class="rem-item ${r.completed?'done':''}">
+  <div class="todo-body" onclick="openReminderModal('${r.id}')"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   <div class="todo-meta">
     ${r.time?`<span class="todo-date"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtT(r.time)}</span>`:''}
     ${o?'<span class="t-tag rem" style="background:var(--pri-high-soft);color:var(--pri-high)">Overdue</span>':''}
@@ -4225,6 +4337,9 @@ function renderDash(){
   out += renderRingCard('STEPS', stepsPct, stepsPct >= 100 ? 'var(--note)' : 'var(--reminder)', stepsLabel);
   out += renderRingCard('STREAKS', streaksPct, 'var(--streak)', streaksSub);
   out += '</div>';
+
+  // ─── WEEK-STRIP CALENDAR PREVIEW ───
+  out += renderWeekStripHTML();
 
   // ─── INFO CARDS: Lists, Notes (simple counts, no percent — these don't have a "done" concept) ───
   const visibleLists = (S.lists || []).filter(canSeeItem);
@@ -8297,6 +8412,7 @@ function pickSmartNudge() {
   const twoWeeksAgo = now - (14 * 24 * 60 * 60 * 1000);
   const dismissedStale = S.dismissedStaleLists || [];
   const staleList = (S.lists || []).filter(canSeeItem).find(l => {
+    if (l.archived) return false; // archived lists are supposed to sit untouched — not a sign of neglect
     const lastTouched = l.updatedAt || l.createdAt || 0;
     if (lastTouched >= twoWeeksAgo || !(l.items || []).length) return false;
     const key = l.id + ':' + lastTouched;
@@ -8552,7 +8668,7 @@ function isRefreshDue(list) {
 }
 
 function getDueRecurringLists() {
-  return (S.lists || []).filter(canSeeItem).filter(isRefreshDue);
+  return (S.lists || []).filter(canSeeItem).filter(l => !l.archived).filter(isRefreshDue);
 }
 
 function refreshRecurringList(listId, silent) {
@@ -8577,8 +8693,12 @@ function refreshRecurringList(listId, silent) {
 }
 
 function autoRefreshIfDue() {
-  // On init: silently refresh any due lists that have autoRefresh enabled
+  // On init: silently refresh any due lists that have autoRefresh enabled.
+  // Archived lists are excluded — their contents shouldn't get silently reset
+  // on a schedule while you're not actively using them; if you un-archive it
+  // later, you'd rather see it as you left it than find it already refreshed.
   (S.lists || []).forEach(l => {
+    if (l.archived) return;
     if (l.recurrence && l.recurrence.autoRefresh && isRefreshDue(l)) {
       refreshRecurringList(l.id, true);
     }
@@ -8706,6 +8826,106 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.85',
+    date: 'Jul 6, 2026',
+    type: 'major',
+    items: [
+      'Added a "This Week" calendar preview to the Dashboard, right below the rings. A compact 7-day strip (Sun–Sat) shows today highlighted and a small dot under any day with a to-do or reminder — tap a specific day to jump straight into the full Calendar on that date, or tap the card header to open the full Calendar generally.',
+      'Deliberately dot-only, no item titles — that\'s already the job of the Today/Upcoming sections elsewhere on the dashboard. This widget\'s job is just to show the shape of your week at a glance.',
+      'Same underlying data as the full Calendar (extracted into one shared function so both stay in sync) — tapping through from the preview never shows something the dots didn\'t already hint at.'
+    ]
+  },
+  {
+    version: '0.04.84',
+    date: 'Jul 6, 2026',
+    type: 'minor',
+    items: [
+      'Removed the extra "+" button in the top-right of the Notes tab header — it was an exact duplicate of the bottom-right floating add button every other tab already uses consistently. New notes are still created the same way, just from one consistent place now instead of two.'
+    ]
+  },
+  {
+    version: '0.04.83',
+    date: 'Jul 6, 2026',
+    type: 'medium',
+    items: [
+      'Archived lists are now fully excluded from every dashboard nudge, not just the "has been quiet" one. Found two more places that needed the same exclusion: the "Ready to refresh" card (a recurring list due for its weekly/monthly reset would still show up asking to be refreshed even while archived) and the silent background auto-refresh that runs on app load (an archived recurring list could have had its contents silently wiped on schedule while you weren\'t using it — now skipped entirely while archived).',
+      'Left two other list-touching features as-is on purpose: the "N Lists" count on the dashboard still includes archived lists (a true total, not a nudge), and the note-linking picker still shows archived lists (you may reasonably want to attach a note to something you\'ve archived).'
+    ]
+  },
+  {
+    version: '0.04.82',
+    date: 'Jul 6, 2026',
+    type: 'minor',
+    items: [
+      'Renamed "Standby" to "Archived" for lists — same feature, same behavior, just clearer naming (and matches the term Projects already uses for the same underlying idea: deprioritized, not actively shown, but not deleted).',
+      'If you already marked a list Standby before this update, that setting carries forward automatically as Archived — nothing needs to be re-set.'
+    ]
+  },
+  {
+    version: '0.04.81',
+    date: 'Jul 6, 2026',
+    type: 'major',
+    items: [
+      'Added "Uncheck all" to checklists — a button in the list toolbar (shown only when there\'s at least one checked item) clears every checked item in one tap, with a confirmation first. Works for both Checklist-type lists and Nested lists with checkboxes turned on.',
+      'Added Standby for lists: mark a list as Standby from its edit screen when it\'s not part of your regular rotation right now but you don\'t want to delete it (e.g. a packing list only needed when traveling). Standby lists move to their own collapsed section at the very bottom of the Lists tab — out of the way, but still fully usable the moment you need them.',
+      'Standby lists are excluded from the "has been quiet" dashboard nudge, since sitting untouched for weeks is the expected, intended behavior for them — not a sign of neglect the way it would be for an active list.'
+    ]
+  },
+  {
+    version: '0.04.80',
+    date: 'Jul 5, 2026',
+    type: 'bugfix',
+    items: [
+      'Found the actual root cause this time: .todo-item and .rem-item never had an explicit z-index. Per how CSS stacking works, a positioned sibling with a real z-index value (the swipe-actions panel, set to z-index:1) always wins over a sibling left at the implicit z-index:auto — regardless of which one comes first in the HTML. This means the actions panel had actually been stacked ABOVE the card by default the whole time; it was only invisible before because it happened to sit outside the card\'s own rendered width. Restructuring the checkbox out of the card changed that width relationship and made the pre-existing stacking issue visible.',
+      'Fix: gave both .todo-item and .rem-item an explicit z-index:2, so the card genuinely renders above the actions panel (z-index:1) at all times, and only becomes visually pulled back via the slide transform when actually swiped. Verified the underlying CSS stacking rule against MDN and other references before committing to this fix, rather than trusting assumption alone a second time.'
+    ]
+  },
+  {
+    version: '0.04.79',
+    date: 'Jul 5, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed: swipe actions (Defer/Done/Delete) were showing through even without swiping, right after the checkbox was moved outside the card. Root cause: .swipe-content never had its own clipping boundary — it relied entirely on the outer .swipe-wrap to clip the actions panel to the visible card edge. That worked fine when the checkbox lived inside .swipe-content, but once the checkbox became a sibling taking up its own space in the row, the wrapper got wider than the actual card, and the actions panel (positioned against .swipe-content, sized to the old, wider assumption) was no longer correctly contained.',
+      'Fix: gave .swipe-content its own overflow:hidden and matching border-radius, so the actions panel is now clipped to the actual sliding card\'s boundary directly, regardless of how much extra space the checkbox occupies alongside it in the row.'
+    ]
+  },
+  {
+    version: '0.04.78',
+    date: 'Jul 5, 2026',
+    type: 'medium',
+    items: [
+      'Moved the completion checkbox outside the card itself on To-Dos and Reminders — it now sits as its own separate element to the left of the card\'s visible border, rather than inside the card\'s padding. This makes the boundary between "tap the checkbox" and "tap the card" visually obvious, not just click-handler-separate (the previous update made them independently clickable, but they still looked like one continuous surface).',
+      'For active items, the checkbox sits outside the swipeable area too — swiping the card left to reveal Defer/Done/Delete now only slides the card, the checkbox stays fixed in place the whole time, since it was restructured as a sibling of the sliding content rather than a child of it.',
+      'Verified the swipe-gesture code (which looks up .swipe-content by search within the wrapper) and the pressed-state visual feedback both continue to work correctly with the new structure before shipping.'
+    ]
+  },
+  {
+    version: '0.04.77',
+    date: 'Jul 5, 2026',
+    type: 'medium',
+    items: [
+      'Properly separated the completion checkbox from the rest of the card on To-Dos and Reminders. Previously the "open card" click handler lived on the OUTER container wrapping both the checkbox and the title/body — the checkbox only worked correctly because it explicitly cancelled that click from bubbling up. Moved the open-card handler onto just the title/body area instead, so the checkbox and "open this item" are now two genuinely separate regions with no shared boundary, rather than one zone that the checkbox has to opt out of.',
+      'This is a more complete fix than the enlarged tap-target adjustment from the previous update (still in place, still harmless) — that made near-misses more forgiving, this makes it structurally impossible for a checkbox tap to open the card at all, regardless of exactly where within the checkbox you tap.',
+      'Verified the pressed-state visual feedback (card darkens slightly while held) still works correctly after moving the click handler, since CSS :active states propagate to parent elements even though click events do not.'
+    ]
+  },
+  {
+    version: '0.04.76',
+    date: 'Jul 5, 2026',
+    type: 'minor',
+    items: [
+      'Fixed: tapping near (but not exactly on) the completion circle on a To-Do or Reminder card would sometimes open the card instead. The checkbox\'s click handling was already correctly isolated (it uses stopPropagation, so a genuine tap on it never opened the card) — the real issue was its visible size: 22px, well under Apple\'s recommended 44px minimum touch target, so a near-miss tap landed on the larger card behind it instead. Enlarged the actual tappable area to ~44px using an invisible layer around the circle — the checkbox still LOOKS exactly the same size, it just forgives near-misses now.'
+    ]
+  },
+  {
+    version: '0.04.75',
+    date: 'Jul 5, 2026',
+    type: 'minor',
+    items: [
+      'Matched the To-Dos filter bar to the Reminders pattern: Today → Overdue → Upcoming → [High / Completed] → All → Paused, in that order for both tabs now. To-Dos also now opens to "Today" by default (was previously "All"), matching how Reminders has always behaved.'
+    ]
+  },
   {
     version: '0.04.74',
     date: 'Jul 5, 2026',
@@ -10383,6 +10603,60 @@ function openCalendar() {
   renderCalendar();
 }
 
+// Opens the full Calendar already jumped to and highlighting a specific date —
+// used when tapping a day in the dashboard's week-strip preview, so tapping
+// a day there takes you straight to that day's detail, not just "this month."
+function openCalendarAtDate(dateStr2) {
+  const d = parseLocalDate(dateStr2);
+  calYear = d.getFullYear();
+  calMonth = d.getMonth();
+  calSelectedDate = dateStr2;
+  document.getElementById('calendar-view').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  renderCalendar();
+}
+
+// ── DASHBOARD: 7-day week-strip calendar preview ──
+// Shows the current week (Sun–Sat) as a compact horizontal row. Same data
+// source as the full Calendar (getItemsByDate), so tapping through never
+// shows something the preview didn't already hint at. Deliberately does NOT
+// show item titles — just a presence dot — since that's already the job of
+// the "Today"/"Upcoming" sections elsewhere on the dashboard; this widget's
+// job is to show the shape of the week, not duplicate the specifics.
+function renderWeekStripHTML() {
+  const { itemsByDate } = getItemsByDate();
+  const today = td();
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay()); // back up to Sunday
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  let cellsHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    const ds = dateStr(d.getFullYear(), d.getMonth(), d.getDate());
+    const isToday = ds === today;
+    const items = itemsByDate[ds];
+    let dotsHTML = '';
+    if (items) {
+      const colors = [];
+      if (items.todos.length) colors.push('var(--cyan)');
+      if (items.reminders.length) colors.push('var(--reminder)');
+      dotsHTML = '<div class="week-strip-dots">' + colors.map(c => '<div class="week-strip-dot" style="background:' + c + '"></div>').join('') + '</div>';
+    }
+    cellsHTML += '<div class="week-strip-cell' + (isToday ? ' today' : '') + '" onclick="event.stopPropagation();openCalendarAtDate(\'' + ds + '\')">'
+      + '<div class="week-strip-daylabel">' + dayLabels[i] + '</div>'
+      + '<div class="week-strip-datenum">' + d.getDate() + '</div>'
+      + dotsHTML
+      + '</div>';
+  }
+  return '<div class="week-strip-card" onclick="openCalendar()">'
+    + '<div class="week-strip-header"><span>This Week</span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:14px;height:14px;stroke-width:2"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    + '<div class="week-strip-row">' + cellsHTML + '</div>'
+    + '</div>';
+}
+
 function closeCalendar() {
   document.getElementById('calendar-view').classList.remove('show');
   document.body.style.overflow = '';
@@ -10408,21 +10682,14 @@ function dateStr(y, m, d) {
   return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
 }
 
-function renderCalendar() {
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month-title').textContent = monthNames[calMonth] + ' ' + calYear;
-
-  const first = new Date(calYear, calMonth, 1);
-  const startDow = first.getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
-  const today = td();
-
-  // Build map of dates → items. Multi-day reminders are tracked SEPARATELY
-  // (multiDayReminders) and do NOT get added as dots here — they're rendered
-  // as continuous bars instead, via the overlay built further down.
+// Builds a map of date-string -> {todos, reminders} for every visible todo
+// and reminder that has a date. Multi-day reminders are returned separately
+// (as {reminder, startDs, endDs}) since they render as continuous bars, not
+// per-day dots, in the full Calendar view. Shared by renderCalendar() and
+// the dashboard's week-strip preview so both stay in sync from one source.
+function getItemsByDate() {
   const itemsByDate = {};
-  const multiDayReminders = []; // { reminder, startDs, endDs }
+  const multiDayReminders = [];
   S.todos.filter(canSeeItem).forEach(t => {
     if (t.date) {
       if (!itemsByDate[t.date]) itemsByDate[t.date] = { todos: [], reminders: [] };
@@ -10440,13 +10707,29 @@ function renderCalendar() {
     const cursorCheck = parseLocalDate(r.date);
     const endCheck = parseLocalDate(r.endDate);
     if (isNaN(cursorCheck.getTime()) || isNaN(endCheck.getTime())) {
-      // Malformed range — fall back to a dot on just the start date
       if (!itemsByDate[r.date]) itemsByDate[r.date] = { todos: [], reminders: [] };
       itemsByDate[r.date].reminders.push(r);
       return;
     }
     multiDayReminders.push({ reminder: r, startDs: r.date, endDs: r.endDate });
   });
+  return { itemsByDate, multiDayReminders };
+}
+
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-title').textContent = monthNames[calMonth] + ' ' + calYear;
+
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
+  const today = td();
+
+  // Build map of dates → items. Multi-day reminders are tracked SEPARATELY
+  // (multiDayReminders) and do NOT get added as dots here — they're rendered
+  // as continuous bars instead, via the overlay built further down.
+  const { itemsByDate, multiDayReminders } = getItemsByDate();
 
   let html = '';
   // Previous month padding
