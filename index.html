@@ -4338,9 +4338,6 @@ function renderDash(){
   out += renderRingCard('STREAKS', streaksPct, 'var(--streak)', streaksSub);
   out += '</div>';
 
-  // ─── WEEK-STRIP CALENDAR PREVIEW ───
-  out += renderWeekStripHTML();
-
   // ─── INFO CARDS: Lists, Notes (simple counts, no percent — these don't have a "done" concept) ───
   const visibleLists = (S.lists || []).filter(canSeeItem);
   const visibleNotes = (S.notes || []).filter(canSeeItem);
@@ -4354,6 +4351,10 @@ function renderDash(){
     + '<div><div class="info-stat-num">' + visibleNotes.length + '</div><div class="info-stat-label">' + (visibleNotes.length===1?'Note':'Notes') + '</div></div>'
     + '</div>'
     + '</div>';
+
+  // ─── WEEK-STRIP CALENDAR PREVIEW ───
+  out += renderWeekStripHTML();
+
   // today list
   const todayAll=[...ovT.map(t=>({...t,_k:'todo'})),...todT.map(t=>({...t,_k:'todo'})),...ovR.map(r=>({...r,_k:'rem'})),...todR.map(r=>({...r,_k:'rem'}))].slice(0,6);
   if(todayAll.length){
@@ -8826,6 +8827,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.86',
+    date: 'Jul 6, 2026',
+    type: 'minor',
+    items: [
+      'Moved the "This Week" calendar preview to sit below the Lists/Notes count cards instead of right after the rings — new dashboard order is Rings → Lists/Notes cards → This Week → Today.'
+    ]
+  },
   {
     version: '0.04.85',
     date: 'Jul 6, 2026',
