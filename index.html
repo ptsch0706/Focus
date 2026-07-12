@@ -2441,6 +2441,22 @@ function deleteTodo(){
   });
 }
 
+// Shared comparator for To-Dos and Reminders: sorts by date first, then by
+// time within the same date. Items with no time set sort AFTER timed items
+// on the same day — a specific time feels more immediately actionable than
+// a vague "sometime today" item, so it makes sense to see the timed ones
+// first. Time strings are "HH:MM" (from <input type="time">), which sort
+// correctly as plain strings since they're zero-padded 24-hour format.
+function sortByDateThenTime(a, b) {
+  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  const aTime = a.time || '';
+  const bTime = b.time || '';
+  if (!aTime && !bTime) return 0;
+  if (!aTime) return 1;  // a has no time, sorts after b
+  if (!bTime) return -1; // b has no time, sorts after a
+  return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
+}
+
 function renderTodos(){
   const today=td();
   // Paused items are excluded from the active list entirely — they're set aside
@@ -2462,7 +2478,18 @@ function renderTodos(){
   else if(tf==='upcoming')fil=act.filter(t=>t.date>today);
   else if(tf==='overdue')fil=act.filter(t=>t.date<today);
   else if(tf==='high')fil=act.filter(t=>t.priority==='high');
-  fil.sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):(po[a.priority]||2)-(po[b.priority]||2));
+  fil.sort((a,b)=>{
+    if(a.date!==b.date)return a.date<b.date?-1:1;
+    const aTime=a.time||'',bTime=b.time||'';
+    if(aTime!==bTime){
+      if(!aTime)return 1;  // no time set, sorts after timed items on the same day
+      if(!bTime)return -1;
+      return aTime<bTime?-1:1;
+    }
+    const aPrio = po[a.priority] !== undefined ? po[a.priority] : 2;
+    const bPrio = po[b.priority] !== undefined ? po[b.priority] : 2;
+    return aPrio - bPrio;
+  });
   const ovr=fil.filter(t=>t.date<today),tod=fil.filter(t=>t.date===today),up=fil.filter(t=>t.date>today);
   let h='';
   if(!fil.length&&!comp.length){h=emptyHTML('No to-dos yet','Tap + to add your first task.');}
@@ -4170,8 +4197,8 @@ function renderRem(){
   }
 
   if (rf === 'today') {
-    const todayItems = act.filter(r => isRemActiveToday(r) && !isRemOverdue(r)).sort((a,b) => a.date < b.date ? -1 : 1);
-    const overdueItems = act.filter(r => isRemOverdue(r)).sort((a,b) => a.date < b.date ? -1 : 1);
+    const todayItems = act.filter(r => isRemActiveToday(r) && !isRemOverdue(r)).sort(sortByDateThenTime);
+    const overdueItems = act.filter(r => isRemOverdue(r)).sort(sortByDateThenTime);
     if (!todayItems.length && !overdueItems.length) {
       el.innerHTML = remEmpty('Nothing today', 'You have no reminders for today.');
       return;
@@ -4198,7 +4225,7 @@ function renderRem(){
   if (rf === 'completed') {
     items = items.sort((a,b) => (b.completedAt||0) - (a.completedAt||0));
   } else {
-    items = items.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+    items = items.sort(sortByDateThenTime);
   }
 
   if (!items.length) {
@@ -8849,6 +8876,16 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.88',
+    date: 'Jul 6, 2026',
+    type: 'major',
+    items: [
+      'Fixed: Reminders had no time-based sort at all — every sort comparator only compared dates, so two reminders due the same day sorted in whatever order they happened to already be in (looking effectively random). Both To-Dos and Reminders now sort by date, then by time within the same date, earliest to latest. Items with no specific time set sort after timed items on the same day.',
+      'Found and fixed a real, pre-existing bug while testing this: To-Dos\' priority tiebreak used (po[a.priority]||2), and since po.high is 0 — a falsy value in JavaScript — the || fallback silently kicked in and treated High priority the same as an unrecognized value (rank 2, same as Low), instead of rank 0 (highest). This means High-priority to-dos have likely not been sorting to the top correctly this whole time whenever they shared a date with other to-dos. Fixed by checking for undefined explicitly instead of using the falsy-coercing || operator.',
+      'Verified both fixes with standalone tests before shipping: same-day time ordering, timed-vs-untimed tiebreak, cross-date ordering, and the priority fix specifically (confirmed High now correctly sorts before Med and Low again).'
+    ]
+  },
   {
     version: '0.04.87',
     date: 'Jul 6, 2026',
