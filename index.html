@@ -368,6 +368,18 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 /* TOAST */
 .toast-wrap{position:fixed;bottom:calc(var(--safe-bot) + 90px);left:50%;transform:translateX(-50%);z-index:300;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:8px;}
 .toast{background:var(--bg-raised);border:1px solid var(--line);border-radius:20px;padding:10px 18px;font-size:13px;font-weight:500;color:var(--ink);box-shadow:var(--shadow-lg);white-space:nowrap;animation:tIn .25s cubic-bezier(.34,1.56,.64,1);pointer-events:auto;}
+
+/* PULL TO REFRESH — reconnects the live sync listener and gives a brief,
+   honest confirmation. Since sync is a real-time Firestore listener (not
+   periodic fetching), this isn't "fetching new data" in the traditional
+   sense — updates already arrive continuously on their own. This gesture's
+   actual job is: reassure you that sync is genuinely connected and healthy,
+   and recover it if the listener silently dropped for any reason. */
+#ptr-indicator{position:fixed;top:calc(var(--safe-top) + 8px);left:50%;transform:translateX(-50%) translateY(-60px);z-index:150;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:8px 16px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:8px;box-shadow:var(--shadow-lg);transition:transform .25s cubic-bezier(.32,.72,0,1);pointer-events:none;}
+#ptr-indicator.visible{transform:translateX(-50%) translateY(0);}
+#ptr-indicator .ptr-spinner{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--cyan);border-radius:50%;animation:ptrSpin .7s linear infinite;display:none;}
+#ptr-indicator.spinning .ptr-spinner{display:block;}
+@keyframes ptrSpin{to{transform:rotate(360deg);}}
 .toast.undo{display:flex;align-items:center;gap:12px;}
 .toast-undo-btn{background:none;border:none;color:var(--cyan);font-weight:700;font-size:13px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
 .toast.ok{border-color:var(--cyan);color:var(--cyan);}
@@ -1686,6 +1698,22 @@ input.has-mention, .note-title-input.has-mention {
             <input type="number" id="recur-interval-todo" value="1" min="1" max="99">
             <label id="recur-interval-unit-todo">week(s)</label>
           </div>
+          <div class="field" style="margin-top:10px">
+            <label class="field-label">Ends</label>
+            <div class="pill-row" id="recur-end-mode-todo">
+              <button class="pill sel" data-endmode="never" onclick="setRecurEndMode('todo','never',this)">Never</button>
+              <button class="pill" data-endmode="count" onclick="setRecurEndMode('todo','count',this)">After N times</button>
+              <button class="pill" data-endmode="date" onclick="setRecurEndMode('todo','date',this)">On date</button>
+            </div>
+            <div id="recur-end-count-row-todo" style="display:none;margin-top:8px;display:flex;align-items:center;gap:8px">
+              <label style="font-size:13px;color:var(--ink-soft)">Repeat</label>
+              <input type="number" id="recur-end-count-todo" value="6" min="1" max="999" style="width:70px">
+              <label style="font-size:13px;color:var(--ink-soft)">times total</label>
+            </div>
+            <div id="recur-end-date-row-todo" style="display:none;margin-top:8px">
+              <input type="date" id="recur-end-date-todo">
+            </div>
+          </div>
           <div id="recur-dow-row-todo" style="display:none">
             <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day(s) of week</label>
             <div class="recur-dow-pills" id="recur-dow-pills-todo"></div>
@@ -1852,6 +1880,22 @@ input.has-mention, .note-title-input.has-mention {
             <input type="number" id="recur-interval-rem" value="1" min="1" max="99">
             <label id="recur-interval-unit-rem">week(s)</label>
           </div>
+          <div class="field" style="margin-top:10px">
+            <label class="field-label">Ends</label>
+            <div class="pill-row" id="recur-end-mode-rem">
+              <button class="pill sel" data-endmode="never" onclick="setRecurEndMode('rem','never',this)">Never</button>
+              <button class="pill" data-endmode="count" onclick="setRecurEndMode('rem','count',this)">After N times</button>
+              <button class="pill" data-endmode="date" onclick="setRecurEndMode('rem','date',this)">On date</button>
+            </div>
+            <div id="recur-end-count-row-rem" style="display:none;margin-top:8px;display:flex;align-items:center;gap:8px">
+              <label style="font-size:13px;color:var(--ink-soft)">Repeat</label>
+              <input type="number" id="recur-end-count-rem" value="6" min="1" max="999" style="width:70px">
+              <label style="font-size:13px;color:var(--ink-soft)">times total</label>
+            </div>
+            <div id="recur-end-date-row-rem" style="display:none;margin-top:8px">
+              <input type="date" id="recur-end-date-rem">
+            </div>
+          </div>
           <div id="recur-dow-row-rem" style="display:none">
             <label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:6px">On day(s) of week</label>
             <div class="recur-dow-pills" id="recur-dow-pills-rem"></div>
@@ -2007,6 +2051,8 @@ function loadState(){
       if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{
         if(!Array.isArray(t.subtasks))t.subtasks=[];
         if(typeof t.paused!=='boolean')t.paused=false;
+        if(typeof t.recurOccurrenceNumber==='undefined')t.recurOccurrenceNumber=1;
+        if(t.recur&&typeof t.recur==='object'&&typeof t.recur.end==='undefined')t.recur.end=null;
       });
       if(!Array.isArray(loaded.listFolders))loaded.listFolders=[];
       if(Array.isArray(loaded.lists))loaded.lists.forEach(l=>{
@@ -2039,6 +2085,8 @@ function loadState(){
         if(typeof r.projectId==='undefined')r.projectId=null;
         if(typeof r.paused!=='boolean')r.paused=false;
         if(typeof r.isHoliday!=='boolean')r.isHoliday=false;
+        if(typeof r.recurOccurrenceNumber==='undefined')r.recurOccurrenceNumber=1;
+        if(r.recur&&typeof r.recur==='object'&&typeof r.recur.end==='undefined')r.recur.end=null;
       });
       if(Array.isArray(loaded.lists))loaded.lists.forEach(l=>{if(typeof l.projectId==='undefined')l.projectId=null;});
       return loaded;
@@ -2230,6 +2278,19 @@ function resetPills(group,val){
 // ── NAV ──
 const VIEWS=['home','todos','lists','reminders','notes','streaks'];
 function switchView(name,direction){
+  // If no direction was explicitly given (e.g. a plain tab tap, or any
+  // programmatic navigation like a dashboard shortcut), compute one from the
+  // tabs' left-to-right order — moving to a tab further right slides in from
+  // the right, moving left slides in from the left. This means every call
+  // to switchView gets the same animated transition the swipe gesture
+  // already had, not just the swipe itself.
+  if(!direction && name!==view){
+    const fromIdx=VIEWS.indexOf(view);
+    const toIdx=VIEWS.indexOf(name);
+    if(fromIdx!==-1&&toIdx!==-1&&fromIdx!==toIdx){
+      direction=toIdx>fromIdx?'left':'right';
+    }
+  }
   VIEWS.forEach(v=>{
     const el=document.getElementById('view-'+v),tb=document.getElementById('tab-'+v);
     if(el){
@@ -2282,6 +2343,7 @@ let _recentlyDeleted = null; // holds at most one entry: {type, item, restoreFn}
 let _undoTimeoutId = null;
 
 function showUndoToast(msg, restoreFn) {
+  haptic('medium');
   const w = document.getElementById('toast-wrap');
   // An undo toast replaces any other undo toast in progress (only one
   // undo-able action is tracked at a time, to keep this simple and avoid
@@ -2409,20 +2471,49 @@ function saveTodo(){
   save();closeModal('modal-todo');renderTodos();renderDash();tabs();
   syncDueTimeSchedules();
 }
+// ── HAPTIC FEEDBACK ──────────────────────────────────────────────────────
+// navigator.vibrate() only works on Android Chrome — iOS Safari has never
+// implemented the Web Vibration API and has no plan to. There IS a documented
+// workaround using a hidden <input type="checkbox" switch"> element (a Safari
+// 17.4+ quirk), but Apple partially patched it in iOS 26.5 and the technique's
+// own maintainers call it fragile — likely to silently break on any future
+// iOS update with no warning. Given this is a daily-use app, that's not a
+// foundation worth building the core feel on. So: call the real API where
+// it's free to add (does nothing on iOS today, works if this is ever used on
+// Android), and skip the fragile trick entirely.
+function haptic(style){
+  if(!navigator.vibrate)return;
+  const patterns={light:10,medium:20,success:[10,30,10],error:[20,40,20]};
+  try{navigator.vibrate(patterns[style]||10);}catch(e){}
+}
+
 function checkTodo(id){
   const t=S.todos.find(t=>t.id===id);if(!t)return;
   if(!t.completed){
+    haptic('success');
     t.completed=true;t.completedAt=Date.now();
     t.paused=false; // completing always unpauses
     cancelDueTimeSchedule('todo',t.id);
     if(t.recur&&t.recur!=='none'){
-      const carriedSubtasks=(t.subtasks||[]).map(st=>({id:gid(),text:st.text,completed:false}));
-      const nextT={id:gid(),title:t.title,date:nextDate(t.date,t.recur),time:t.time||'',notes:t.notes||'',priority:t.priority,recur:t.recur,completed:false,subtasks:carriedSubtasks,createdAt:Date.now(),ownerUsername:t.ownerUsername||S.myUsername||'',sharedWith:[...(t.sharedWith||[])]};
-      S.todos.push(nextT);
-      // Transfer any linked notes from the old instance to the new one so they keep working
-      (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='todo'&&n.linkedTo.id===t.id){n.linkedTo.id=nextT.id;}});
-      toast('Done! Next one scheduled ↻','ok');
-      syncDueTimeSchedules();
+      const nextStart = nextDate(t.date,t.recur);
+      const currentOccurrence = t.recurOccurrenceNumber || 1;
+      const nextOccurrence = currentOccurrence + 1;
+      let stopHere = false;
+      if (t.recur && typeof t.recur === 'object' && t.recur.end) {
+        if (t.recur.end.type === 'count' && nextOccurrence > t.recur.end.value) stopHere = true;
+        if (t.recur.end.type === 'date' && nextStart && nextStart > t.recur.end.value) stopHere = true;
+      }
+      if (stopHere) {
+        toast('Done! Recurrence complete ✓','ok');
+      } else {
+        const carriedSubtasks=(t.subtasks||[]).map(st=>({id:gid(),text:st.text,completed:false}));
+        const nextT={id:gid(),title:t.title,date:nextStart,time:t.time||'',notes:t.notes||'',priority:t.priority,recur:t.recur,recurOccurrenceNumber:nextOccurrence,completed:false,subtasks:carriedSubtasks,createdAt:Date.now(),ownerUsername:t.ownerUsername||S.myUsername||'',sharedWith:[...(t.sharedWith||[])]};
+        S.todos.push(nextT);
+        // Transfer any linked notes from the old instance to the new one so they keep working
+        (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='todo'&&n.linkedTo.id===t.id){n.linkedTo.id=nextT.id;}});
+        toast('Done! Next one scheduled ↻','ok');
+        syncDueTimeSchedules();
+      }
     }
     else toast('Done! ✓','ok');
   }else{t.completed=false;t.completedAt=null;toast('Marked incomplete');syncDueTimeSchedules();}
@@ -4143,22 +4234,37 @@ function saveReminder(){
 function checkRem(id){
   const r=S.reminders.find(r=>r.id===id);if(!r)return;
   if(!r.completed){
+    haptic('success');
     r.completed=true;r.completedAt=Date.now();
     r.paused=false; // completing always unpauses
     cancelDueTimeSchedule('rem',r.id);
     if(r.recur&&r.recur!=='none'){
       const nextStart = nextDate(r.date,r.recur);
-      let nextEnd = null;
-      if (r.endDate && r.endDate !== r.date) {
-        const lengthDays = Math.floor((parseLocalDate(r.endDate) - parseLocalDate(r.date)) / 86400000);
-        const endDt = parseLocalDate(nextStart); endDt.setDate(endDt.getDate() + lengthDays);
-        nextEnd = endDt.getFullYear() + '-' + String(endDt.getMonth()+1).padStart(2,'0') + '-' + String(endDt.getDate()).padStart(2,'0');
+      const currentOccurrence = r.recurOccurrenceNumber || 1;
+      const nextOccurrence = currentOccurrence + 1;
+      // Check the end condition (if any) BEFORE spawning the next occurrence.
+      // end===null (or absent, for reminders created before this feature)
+      // means "no limit" — behaves exactly as it always has, forever.
+      let stopHere = false;
+      if (r.recur && typeof r.recur === 'object' && r.recur.end) {
+        if (r.recur.end.type === 'count' && nextOccurrence > r.recur.end.value) stopHere = true;
+        if (r.recur.end.type === 'date' && nextStart && nextStart > r.recur.end.value) stopHere = true;
       }
-      const nextR={id:gid(),title:r.title,date:nextStart,endDate:nextEnd,time:r.time||'',notes:r.notes||'',recur:r.recur,completed:false,createdAt:Date.now(),ownerUsername:r.ownerUsername||S.myUsername||'',sharedWith:[...(r.sharedWith||[])]};
-      S.reminders.push(nextR);
-      (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='reminder'&&n.linkedTo.id===r.id){n.linkedTo.id=nextR.id;}});
-      toast('Acknowledged · Next scheduled ↻','ok');
-      syncDueTimeSchedules();
+      if (stopHere) {
+        toast('Acknowledged · Recurrence complete ✓','ok');
+      } else {
+        let nextEnd = null;
+        if (r.endDate && r.endDate !== r.date) {
+          const lengthDays = Math.floor((parseLocalDate(r.endDate) - parseLocalDate(r.date)) / 86400000);
+          const endDt = parseLocalDate(nextStart); endDt.setDate(endDt.getDate() + lengthDays);
+          nextEnd = endDt.getFullYear() + '-' + String(endDt.getMonth()+1).padStart(2,'0') + '-' + String(endDt.getDate()).padStart(2,'0');
+        }
+        const nextR={id:gid(),title:r.title,date:nextStart,endDate:nextEnd,time:r.time||'',notes:r.notes||'',recur:r.recur,recurOccurrenceNumber:nextOccurrence,completed:false,createdAt:Date.now(),ownerUsername:r.ownerUsername||S.myUsername||'',sharedWith:[...(r.sharedWith||[])]};
+        S.reminders.push(nextR);
+        (S.notes||[]).forEach(n=>{if(n.linkedTo&&n.linkedTo.type==='reminder'&&n.linkedTo.id===r.id){n.linkedTo.id=nextR.id;}});
+        toast('Acknowledged · Next scheduled ↻','ok');
+        syncDueTimeSchedules();
+      }
     }
     else toast('Acknowledged ✓','ok');
   }else{r.completed=false;r.completedAt=null;toast('Marked active');syncDueTimeSchedules();}
@@ -4370,9 +4476,19 @@ function renderDash(){
   let stepsPct = 0, stepsLabel = 'No goal';
   const stepsStreak = (S.streaks || []).filter(canSeeItem).find(s => normalizeUsername(s.name || '') === normalizeUsername('Steps'));
   if (stepsStreak && stepsStreak.target > 0) {
-    const stepValue = (stepsStreak.values && stepsStreak.values[today]) || 0;
-    stepsPct = Math.min(100, Math.round((stepValue / stepsStreak.target) * 100));
-    stepsLabel = formatStepsShort(stepValue) + '/' + formatStepsShort(stepsStreak.target);
+    // Distinguish "genuinely 0 steps logged today" from "no sync has arrived
+    // yet today" — these look identical if you just default a missing key to
+    // 0, but they mean very different things. hasOwnProperty checks whether
+    // today's key exists at all, not just whether its value happens to be 0.
+    const hasTodaysValue = stepsStreak.values && Object.prototype.hasOwnProperty.call(stepsStreak.values, today);
+    if (hasTodaysValue) {
+      const stepValue = stepsStreak.values[today];
+      stepsPct = Math.min(100, Math.round((stepValue / stepsStreak.target) * 100));
+      stepsLabel = formatStepsShort(stepValue) + '/' + formatStepsShort(stepsStreak.target);
+    } else {
+      stepsPct = 0;
+      stepsLabel = 'Waiting for sync…';
+    }
   }
 
   const scheduledStreaks = (S.streaks || []).filter(canSeeItem).filter(s => isScheduledToday(s));
@@ -5266,6 +5382,7 @@ function init(){
   ensureCurrentYearHolidaysIfEnabled();
   initSwipeDismiss();
   initSwipeTabs();
+  initPullToRefresh();
   initItemSwipes();
   setupNoteToolbarKeyboard();
   handleURLScheme();
@@ -6384,6 +6501,7 @@ function logStreak(id) {
     streak.logs = streak.logs.filter(d=>d!==today2);
     toast('Unlogged for today');
   } else {
+    haptic('success');
     streak.logs.push(today2);
     const chain = getStreakChain(streak);
     toast(chain > 1 ? `${chain} day streak!` : 'Logged', 'ok');
@@ -8877,6 +8995,28 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.04.90',
+    date: 'Jul 6, 2026',
+    type: 'major',
+    items: [
+      'Fixed tab-tap transitions: tapping the bottom nav now gets the same animated slide transition that swiping between tabs already had — previously only the swipe gesture was animated, and tapping (almost certainly the more common way to navigate) snapped instantly with no transition. switchView() now auto-computes a left/right slide direction from the tabs\' order whenever one isn\'t explicitly passed, so this applies everywhere in the app, not just the bottom nav.',
+      'Added haptic feedback on completing a to-do, completing a reminder, logging a streak, and deleting anything. Honest caveat: iOS Safari has never implemented the Web Vibration API this relies on, so this does nothing on iPhone today — deliberately did not build the fragile checkbox-based workaround some sites use for this, since Apple partially patched it in iOS 26.5 and it is documented as likely to silently break on future iOS updates. This is a real but currently-inert enhancement, ready if this is ever used on Android.',
+      'Fixed a real, misleading bug in the Steps dashboard ring: it showed "0 / 10,000 steps" whenever today\'s step count had not synced yet from Shortcuts, indistinguishable from actually having taken zero steps. Now checks whether today\'s data has arrived at all, not just defaulting a missing value to 0 — shows "Waiting for sync…" instead when it genuinely has not arrived.',
+      'Added pull-to-refresh on the Home tab (only active at the very top of the scroll). Since sync is a live Firestore listener rather than periodic fetching, this does not re-fetch data that is already arriving automatically — its real job is reconnecting the listener in case it silently dropped, and giving an honest confirmation once the actual status has settled. Deliberately polls the real sync status rather than guessing a fixed delay, so the confirmation cannot show "Up to date" before sync has genuinely resolved on a slow connection — caught and fixed this exact timing risk before shipping.'
+    ]
+  },
+  {
+    version: '0.04.89',
+    date: 'Jul 6, 2026',
+    type: 'major',
+    items: [
+      'Found the actual cause of the "6 days resetting" issue: a reminder with BOTH a multi-day range AND recurrence set would, upon completion, spawn a brand new reminder with a fresh copy of that same range — which looked exactly like the days resetting, because they were, in a sense (a new 6-day reminder really was being created).',
+      'Added a genuine fix for what was actually needed: recurring To-Dos and Reminders can now have an end condition — "Never" (unlimited, the existing default, nothing changes unless you opt in), "After N times," or "On date." This is the real mechanism for "remind me daily for 6 days, then stop" — each day completes independently, and after the 6th, no new one gets created.',
+      'The existing multi-day range feature (one continuous task spanning several days, like "watching the dog June 10–15") is untouched — that still works exactly as before for its own use case. The two features are now properly distinct rather than colliding when combined.',
+      'Verified the count and date limit logic with a standalone test before shipping: confirmed a 6-time limit correctly stops after the 6th completion (not the 5th or 7th), and that reminders with no end condition set continue exactly as they always have.'
+    ]
+  },
+  {
     version: '0.04.88',
     date: 'Jul 6, 2026',
     type: 'major',
@@ -10338,6 +10478,7 @@ function setRecur(scope, freq) {
       dayOfMonth: freq === 'monthly' ? d : null,
       month: freq === 'yearly' ? m : null,
       day: freq === 'yearly' ? d : null,
+      end: null, // { type: 'count', value: N } or { type: 'date', value: 'YYYY-MM-DD' } or null (never)
     };
   }
   recurState[scope] = r;
@@ -10410,6 +10551,28 @@ function setRecur(scope, freq) {
 
   updateRecurSummary(scope);
 
+  // Populate the "Ends" UI to reflect r.end (never/count/date)
+  if (!r.end) r.end = null;
+  const endMode = r.end ? r.end.type : 'never';
+  document.querySelectorAll('#recur-end-mode-' + scope + ' .pill').forEach(p => {
+    p.classList.toggle('sel', p.dataset.endmode === endMode);
+  });
+  document.getElementById('recur-end-count-row-' + scope).style.display = endMode === 'count' ? 'flex' : 'none';
+  document.getElementById('recur-end-date-row-' + scope).style.display = endMode === 'date' ? '' : 'none';
+  if (endMode === 'count') document.getElementById('recur-end-count-' + scope).value = r.end.value;
+  if (endMode === 'date') document.getElementById('recur-end-date-' + scope).value = r.end.value;
+  // Wire count/date input listeners (safe to re-wire each time; oninput just gets replaced)
+  const countInput = document.getElementById('recur-end-count-' + scope);
+  countInput.oninput = () => {
+    const v = Math.max(1, Math.min(999, parseInt(countInput.value) || 1));
+    countInput.value = v;
+    if (recurState[scope].end && recurState[scope].end.type === 'count') recurState[scope].end.value = v;
+  };
+  const dateInput2 = document.getElementById('recur-end-date-' + scope);
+  dateInput2.oninput = () => {
+    if (recurState[scope].end && recurState[scope].end.type === 'date') recurState[scope].end.value = dateInput2.value;
+  };
+
   // Wire interval input
   const intInput = document.getElementById('recur-interval-' + scope);
   intInput.oninput = () => {
@@ -10418,6 +10581,35 @@ function setRecur(scope, freq) {
     recurState[scope].interval = v;
     updateRecurSummary(scope);
   };
+}
+
+// Toggles the recurrence end condition between Never / After N times / On date.
+// "Never" (end: null) preserves today's existing behavior exactly — a
+// recurring reminder with no limit keeps regenerating forever, same as before
+// this feature existed. This is deliberately the default for any NEW
+// recurrence, so nothing changes unless you specifically opt into a limit.
+function setRecurEndMode(scope, mode, btn) {
+  const r = recurState[scope];
+  if (!r) return;
+  document.querySelectorAll('#recur-end-mode-' + scope + ' .pill').forEach(p => p.classList.toggle('sel', p === btn));
+  document.getElementById('recur-end-count-row-' + scope).style.display = mode === 'count' ? 'flex' : 'none';
+  document.getElementById('recur-end-date-row-' + scope).style.display = mode === 'date' ? '' : 'none';
+  if (mode === 'never') {
+    r.end = null;
+  } else if (mode === 'count') {
+    const countInput = document.getElementById('recur-end-count-' + scope);
+    r.end = { type: 'count', value: parseInt(countInput.value) || 6 };
+  } else if (mode === 'date') {
+    const dateInput2 = document.getElementById('recur-end-date-' + scope);
+    if (!dateInput2.value) {
+      // Default to a sensible date 6 occurrences out, roughly, so the field isn't blank
+      const base = document.getElementById(scope === 'todo' ? 'todo-date' : 'rem-date').value || td();
+      const d = parseLocalDate(base);
+      d.setDate(d.getDate() + 30);
+      dateInput2.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    r.end = { type: 'date', value: dateInput2.value };
+  }
 }
 
 function toggleRecurDow(scope, dow, btn) {
@@ -10507,6 +10699,10 @@ function describeRecur(recur) {
     s += recur.interval > 1 ? 'months' : 'Monthly';
   } else if (recur.freq === 'yearly') {
     s += recur.interval > 1 ? 'years' : 'Yearly';
+  }
+  if (recur.end) {
+    if (recur.end.type === 'count') s += ' · ' + recur.end.value + 'x';
+    else if (recur.end.type === 'date') s += ' · until ' + recur.end.value;
   }
   return s;
 }
@@ -11192,6 +11388,105 @@ function handleURLScheme() {
 
 
 // ── SWIPE BETWEEN TABS ──
+// ── PULL TO REFRESH ──────────────────────────────────────────────────────
+// Only active when scrolled to the very top of the page (window.scrollY===0)
+// and only on the Home tab, where "check if everything's current" makes the
+// most sense. Since sync is a live Firestore listener rather than periodic
+// fetching, this doesn't re-fetch anything — it restarts the listener (in
+// case it silently dropped) and gives an honest, brief confirmation.
+function initPullToRefresh() {
+  let startY = 0, pulling = false, triggered = false;
+  const indicator = document.getElementById('ptr-indicator');
+  const label = document.getElementById('ptr-label');
+  const PULL_THRESHOLD = 70;
+
+  function isBlocked(target) {
+    if (view !== 'home') return true;
+    if (window.scrollY > 0) return true;
+    if (!target) return false;
+    if (target.closest('.modal-backdrop.show, .detail-view.show, input, textarea, [contenteditable="true"]')) return true;
+    return false;
+  }
+
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { pulling = false; return; }
+    if (isBlocked(e.target)) { pulling = false; return; }
+    startY = e.touches[0].clientY;
+    pulling = true;
+    triggered = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0) { return; } // only respond to pulling DOWN
+    if (dy > 10) {
+      const progress = Math.min(1, dy / PULL_THRESHOLD);
+      indicator.style.transform = 'translateX(-50%) translateY(' + (-60 + 60 * progress) + 'px)';
+      label.textContent = dy >= PULL_THRESHOLD ? 'Release to check sync' : 'Pull to check sync';
+      triggered = dy >= PULL_THRESHOLD;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!pulling) return;
+    pulling = false;
+    if (triggered) {
+      runPullToRefresh();
+    } else {
+      indicator.classList.remove('visible');
+      indicator.style.transform = '';
+    }
+  });
+
+  function runPullToRefresh() {
+    indicator.classList.add('visible', 'spinning');
+    label.textContent = 'Checking…';
+    haptic('light');
+    // If sync isn't configured at all (no household sync code set up), there's
+    // nothing to check — confirm immediately rather than waiting out a timeout
+    // for a listener that was never going to start.
+    if (!S.syncCode) {
+      indicator.classList.remove('spinning');
+      label.textContent = 'No sync set up';
+      setTimeout(() => {
+        indicator.classList.remove('visible');
+        indicator.style.transform = '';
+      }, 1200);
+      return;
+    }
+    // Restart the live sync listener — cheap and safe to call even if it's
+    // already healthy, and it's the actual recovery path if it silently
+    // dropped.
+    if (window.__firebase) startSync();
+    // Rather than guess a fixed delay and hope sync has resolved by then
+    // (unreliable — actual round-trip time to Firestore varies), poll
+    // _syncStatus directly and only show the result once it's genuinely
+    // settled away from 'syncing'. A timeout fallback prevents this from
+    // waiting forever if something goes wrong.
+    const startedAt = Date.now();
+    const MAX_WAIT_MS = 5000;
+    const POLL_INTERVAL_MS = 200;
+    const poll = setInterval(() => {
+      const settled = _syncStatus !== 'syncing';
+      const timedOut = Date.now() - startedAt > MAX_WAIT_MS;
+      if (settled || timedOut) {
+        clearInterval(poll);
+        indicator.classList.remove('spinning');
+        label.textContent = timedOut && !settled
+          ? 'Still checking — see Settings'
+          : _syncStatus === 'error' ? 'Sync error — check Settings'
+          : _syncStatus === 'offline' ? 'Offline'
+          : 'Up to date ✓';
+        setTimeout(() => {
+          indicator.classList.remove('visible');
+          indicator.style.transform = '';
+        }, 1200);
+      }
+    }, POLL_INTERVAL_MS);
+  }
+}
+
 function initSwipeTabs() {
   let startX = 0, startY = 0, startT = 0, tracking = false;
 
@@ -11396,6 +11691,12 @@ function initSwipeTabs() {
 <div id="sync-indicator" onclick="settFB();openModal('modal-settings')" style="display:none;position:fixed;bottom:calc(var(--safe-bot) + 64px);left:50%;transform:translateX(-50%);z-index:150;cursor:pointer;background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px 8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);opacity:0;transition:opacity .3s ease;pointer-events:none;">
   <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ink-mute);transition:background .2s"></span>
   <span id="sync-label">Sync</span>
+</div>
+
+<!-- PULL TO REFRESH INDICATOR -->
+<div id="ptr-indicator">
+  <div class="ptr-spinner"></div>
+  <span id="ptr-label">Pull to check sync</span>
 </div>
 
 <!-- MENTION NOTIFY POPOVER -->
