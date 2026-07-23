@@ -6461,17 +6461,6 @@ function renderStreakTrendsHTML(s) {
   </div>`;
 }
 
-// Toggle the trends section for one streak card. State is kept in _openStreakTrends
-// (a module-level Set) so it survives re-renders within the same session, but is
-// not persisted or synced — purely a view preference.
-const _openStreakTrends = new Set();
-function toggleStreakTrends(id, event) {
-  if (event) event.stopPropagation();
-  if (_openStreakTrends.has(id)) _openStreakTrends.delete(id);
-  else _openStreakTrends.add(id);
-  renderStreaks();
-}
-
 
 
 function isLoggedToday(streak) {
@@ -6661,6 +6650,7 @@ function logPastDay(streakId, dateStr) {
       if (meetsGoal) s.logs.push(dateStr);
       save(); renderStreaks(); renderDash();
       toast(meetsGoal ? `Logged ${num} ${s.unit || ''} ✓` : `Logged ${num} — below goal, not counted`, meetsGoal ? 'ok' : '');
+      openPastDayLogger(streakId); // refresh the picker in place, same as every other path through this function
       return;
     }
     // Remove any skip for this date — logged and skipped are mutually exclusive
@@ -6809,32 +6799,6 @@ function renderStreaks() {
     const scheduled = isScheduledToday(s);
     const atRisk = scheduled && !logged && hour >= 20;
     const inGrace = canLogYesterday(s);
-    // Build dot grid: 91 days (13 weeks) by default, or 182 days (26 weeks) in extended view
-    const rangeDays = s._extendedView ? 181 : 90;
-    const dots = [];
-    const skipReasons = {};
-    (S.streakSkipReasons || []).forEach(r => { skipReasons[r.id] = r; });
-    for (let i = rangeDays; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate()-i);
-      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const isSchd = (s.days||[]).includes(d.getDay());
-      const isLog = (s.logs||[]).includes(ds);
-      const isTod = ds === td();
-      const skipReasonId = (s.skips||{})[ds];
-      const skipColor = skipReasonId && skipReasons[skipReasonId] ? skipReasons[skipReasonId].color : null;
-      let cls = 'dot';
-      let inlineStyle = '';
-      if (skipColor) {
-        // Skipped days: show reason color at 60% opacity, regardless of logged state
-        cls += ' skipped';
-        inlineStyle = ` style="background:${skipColor};opacity:.6;border-radius:3px"`;
-      } else if (isTod && isLog) cls += ' today logged';
-      else if (isTod) cls += ' today';
-      else if (isLog) cls += ' logged';
-      else if (isSchd && ds < td()) cls += ' missed';
-      const label = skipColor && skipReasons[skipReasonId] ? ` — ${skipReasons[skipReasonId].label}` : '';
-      dots.push(`<div class="${cls}"${inlineStyle} title="${ds}${label}"></div>`);
-    }
     const freqLabel = s.freq==='daily'?'Daily':s.freq==='mon-fri'?'Mon–Fri':'Custom';
     const color = s.color || '#f43f5e';
     const expanded = !!s._expanded;
@@ -6864,14 +6828,11 @@ function renderStreaks() {
       + (s.target ? ('<div style="padding:0 16px 6px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:11px;color:var(--ink-mute);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Today</div><div style="font-size:13px;color:var(--ink)"><strong style="font-family:Plus Jakarta Sans,sans-serif;color:'+color+';font-size:16px">'+getTodayValue(s)+'</strong> <span style="color:var(--ink-mute)">/ '+s.target+' '+esc(s.unit||'')+'</span></div></div><div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,getTodayValue(s)/s.target*100)+'%;background:'+color+'"></div></div>') : ('<div class="streak-progress"><div class="streak-progress-fill" style="width:'+Math.min(100,chain/7*100)+'%;background:'+color+'"></div></div>'))
       + '<div class="streak-expand-area">'
         + (s.target ? streakBarChartHTML(s) : '')
-        + '<div class="dot-grid" style="' + (s._extendedView?'grid-template-columns:repeat(26,1fr)':'') + '">' + dots.map(d => d.replace('background:var(--streak)', 'background:'+color)).join('') + '</div>'
-      + '<div style="padding:0 16px 8px;text-align:right"><button class="btn-ghost btn-xs" onclick="event.stopPropagation();toggleStreakViewRange(\''+s.id+'\')" style="font-size:11px;color:var(--ink-mute)">' + (s._extendedView?'Show 3 months':'Show 6 months') + '</button></div>'
+        + renderStreakTrendsHTML(s)
       + '</div>'
       + '<div style="padding:14px 16px 14px;display:flex;align-items:center;justify-content:space-between">'
-        + '<button class="btn-ghost btn-xs" onclick="toggleStreakTrends(\''+s.id+'\',event)" style="font-size:11px;color:var(--ink-mute)">'
-        + (_openStreakTrends.has(s.id) ? '▲ Hide trends' : '📊 Trends') + '</button>'
-        + '<div style="display:flex;align-items:center;gap:8px">'
         + '<div style="font-size:12px;color:var(--ink-mute)">' + (scheduled?(logged?'Logged today':((s.skips||{})[td()]?'Skipped today':'Not yet logged')):'Rest day') + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px">'
         + (scheduled && !s.paused ? '<button class="btn-ghost btn-xs" onclick="openSkipPicker(\''+s.id+'\',event)" style="font-size:11px;border:1px solid var(--line);padding:4px 10px;border-radius:20px;color:'+(s.skips&&s.skips[td()]?'var(--pri-med)':'var(--ink-mute)')+'">'+(s.skips&&s.skips[td()]?'Skipped ✕':'Skip')+'</button>' : '')
         + '<button class="streak-log-btn ' + (logged?'logged':'') + '" id="slb-' + s.id + '" style="border-color:'+color+';' + (logged?'background:'+color:'') + '"'
           + ' onclick="event.stopPropagation();' + (s.target ? ('openValueLogPrompt(\''+s.id+'\')') : ('logStreak(\''+s.id+'\')')) + '"'
@@ -6883,7 +6844,6 @@ function renderStreaks() {
         + '</div>'
       + '</div>'
       + (s.shortcutName ? '<div style="padding:0 16px 12px"><a href="shortcuts://run-shortcut?name='+encodeURIComponent(s.shortcutName)+'" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:'+color+';text-decoration:none;border:1px solid '+color+';padding:6px 12px;border-radius:20px"><svg xmlns="http://www.w3.org/2000/svg" fill="'+color+'" viewBox="0 0 24 24" style="width:11px;height:11px"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run Shortcut</a></div>' : '')
-      + (_openStreakTrends.has(s.id) ? renderStreakTrendsHTML(s) : '')
       + (linkedNotesHTML ? '<div style="padding:0 16px 12px">' + linkedNotesHTML + '</div>' : '')
     + '</div>';
   }).join('');
@@ -8994,6 +8954,25 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.92',
+    date: 'Jul 6, 2026',
+    type: 'major',
+    items: [
+      'Consolidated the streak card down to one expand toggle. Previously tapping a streak card revealed a small 90/182-day dot-grid plus a "Show 3/6 months" button, AND separately, a nested "Trends" toggle hidden inside that revealed a SECOND, different heatmap plus stats — two overlapping heatmaps and two levels of tapping to see everything.',
+      'Now: one tap shows everything at once — current streak, best streak, 30-day rate, one 12-week heatmap (the more complete of the two, with month labels and a skip-reason legend), and the "Log a past day" button. No second toggle, no second heatmap.',
+      'Removed the now-dead code this left behind: the old 90/182-day dot-grid computation, the "Show 3/6 months" toggle, and the separate Trends toggle mechanism (_openStreakTrends, toggleStreakTrends, toggleStreakViewRange, _extendedView) — all fully unused after the consolidation, confirmed via a full orphan-reference audit before removing.'
+    ]
+  },
+  {
+    version: '0.04.91',
+    date: 'Jul 6, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed: logging a past day for a value-based streak (like Steps) that met the goal did not refresh the "Log a Past Day" picker afterward — every other path through that function (un-logging, invalid input, simple streaks) correctly refreshed what you see, but this one specific path returned early and skipped it.',
+      'Traced through the underlying chain and dot-grid calculations directly and confirmed they correctly pick up a retroactively-logged day that meets the goal — simulated the exact scenario (missing day, entering a value over target) end to end and got the correct chain count. If the streak count or dot still does not update correctly after this fix, that would point to something else worth digging into further.'
+    ]
+  },
   {
     version: '0.04.90',
     date: 'Jul 6, 2026',
@@ -11214,13 +11193,6 @@ function openValueLogPrompt(streakId) {
   setTodayValue(streakId, num);
   const reached = s.target && num >= s.target;
   toast(reached ? 'Goal reached! \uD83C\uDF89' : 'Logged ' + num + ' ' + (s.unit||''), 'ok');
-}
-
-function toggleStreakViewRange(streakId) {
-  const s = S.streaks.find(x => x.id === streakId);
-  if (!s) return;
-  s._extendedView = !s._extendedView;
-  renderStreaks();
 }
 
 function toggleStreakPause(streakId) {
