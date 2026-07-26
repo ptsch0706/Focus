@@ -1004,8 +1004,15 @@ input.has-mention, .note-title-input.has-mention {
   z-index:2;
   flex:1;
   min-width:0;
-  overflow:hidden;
-  border-radius:var(--radius);
+  /* NOTE: deliberately no overflow:hidden here. .swipe-actions is a CHILD of
+     .swipe-content and needs to render in space extending to the right of
+     .swipe-content's own width (that's the whole point — sliding .swipe-content
+     left reveals it). Clipping .swipe-content itself would permanently hide
+     .swipe-actions regardless of the transform, which is exactly what
+     happened: an earlier fix for actions "showing through when they
+     shouldn't" added this overflow:hidden here, which fixed that bug but
+     broke actions ever showing AT ALL. The outer .swipe-wrap already clips
+     to the visible card width — that's the correct place for this job. */
 }
 .swipe-content.swiping{transition:none;}
 .swipe-content > .todo-item,
@@ -9016,6 +9023,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.94',
+    date: 'Jul 6, 2026',
+    type: 'bugfix',
+    items: [
+      'Found the real cause this time — and it was a direct side effect of an earlier fix in this same area. The "swipe actions exposed" bug from a previous update was fixed by giving .swipe-content an overflow:hidden, which happened to also hide the actions row when it should NOT have been visible. But .swipe-actions is a CHILD of .swipe-content, and needs to render in space extending beyond .swipe-content\'s own width in order to be revealed by sliding the content left — clipping .swipe-content therefore hid the actions permanently, regardless of the slide transform, which is exactly "the card swipes but nothing appears."',
+      'The actual fix for the original exposed-actions bug was already correct and still in place: giving .todo-item/.rem-item an explicit z-index higher than .swipe-actions, so the card correctly sits on top by default. The overflow:hidden added on top of that was redundant for solving that problem, and is what broke this one. Removed it — the outer .swipe-wrap already provides the correct clipping boundary for the whole card, and the card\'s own opaque background plus its own overflow:hidden already contain its visible content independently.'
+    ]
+  },
   {
     version: '0.04.93',
     date: 'Jul 6, 2026',
