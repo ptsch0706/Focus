@@ -2611,7 +2611,21 @@ function makeSwipeable(wrapEl, opts) {
   let startX = 0, startY = 0, startT = 0, currentX = 0;
   let dragging = false, decided = false, horiz = false;
   let revealed = false;
-  const actionsWidth = actions ? actions.offsetWidth : 0;
+  // actionsWidth was previously measured ONCE here, immediately — but reading
+  // offsetWidth synchronously right after a large innerHTML replacement can
+  // occasionally return 0 if the browser hasn't flushed a layout pass yet.
+  // Since this value was never re-measured afterward, a card unlucky enough
+  // to hit that timing gap would have a permanently-zero actionsWidth: the
+  // drag would still track visually while your finger moved, but reveal()
+  // would snap back to translateX(0px) every time, since -actionsWidth/2
+  // and -actionsWidth both evaluate to 0. That produces exactly "swipe
+  // seems to do something but no options ever show, and it never fixes
+  // itself" — which is what this was actually causing. Fixed by computing
+  // it fresh via a function each time it's needed, not a value cached once
+  // at a moment layout might not have been ready.
+  function getActionsWidth() {
+    return actions ? actions.offsetWidth : 0;
+  }
 
   function reset(animate) {
     if (!animate) content.classList.add('swiping');
@@ -2622,7 +2636,7 @@ function makeSwipeable(wrapEl, opts) {
   }
 
   function reveal() {
-    content.style.transform = 'translateX(-' + actionsWidth + 'px)';
+    content.style.transform = 'translateX(-' + getActionsWidth() + 'px)';
     revealed = true;
   }
 
@@ -2650,6 +2664,7 @@ function makeSwipeable(wrapEl, opts) {
     }
     if (!horiz) return;
     e.preventDefault();
+    const actionsWidth = getActionsWidth();
     // If revealed and dragging right, allow up to actionsWidth, else clamp to 0
     if (revealed) {
       currentX = Math.max(-actionsWidth, Math.min(0, -actionsWidth + dx));
@@ -2686,7 +2701,7 @@ function makeSwipeable(wrapEl, opts) {
     }
 
     // Left swipe past threshold reveals actions
-    if (currentX < -actionsWidth / 2) {
+    if (currentX < -getActionsWidth() / 2) {
       reveal();
     } else {
       reset(true);
@@ -4692,6 +4707,11 @@ function renderSett(){
         + '<div class="sett-text"><div class="sett-label">Push Notifications</div><div class="sett-sub">'+(S.notificationsEnabled?'On \u2014 due times, daily streak check, and tags':'Off')+'</div></div>'
         + '<label class="switch"><input type="checkbox" '+(S.notificationsEnabled?'checked':'')+' onchange="this.checked?enablePushNotifications():disablePushNotifications()"><span class="slider"></span></label>'
         + '</div></div>')
+    +'<div class="sett-group" style="margin-top:10px"><button class="sett-row" onclick="openNotificationsHistory()">'
+    +'<div class="sett-icon" style="background:var(--cyan-soft);color:var(--cyan)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>'
+    +'<div class="sett-text"><div class="sett-label">Pending Notifications</div><div class="sett-sub">'+(unreadNotificationCount()>0?unreadNotificationCount()+' unread':'All read')+'</div></div>'
+    +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+    +'</button></div>'
 
     // ═══ CUSTOMIZE VIEW: Compact Mode, Theme, Dashboard toggles, Templates, Grace Window ═══
     +'<div class="section-label">Customize View</div>'
@@ -8324,6 +8344,48 @@ function deleteSkipReason(idx) {
   toast('Reason deleted');
 }
 
+// ── NOTIFICATIONS HISTORY (Settings) ──────────────────────────────────────
+// Shows ALL of the current user's tag notifications (read and unread), not
+// just the unread ones the Dashboard card shows — this is meant to be a
+// genuine "review my notification history" screen, not just a transient
+// unread-count nudge. Reuses the generic Folder Manager modal (same one used
+// for Streak Skip Reasons, List/Note Folders) since this is just a list with
+// per-row actions, not something that needs its own dedicated modal.
+function openNotificationsHistory() {
+  const notifs = myNotifications().slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  document.getElementById('folder-manager-title').textContent = 'Notifications';
+  const body = document.getElementById('folder-manager-body');
+  const unread = notifs.filter(n => !n.read).length;
+
+  let html = '';
+  if (unread > 0) {
+    html += '<button class="btn btn-block" style="margin-bottom:14px" onclick="markAllNotificationsRead();openNotificationsHistory()">Mark all ' + unread + ' as read</button>';
+  }
+  if (!notifs.length) {
+    html += '<div class="empty-state" style="padding:32px 16px">'
+      + '<div class="empty-title">No notifications yet</div>'
+      + '<div class="empty-sub">You\u2019ll see it here whenever someone tags you in a to-do, list, reminder, note, or streak.</div>'
+      + '</div>';
+    body.innerHTML = html;
+    openModal('modal-folder-manager');
+    return;
+  }
+  const itemTypeLabel = { todo: 'To-Do', list: 'List', reminder: 'Reminder', note: 'Note', streak: 'Streak' };
+  notifs.forEach(n => {
+    const label = itemTypeLabel[n.itemType] || n.itemType;
+    const whenTxt = n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    html += '<div class="template-card" style="cursor:pointer' + (n.read ? '' : ';border-left:3px solid var(--cyan)') + '" onclick="closeModal(\'modal-folder-manager\');openMention(\'' + n.id + '\')">'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:600;color:var(--ink)">@' + esc(n.fromUser || 'unknown') + ' in ' + label + (n.read ? '' : ' <span style="color:var(--cyan);font-weight:700">\u25cf</span>') + '</div>'
+      + '<div style="font-size:12px;color:var(--ink-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(n.snippet || '(no preview)') + '</div>'
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--ink-mute);flex-shrink:0;margin-left:8px">' + whenTxt + '</div>'
+      + '</div>';
+  });
+  body.innerHTML = html;
+  openModal('modal-folder-manager');
+}
+
 function openFolderManager(type) {
   const folders = type === 'list' ? (S.listFolders || []) : (S.noteFolders || []);
   const items = type === 'list' ? (S.lists || []) : (S.notes || []);
@@ -8954,6 +9016,24 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.93',
+    date: 'Jul 6, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed a real bug where swiping a to-do or reminder left showed no Defer/Done/Delete options at all — confirmed reproducible on both an existing item and brand-new ones, so this wasn\'t about any specific item\'s data (which was checked directly and confirmed completely healthy).',
+      'Root cause: the width of the swipe-actions row was measured ONCE, synchronously, immediately after the card\'s HTML was inserted into the page. Reading an element\'s width right after a large content update can occasionally return 0 if the browser hasn\'t finished laying out the page yet — and since that value was cached and never re-measured, a card unlucky enough to hit that timing gap would have a permanently-zero actions width. The drag still tracked visually while your finger moved, but releasing it always snapped back to closed, since every threshold check was comparing against zero.',
+      'Fixed by measuring the actions width fresh at the moment it is actually needed (when revealing, and during the drag itself) instead of caching a value that may have been captured before the browser was ready to report it accurately.'
+    ]
+  },
+  {
+    version: '0.04.93',
+    date: 'Jul 6, 2026',
+    type: 'medium',
+    items: [
+      'Added a "Pending Notifications" row in Settings, right under Push Notifications — shows the unread count and opens a full history of every tag notification you\'ve received (read and unread), not just the 5 most recent unread ones the Dashboard card shows. Tap any entry to jump straight to that item, same as the Dashboard card. Includes a "Mark all as read" button when there are unread ones.'
+    ]
+  },
   {
     version: '0.04.92',
     date: 'Jul 6, 2026',
