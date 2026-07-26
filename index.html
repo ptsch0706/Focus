@@ -996,6 +996,22 @@ input.has-mention, .note-title-input.has-mention {
   gap:10px;
   margin-bottom:8px;
 }
+/* .swipe-actions is a SIBLING of .swipe-content (both children of
+   .swipe-wrap), NOT nested inside it. This is the actual fix for "swipe
+   does nothing" — an earlier version had .swipe-actions as a CHILD of
+   .swipe-content, which meant sliding .swipe-content via its transform
+   moved the actions along with it, since they were both part of the same
+   translating element. Nothing was ever genuinely "revealed" relative to
+   anything else — the actions and the card moved in lockstep. As true
+   siblings, .swipe-actions stays fixed in place (positioned absolute,
+   relative to .swipe-wrap) while .swipe-content — containing ONLY the
+   visible card — slides left over top of it, correctly uncovering it. */
+.swipe-actions{
+  position:absolute;
+  top:0;right:0;bottom:0;
+  display:flex;align-items:stretch;
+  z-index:1;
+}
 .swipe-content{
   position:relative;
   background:transparent;
@@ -1004,27 +1020,14 @@ input.has-mention, .note-title-input.has-mention {
   z-index:2;
   flex:1;
   min-width:0;
-  /* NOTE: deliberately no overflow:hidden here. .swipe-actions is a CHILD of
-     .swipe-content and needs to render in space extending to the right of
-     .swipe-content's own width (that's the whole point — sliding .swipe-content
-     left reveals it). Clipping .swipe-content itself would permanently hide
-     .swipe-actions regardless of the transform, which is exactly what
-     happened: an earlier fix for actions "showing through when they
-     shouldn't" added this overflow:hidden here, which fixed that bug but
-     broke actions ever showing AT ALL. The outer .swipe-wrap already clips
-     to the visible card width — that's the correct place for this job. */
+  overflow:hidden;
+  border-radius:var(--radius);
 }
 .swipe-content.swiping{transition:none;}
 .swipe-content > .todo-item,
 .swipe-content > .rem-item,
 .standalone-chk-row > .todo-item,
 .standalone-chk-row > .rem-item{margin-bottom:0;}
-.swipe-actions{
-  position:absolute;
-  top:0;right:0;bottom:0;
-  display:flex;align-items:stretch;
-  z-index:1;
-}
 .swipe-action{
   display:flex;align-items:center;justify-content:center;
   width:64px;color:#fff;cursor:pointer;
@@ -2866,13 +2869,13 @@ function tHTML(t){
   }
   return`<div class="swipe-wrap" data-item-type="todo" data-item-id="${t.id}">
   <div class="todo-chk-standalone"><button class="todo-chk ${cc}" onclick="checkTodo('${t.id}')"></button></div>
-  <div class="swipe-content">
-  <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="swipe-actions">
     <button class="swipe-action defer" onclick="event.stopPropagation();swipeDeferTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Defer</button>
     <button class="swipe-action complete" onclick="event.stopPropagation();swipeCompleteTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</button>
     <button class="swipe-action delete" onclick="event.stopPropagation();swipeDeleteTodo('${t.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>
   </div>
+  <div class="swipe-content">
+  <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="todo-item ${t.completed?'done':''} ${pc}">
   <div class="todo-body" onclick="openTodoModal('${t.id}')"><div class="todo-title">${renderMentionsHTML(t.title,'todo',t.id)}</div>
   <div class="todo-meta"><span class="todo-date ${o?'ov':''}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${esc(fmtD(t.date))}${t.time?' · '+fmtT(t.time):''}</span>
@@ -4406,13 +4409,13 @@ function rHTML(r){
   }
   return`<div class="swipe-wrap" data-item-type="reminder" data-item-id="${r.id}">
   <div class="todo-chk-standalone"><button class="rem-chk ${r.completed?'checked':''}" onclick="checkRem('${r.id}')"></button></div>
-  <div class="swipe-content">
-  <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="swipe-actions">
     <button class="swipe-action defer" onclick="event.stopPropagation();swipeDeferRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Defer</button>
     <button class="swipe-action complete" onclick="event.stopPropagation();swipeCompleteRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</button>
     <button class="swipe-action delete" onclick="event.stopPropagation();swipeDeleteRem('${r.id}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>
   </div>
+  <div class="swipe-content">
+  <div class="swipe-complete-overlay" style="width:0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>Done</div>
   <div class="rem-item ${r.completed?'done':''}">
   <div class="todo-body" onclick="openReminderModal('${r.id}')"><div class="todo-title">${r.priority&&r.priority!=='none'?`<span class="pri-dot pri-dot-${r.priority==='high'?'high':r.priority==='medium'?'med':'low'}"></span>`:''}${renderMentionsHTML(r.title,'reminder',r.id)}</div>
   <div class="todo-meta">
@@ -9023,6 +9026,17 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.95',
+    date: 'Jul 6, 2026',
+    type: 'bugfix',
+    items: [
+      'Found the actual structural bug behind swipe actions never appearing on To-Dos and Reminders — confirmed by the colored corners visible around the cards, which was the key clue. .swipe-actions had been a CHILD of .swipe-content this whole time (since the checkbox-extraction change several updates back), meaning when .swipe-content\'s transform slid it left, the actions row moved WITH it, since both were part of the same translating element. Nothing was ever actually revealed relative to anything else — the card and the actions were moving in lockstep.',
+      'Restructured so .swipe-actions is a genuine SIBLING of .swipe-content (both direct children of .swipe-wrap) for both To-Dos and Reminders. Now .swipe-actions stays fixed in place, positioned against the outer wrap, while .swipe-content — containing ONLY the visible card — slides over top of it and correctly uncovers it.',
+      'This also resolves the colored-corner artifacts from the previous update: .swipe-content can now safely have its own overflow:hidden and rounded corners again (since it no longer contains the actions, clipping it only affects the card itself, which is exactly what should be clipped), and .swipe-wrap\'s existing rounded-corner clipping correctly contains the actions row at rest.',
+      'This was a multi-step debugging process across several updates — documenting it plainly: the width-measurement fix and the z-index fix from earlier updates were both real and are still correct, but neither was the actual root cause of "swipe does nothing," which turned out to be this structural parent/child relationship.'
+    ]
+  },
   {
     version: '0.04.94',
     date: 'Jul 6, 2026',
