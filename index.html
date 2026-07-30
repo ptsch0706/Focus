@@ -5356,6 +5356,10 @@ function startSync(){
         }
         S._lp=data.updatedAt;
         try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){}
+        // Same reasoning as the subsequent-snapshot path below: adopting
+        // cloud data wholesale on first connect can bring back completed
+        // items this device had already purged in an earlier session.
+        cleanupOldCompleted();
         renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();tabs();
         _syncReady = true;
         setSyncStatus('ok');
@@ -5391,6 +5395,16 @@ function startSync(){
       }
       S._lp=data.updatedAt;
       try{localStorage.setItem('focus_v2',JSON.stringify(S));}catch(e){}
+      // A snapshot from another device (or an older session) can carry a
+      // stale copy of S.todos/S.reminders — one that still includes items
+      // this device had already correctly auto-purged via cleanupOldCompleted().
+      // Since this is a wholesale overwrite of S.todos, that overwrite can
+      // silently "resurrect" already-deleted completed items. Re-running
+      // cleanup immediately after adopting the snapshot corrects this right
+      // away, rather than leaving stale items sitting until the next
+      // scheduled cleanup tick (or indefinitely, if sync keeps re-pushing
+      // the stale copy back before that tick fires).
+      cleanupOldCompleted();
       renderTodos();renderLists();renderRem();renderNotes();renderStreaks();renderDash();tabs();
       watchForNewNotifications();
       setSyncStatus('ok');
@@ -9026,6 +9040,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.96',
+    date: 'Jul 30, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed: completed to-dos and reminders were sometimes staying visible for 3+ days instead of clearing after 24 hours. Checked actual exported data and confirmed the 24-hour cleanup timer itself was correctly finding these items as eligible for removal — the real problem was a sync race condition: cleanup runs and correctly deletes old items locally, but if a Firestore update from another device (or an older session) lands shortly after with a stale copy of the data that still includes those items, the sync logic would wholesale-overwrite the local, already-cleaned list with that older version — silently un-deleting what had just been removed.',
+      'Fixed by re-running the 24-hour cleanup immediately after adopting any Firestore snapshot, not just on the existing 60-second timer and app-open checks. This means even if a stale snapshot briefly resurrects old completed items, the very next moment corrects it again rather than leaving it wrong until the next scheduled check — or indefinitely, if sync kept re-pushing the stale copy back.'
+    ]
+  },
   {
     version: '0.04.95',
     date: 'Jul 6, 2026',
