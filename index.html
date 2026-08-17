@@ -32,8 +32,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-  import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
-  window.__firebase = { initializeApp, getFirestore, doc, setDoc, onSnapshot };
+  import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+  window.__firebase = { initializeApp, getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
 <style>
@@ -2255,6 +2255,36 @@ function isRemActiveToday(r){
   const end=r.endDate||r.date;
   return r.date<=t && t<=end;
 }
+
+// A recurring reminder's stored r.date only advances when you actually
+// complete the previous occurrence (see checkRem) — it does NOT
+// automatically roll forward at midnight. So if you miss checking off
+// yesterday's occurrence, r.date still points at yesterday, isRemOverdue()
+// correctly reports it as overdue, but there's no separate "today" reminder
+// object to also show — the app was treating "overdue" and "due today" as
+// mutually exclusive, which is wrong for anything recurring: today's
+// occurrence is genuinely still due today, in addition to the missed one
+// being overdue. This walks forward from r.date using the same nextDate()
+// logic the app already uses to generate the next real occurrence on
+// completion, checking whether any of those forward dates lands on today —
+// without needing to actually create a new reminder object just to check.
+// Capped at 60 steps as a safety limit against a malformed recurrence
+// object looping without ever reaching today.
+function isRecurringReminderDueToday(r) {
+  if (!r.recur || r.recur === 'none') return false;
+  if (!r.date) return false;
+  const today = td();
+  if (r.date === today) return false; // already covered by isRemActiveToday/isRemOverdue directly
+  let cursor = r.date;
+  for (let i = 0; i < 60; i++) {
+    cursor = nextDate(cursor, r.recur);
+    if (!cursor) return false;
+    if (cursor === today) return true;
+    if (cursor > today) return false; // overshot without landing exactly on today
+  }
+  return false;
+}
+
 // A ranged reminder is overdue only once its END date has passed (it's still legitimately
 // ongoing while active). A single-day reminder is overdue once its one date has passed.
 function isRemOverdue(r){
@@ -4328,7 +4358,7 @@ function renderRem(){
   }
 
   if (rf === 'today') {
-    const todayItems = act.filter(r => isRemActiveToday(r) && !isRemOverdue(r)).sort(sortByDateThenTime);
+    const todayItems = act.filter(r => (isRemActiveToday(r) && !isRemOverdue(r)) || isRecurringReminderDueToday(r)).sort(sortByDateThenTime);
     const overdueItems = act.filter(r => isRemOverdue(r)).sort(sortByDateThenTime);
     if (!todayItems.length && !overdueItems.length) {
       el.innerHTML = remEmpty('Nothing today', 'You have no reminders for today.');
@@ -4464,7 +4494,7 @@ function renderDash(){
   const actT=S.todos.filter(t=>!t.completed&&!t.paused&&canSeeItem(t)),todT=actT.filter(t=>t.date===today),ovT=actT.filter(t=>t.date<today),hiOv=ovT.filter(t=>t.priority==='high');
   const compToday=S.todos.filter(t=>t.completed&&canSeeItem(t)&&t.completedAt&&new Date(t.completedAt).toDateString()===now.toDateString());
   const totT=todT.length+compToday.length,pct=totT>0?Math.round((compToday.length/totT)*100):0;
-  const actR=S.reminders.filter(r=>!r.completed&&!r.paused&&canSeeItem(r)),todR=actR.filter(r=>isRemActiveToday(r)&&!isRemOverdue(r)),ovR=actR.filter(r=>isRemOverdue(r));
+  const actR=S.reminders.filter(r=>!r.completed&&!r.paused&&canSeeItem(r)),todR=actR.filter(r=>(isRemActiveToday(r)&&!isRemOverdue(r))||isRecurringReminderDueToday(r)),ovR=actR.filter(r=>isRemOverdue(r));
   let out='';
 
   // ─── ALERT CARD: high-priority overdue todos AND any overdue reminders ───
@@ -4973,17 +5003,130 @@ async function push(){
 // This pattern avoids the limitation that iOS Shortcuts can't open the PWA
 // to log via the URL handler (URLs route to Safari, not the installed PWA).
 
+// ── STEPS BACKFILL (queries the steps-log collection for gaps) ────────────
+// The OLD mechanism (startStepsSync, still below) listens to a single
+// document that the Shortcut overwrites every time it runs — meaning if you
+// don't open the app for a few days, whatever that document held for the
+// in-between days is already gone by the time you next check; only the
+// most recent write ever survives. This function queries a NEWER Firestore
+// collection (focus-steps-log) where the Shortcut writes one document PER
+// DAY instead of overwriting a single one, then fills in any of the last 14
+// days your local data is missing. Runs once per app session (not a live
+// listener — a one-time catch-up check is what backfilling actually needs).
+async function backfillStepsFromLog() {
+  if (!db || !S.syncCode || !S.myUsername || !window.__firebase) return;
+  const { collection, query, where, getDocs } = window.__firebase;
+  const stepsStreak = (S.streaks || []).find(s => normalizeUsername(s.name || '') === normalizeUsername('Steps'));
+  if (!stepsStreak) return;
+  const syncKey = S.syncCode + '-' + normalizeUsername(S.myUsername);
+  // Look back 14 days — generous enough to catch a real gap (a vacation, a
+  // busy week) without querying unbounded history every single app open.
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 14);
+  const cutoffStr = cutoffDate.getFullYear() + '-' + String(cutoffDate.getMonth()+1).padStart(2,'0') + '-' + String(cutoffDate.getDate()).padStart(2,'0');
+  try {
+    const q = query(
+      collection(db, 'focus-steps-log'),
+      where('syncKey', '==', syncKey),
+      where('date', '>=', cutoffStr)
+    );
+    const snap = await getDocs(q);
+    if (!stepsStreak.values) stepsStreak.values = {};
+    let filledCount = 0;
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      if (!data || !data.date || data.value == null) return;
+      // Only fill in days we don't already have a value for — never
+      // overwrite an existing entry (e.g. one already correctly logged
+      // today via the live side-doc listener, or a value you've since
+      // manually corrected via "Log a past day").
+      if (Object.prototype.hasOwnProperty.call(stepsStreak.values, data.date)) return;
+      const val = parseInt(data.value) || 0;
+      stepsStreak.values[data.date] = val;
+      // Mark as logged if it meets the goal, same rule as any other log path
+      if (stepsStreak.target && val >= stepsStreak.target) {
+        if (!stepsStreak.logs) stepsStreak.logs = [];
+        if (!stepsStreak.logs.includes(data.date)) stepsStreak.logs.push(data.date);
+      }
+      filledCount++;
+    });
+    if (filledCount > 0) {
+      save();
+      renderStreaks();
+      renderDash();
+      toast('Backfilled ' + filledCount + ' day' + (filledCount !== 1 ? 's' : '') + ' of steps', 'ok');
+    }
+  } catch (e) {
+    console.warn('Steps backfill query failed:', e);
+  }
+}
+
+// Same mechanism as backfillStepsFromLog, adapted for Activity Rings' data
+// shape: there's no numeric "value" to store, just a boolean allClosed per
+// day. Backfilling means: for any day in the last 14 you don't already have
+// a logged/not-logged state for, add it to ringsStreak.logs if allClosed was
+// true. Days where allClosed was false are intentionally left alone rather
+// than recorded as an explicit "miss" — same as how a simple boolean streak
+// already treats "never logged" as the correct default for a day you didn't
+// complete, so there's nothing extra to write for those days.
+async function backfillRingsFromLog() {
+  if (!db || !S.syncCode || !S.myUsername || !window.__firebase) return;
+  const { collection, query, where, getDocs } = window.__firebase;
+  const ringsStreak = (S.streaks || []).find(s => normalizeUsername(s.name || '') === normalizeUsername('Activity Rings'));
+  if (!ringsStreak) return;
+  const syncKey = S.syncCode + '-' + normalizeUsername(S.myUsername);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 14);
+  const cutoffStr = cutoffDate.getFullYear() + '-' + String(cutoffDate.getMonth()+1).padStart(2,'0') + '-' + String(cutoffDate.getDate()).padStart(2,'0');
+  try {
+    const q = query(
+      collection(db, 'focus-rings-log'),
+      where('syncKey', '==', syncKey),
+      where('date', '>=', cutoffStr)
+    );
+    const snap = await getDocs(q);
+    if (!Array.isArray(ringsStreak.logs)) ringsStreak.logs = [];
+    let filledCount = 0;
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      if (!data || !data.date) return;
+      // Only fill in days not already logged locally — never un-log a day
+      // that's already recorded, and don't touch days that were never
+      // logged AND weren't allClosed (nothing to backfill there).
+      if (ringsStreak.logs.includes(data.date)) return;
+      if (data.allClosed) {
+        ringsStreak.logs.push(data.date);
+        filledCount++;
+      }
+    });
+    if (filledCount > 0) {
+      save();
+      renderStreaks();
+      renderDash();
+      toast('Backfilled ' + filledCount + ' day' + (filledCount !== 1 ? 's' : '') + ' of activity rings', 'ok');
+    }
+  } catch (e) {
+    console.warn('Rings backfill query failed:', e);
+  }
+}
+
 function startStepsSync() {
   if (!db || !S.syncCode || !S.myUsername) return;
   if (unsubSteps) { unsubSteps(); unsubSteps = null; }
   const { doc, onSnapshot } = window.__firebase;
-  // Per-user document path: each household member has their own steps doc
-  // so step values from one person don't overwrite another's.
-  const docId = S.syncCode + '-' + normalizeUsername(S.myUsername);
-  unsubSteps = onSnapshot(doc(db, 'focus-steps', docId), snap => {
+  // The Shortcut now writes to a per-day document in focus-steps-log (see
+  // backfillStepsFromLog for why — the old single fixed document got
+  // overwritten daily, losing any day you didn't open the app to catch it).
+  // This live listener watches TODAY's specific document in that same
+  // collection, so a same-day update (e.g. you open the app right after the
+  // Shortcut fires) still applies instantly, exactly as it did before —
+  // backfillStepsFromLog separately handles anything older, once per session.
+  const syncKey = S.syncCode + '-' + normalizeUsername(S.myUsername);
+  const todayDocId = syncKey + '-' + td();
+  unsubSteps = onSnapshot(doc(db, 'focus-steps-log', todayDocId), snap => {
     if (!snap.exists()) return;
     const data = snap.data();
-    // Expected shape: { date: 'YYYY-MM-DD', value: 8432, updatedAt: 1234567890 }
+    // Expected shape: { date: 'YYYY-MM-DD', value: 8432, syncKey: '...', updatedAt: 1234567890 }
     if (!data || !data.date || data.value == null) return;
     applyStepsFromSideDoc(data.date, parseInt(data.value) || 0);
   }, e => console.warn('Steps side-doc listener error:', e));
@@ -5036,11 +5179,16 @@ function startRingsSync() {
   if (!db || !S.syncCode || !S.myUsername) return;
   if (unsubRings) { unsubRings(); unsubRings = null; }
   const { doc, onSnapshot } = window.__firebase;
-  const docId = S.syncCode + '-' + normalizeUsername(S.myUsername);
-  unsubRings = onSnapshot(doc(db, 'focus-rings', docId), snap => {
+  // Same fix as startStepsSync — the Shortcut now writes to a per-day
+  // document in focus-rings-log instead of one shared, overwritten document.
+  // This watches TODAY's specific document for the live same-day update;
+  // backfillRingsFromLog handles anything older, once per session.
+  const syncKey = S.syncCode + '-' + normalizeUsername(S.myUsername);
+  const todayDocId = syncKey + '-' + td();
+  unsubRings = onSnapshot(doc(db, 'focus-rings-log', todayDocId), snap => {
     if (!snap.exists()) return;
     const data = snap.data();
-    // Expected shape: { date: 'YYYY-MM-DD', allClosed: true/false, updatedAt: 1234567890 }
+    // Expected shape: { date: 'YYYY-MM-DD', allClosed: true/false, syncKey: '...', updatedAt: 1234567890 }
     if (!data || !data.date) return;
     applyRingsFromSideDoc(data.date, !!data.allClosed);
   }, e => console.warn('Rings side-doc listener error:', e));
@@ -5330,7 +5478,9 @@ function startSync(){
       push();
       firstSnapshot = false;
       startStepsSync();
+      backfillStepsFromLog();
       startRingsSync();
+      backfillRingsFromLog();
       return;
     }
     const data=snap.data();
@@ -5364,19 +5514,25 @@ function startSync(){
         _syncReady = true;
         setSyncStatus('ok');
         startStepsSync();
+        backfillStepsFromLog();
         startRingsSync();
+        backfillRingsFromLog();
       } else if(localHasData){
         // We have data, cloud is empty — push our local state up as initial
         _syncReady = true;
         push();
         startStepsSync();
+        backfillStepsFromLog();
         startRingsSync();
+        backfillRingsFromLog();
       } else {
         // Both empty — just mark ready
         _syncReady = true;
         setSyncStatus('ok');
         startStepsSync();
+        backfillStepsFromLog();
         startRingsSync();
+        backfillRingsFromLog();
       }
       return;
     }
@@ -5444,7 +5600,17 @@ function init(){
     _notifSyncCounter++;
     if(_notifSyncCounter>=10){ _notifSyncCounter=0; syncAllNotificationSchedules(); }
   },60000);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;if(view==='home')renderDash();if(db&&S.syncCode)startSync();});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState!=='visible')return;
+    if(view==='home')renderDash();
+    if(db&&S.syncCode)startSync();
+    // The steps listener watches a fixed "today" document ID — if the app
+    // was backgrounded across midnight, that ID is now stale (still
+    // watching yesterday). Re-establishing it here picks up the correct
+    // current date, and re-running backfill catches anything that happened
+    // while the app wasn't open to see it live.
+    if(db&&S.syncCode&&S.myUsername){startStepsSync();backfillStepsFromLog();startRingsSync();backfillRingsFromLog();}
+  });
   // When a notification is tapped while the PWA is already open, the service
   // worker focuses this window and posts a message instead of doing a fresh
   // navigation (see sw.js's notificationclick handler). Handle that here.
@@ -9040,6 +9206,35 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.04.99',
+    date: 'Jul 30, 2026',
+    type: 'major',
+    items: [
+      'Extended the steps backfill mechanism to Activity Rings too — same underlying fix, adapted for a boolean allClosed value instead of a numeric step count. Your Activity Rings Shortcut needs the same kind of update as the Steps one (see updated SETUP-STEPS-SHORTCUT.md, Rings section): a syncKey field in the payload, and the PATCH target changed to a new per-day collection instead of one shared, overwritten document.',
+      'Same-day live updates still work exactly as before; the live listener now watches today\'s specific document in the new collection. On app open, queries the last 14 days and fills in any day you don\'t already have a logged state for — without ever un-logging a day that\'s already recorded.'
+    ]
+  },
+  {
+    version: '0.04.98',
+    date: 'Jul 30, 2026',
+    type: 'major',
+    items: [
+      'Steps can now be backfilled after missing a day or more — previously, the Shortcut wrote to a single Firestore document that got overwritten every time it ran, meaning if you did not open the app for a few days, whatever it held for the in-between days was already gone by the time you next checked. Only the most recent value ever survived.',
+      'Changed the Shortcut\'s write target from one shared document to a new document per day (see updated SETUP-STEPS-SHORTCUT.md — your existing Shortcut needs Action 9 and 10 updated to match). The app now queries the last 14 days of that history once per session and fills in any date your local data is missing, without ever overwriting a value you already have.',
+      'The same-day live update (opening the app right as the Shortcut fires) still works instantly as before — the live listener now watches today\'s specific document in the new collection instead of the old fixed one. Also handles the case where the app stays open across midnight: re-establishes the listener and re-checks for backfill whenever the app becomes visible again, so it does not get stuck watching a stale date.'
+    ]
+  },
+  {
+    version: '0.04.97',
+    date: 'Jul 30, 2026',
+    type: 'major',
+    items: [
+      'Fixed: a recurring reminder that was overdue (missed occurrence not checked off) stopped showing up as due today at all — both on the Reminders tab and, more visibly, on the widget, which would show "0 reminders today" even when a daily reminder genuinely still had something due. Root cause: a recurring reminder\'s stored date only advances when you actually complete it (regeneration happens on completion, not automatically at midnight), so a missed day left it permanently stuck as "overdue" with no separate object ever representing today\'s occurrence.',
+      'Added a check that walks forward from the reminder\'s stored date using the same recurrence math the app already uses to generate the next real occurrence, to determine whether today would legitimately be a scheduled occurrence — without needing the actual regeneration to have happened first. A daily reminder missed 3 days ago now correctly shows as both overdue (the missed day) AND due today, in both places.',
+      'Ported the same fix into the Scriptable widget, which had its own simpler, separate copy of this counting logic (a plain r.date === today check with no recurrence awareness at all). Verified the underlying date math against 7 scenarios — daily and weekly recurrence, multi-day gaps, custom intervals, and same-day edge cases — before shipping either fix.'
+    ]
+  },
   {
     version: '0.04.96',
     date: 'Jul 30, 2026',
