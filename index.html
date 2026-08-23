@@ -484,7 +484,8 @@ nav.tabs button.has-alert .tab-dot{opacity:1;}
 .streak-trend-stat-val{font-size:22px;font-weight:800;color:var(--ink);line-height:1;}
 .streak-trend-stat-lbl{font-size:11px;color:var(--ink-mute);margin-top:4px;}
 .streak-heatmap{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px;}
-.streak-heatmap-cell{width:100%;aspect-ratio:1;border-radius:2px;}
+.streak-heatmap-cell{width:100%;aspect-ratio:1;border-radius:2px;cursor:pointer;transition:transform .1s;}
+.streak-heatmap-cell:active{transform:scale(0.85);}
 .streak-heatmap-labels{display:flex;justify-content:space-between;margin-bottom:4px;}
 .streak-heatmap-legend{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--ink-mute);}
 .streak-heatmap-legend-cell{width:10px;height:10px;border-radius:2px;}
@@ -5428,12 +5429,58 @@ async function syncStreakCheckSchedule() {
   } catch (e) { console.warn('schedule streak-check failed:', e); }
 }
 
+// ── Scenario 2b: per-streak reminder hour ──
+// The global 9pm digest above covers any streak without its own preference.
+// This handles streaks that set a SPECIFIC reminderHour (0-23) — one
+// individual notification each, at that streak's own hour, skipped entirely
+// if already logged by the time this runs. Tapping it opens that exact
+// streak card (via handleNotificationOpen), not just the Streaks tab
+// generically, unlike the shared 9pm digest which can't point at one
+// specific streak since it may be listing several.
+async function syncPerStreakReminders() {
+  if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
+  const deviceId = getOrCreateDeviceId();
+  const todayDate = parseLocalDate(td());
+  const now = Date.now();
+
+  const streaksWithHour = (S.streaks || []).filter(canSeeItem)
+    .filter(s => s.reminderHour != null && isScheduledToday(s));
+
+  for (const s of streaksWithHour) {
+    const bucketId = 'streak-reminder:' + s.id;
+    const fireAt = todayDate.getTime() + s.reminderHour * 60 * 60 * 1000;
+    const alreadyLogged = isLoggedToday(s);
+    if (fireAt < now || alreadyLogged) {
+      // Either this streak's hour already passed today, or it's already
+      // logged — either way, nothing to schedule; clear any stale bucket
+      // from earlier today so a leftover doesn't fire.
+      try { await pushBackendPost('/cancel', { deviceId, bucketId }); }
+      catch (e) { console.warn('cancel streak-reminder failed for', s.id, e); }
+      continue;
+    }
+    try {
+      await pushBackendPost('/schedule', {
+        deviceId,
+        bucketId,
+        items: [{
+          fireAt,
+          title: s.name + ' — not logged yet',
+          body: 'Tap to log today\u2019s entry',
+          tag: 'streak-reminder-' + s.id,
+          url: '?focus_open=streak&id=' + s.id,
+        }],
+      });
+    } catch (e) { console.warn('schedule streak-reminder failed for', s.id, e); }
+  }
+}
+
 // Recomputes everything. Call on app load (after sync settles) and whenever
 // to-dos/reminders/streaks change meaningfully.
 async function syncAllNotificationSchedules() {
   if (!pushConfigured() || !S.notificationsEnabled || !S.syncCode) return;
   await syncDueTimeSchedules();
   await syncStreakCheckSchedule();
+  await syncPerStreakReminders();
 }
 
 // ── Scenarios 3 & 4: first-tag and manual-notify (fire-now) ──
@@ -6566,6 +6613,47 @@ function getStreakCompletionRate(streak, days = 30) {
 // Builds the HTML for a 12-week heatmap calendar grid (84 days, Sun–Sat rows,
 // weeks as columns). Each cell shows: logged (streak color), missed-scheduled
 // (muted red), not-scheduled (very faint), future (empty).
+// Shows what actually happened on a specific date, from tapping a heatmap
+// cell. For value-based streaks (like Steps, which has a numeric target),
+// shows the recorded value alongside the date. For simple checkbox streaks,
+// shows just the status, since there's no numeric value to display.
+function showHeatmapCellDetail(streakId, dateStr2) {
+  const streak = S.streaks.find(s => s.id === streakId);
+  if (!streak) return;
+  const today = td();
+  const dateLabel = fmtD(dateStr2) || dateStr2;
+  if (dateStr2 > today) return; // future cells have nothing to show, tapping is a no-op
+
+  const skipReasonId = (streak.skips || {})[dateStr2];
+  if (skipReasonId) {
+    const skipReasons = {};
+    (S.streakSkipReasons || []).forEach(r => { skipReasons[r.id] = r; });
+    const reason = skipReasons[skipReasonId];
+    toast(dateLabel + ' — Skipped' + (reason ? ': ' + reason.label : ''));
+    return;
+  }
+
+  const isScheduled = (streak.days || []).includes(parseLocalDate(dateStr2).getDay());
+  if (!isScheduled) {
+    toast(dateLabel + ' — Rest day');
+    return;
+  }
+
+  const isLogged = (streak.logs || []).includes(dateStr2);
+  const hasValue = streak.target && streak.values && Object.prototype.hasOwnProperty.call(streak.values, dateStr2);
+
+  if (hasValue) {
+    const val = streak.values[dateStr2];
+    const unit = streak.unit || '';
+    const metGoal = val >= streak.target;
+    toast(dateLabel + ': ' + val + ' ' + unit + (metGoal ? ' ✓' : ' (goal: ' + streak.target + ')'), metGoal ? 'ok' : '');
+  } else if (isLogged) {
+    toast(dateLabel + ' ✓ Logged', 'ok');
+  } else {
+    toast(dateLabel + ' — Not logged');
+  }
+}
+
 function getStreakHeatmapHTML(streak) {
   const logs = new Set(streak.logs || []);
   const skips = streak.skips || {};
@@ -6608,7 +6696,12 @@ function getStreakHeatmapHTML(streak) {
       title = `${ds} (missed)`;
     }
     const opacity = skipReason ? '0.7' : '1';
-    cells.push(`<div class="streak-heatmap-cell" style="background:${bg};opacity:${opacity}" title="${title}"></div>`);
+    // Tapping a cell shows the date's actual recorded value (for value-based
+    // streaks like Steps) or just its status (logged/missed/skipped/rest)
+    // for simple checkbox streaks, via a toast — chosen over a hover
+    // tooltip since native title attributes don't work on touch devices at
+    // all, and this needed to actually work on a phone.
+    cells.push(`<div class="streak-heatmap-cell" style="background:${bg};opacity:${opacity}" onclick="showHeatmapCellDetail('${streak.id}','${ds}')"></div>`);
     d.setDate(d.getDate() + 1);
   }
   // Month labels
@@ -6775,8 +6868,10 @@ function unskipStreakDay(streakId, dateStr) {
 
 
 function toggleStreakExpand(id, event) {
-  // Don't toggle when clicking any interactive element inside the card
-  if (event && event.target.closest('button, .streak-log-btn, .btn-icon')) return;
+  // Don't toggle when clicking any interactive element inside the card —
+  // this includes heatmap cells (tapping a dot shows that day's detail via
+  // toast, and shouldn't also collapse the card at the same time).
+  if (event && event.target.closest('button, .streak-log-btn, .btn-icon, .streak-heatmap-cell')) return;
   const s = S.streaks.find(s=>s.id===id);
   if (!s) return;
   s._expanded = !s._expanded;
@@ -9207,6 +9302,32 @@ function setTheme(theme) {
 // ── CHANGELOG ──
 const CHANGELOG = [
   {
+    version: '0.05.02',
+    date: 'Aug 17, 2026',
+    type: 'major',
+    items: [
+      'Wired up per-streak reminder notifications — the "Nudge me at" hour on each streak (which already existed in the edit screen) now actually schedules a real push notification, separate from the shared 9pm digest. Set a specific hour on any streak and it fires its own individual reminder that hour, only if you have not logged it yet that day.',
+      'Tapping the notification opens the app directly to that specific streak — scrolls to it and expands the card, rather than just landing on the general Streaks tab. The existing shared 9pm digest notification is untouched and still covers any streak that has not set its own hour.',
+      'A streak that is already logged, paused, or not scheduled for today never gets a reminder scheduled for it at all.'
+    ]
+  },
+  {
+    version: '0.05.01',
+    date: 'Aug 17, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed: tapping a heatmap dot to see that day\'s detail was also collapsing the whole streak card at the same instant, since the tap bubbled up to the card\'s own expand/collapse handler. Caught this before it caused confusion — added heatmap cells to the same "ignore taps on interactive elements" guard already used for buttons elsewhere on the card, so viewing a day\'s detail no longer closes the card out from under you.'
+    ]
+  },
+  {
+    version: '0.05.00',
+    date: 'Aug 17, 2026',
+    type: 'medium',
+    items: [
+      'Tapping a dot in a streak\'s heatmap now shows what actually happened that day — for value-based streaks like Steps, the actual recorded number and whether it met your goal; for simple checkbox streaks, just logged/missed/rest/skipped status. Previously this info only existed as a hover tooltip, which does not work at all on a touchscreen.'
+    ]
+  },
+  {
     version: '0.04.99',
     date: 'Jul 30, 2026',
     type: 'major',
@@ -11633,6 +11754,21 @@ function handleNotificationOpen(target, id) {
   } else if (target === 'reminder') {
     switchView('reminders');
     if (id) setTimeout(() => openReminderModal(id), 300);
+  } else if (target === 'streak') {
+    // From a per-streak reminder notification — opens and scrolls to that
+    // ONE specific streak, unlike the generic 'streaks' target below (used
+    // by the shared 9pm digest, which can't point at a single streak since
+    // it may be listing several at once).
+    switchView('streaks');
+    if (id) {
+      setTimeout(() => {
+        const s = S.streaks.find(x => x.id === id);
+        if (!s) { toast('Streak not found'); return; }
+        if (!s._expanded) { s._expanded = true; save(); renderStreaks(); }
+        const el = document.getElementById('sc-' + id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
   } else if (target === 'streaks') {
     switchView('streaks');
   } else if (target === 'notifications') {
