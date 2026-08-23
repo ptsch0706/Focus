@@ -6621,7 +6621,12 @@ function showHeatmapCellDetail(streakId, dateStr2) {
   const streak = S.streaks.find(s => s.id === streakId);
   if (!streak) return;
   const today = td();
-  const dateLabel = fmtD(dateStr2) || dateStr2;
+  // A calendar date, not a relative due-date label — fmtD() (which produces
+  // things like "Today"/"2d overdue") is meant for upcoming due dates on
+  // to-dos/reminders, not for labeling something that already happened.
+  // This is always a real past-or-today date, so it should just read as one.
+  const [ly, lm, ld] = dateStr2.split('-').map(Number);
+  const dateLabel = lm + '/' + ld + '/' + ly;
   if (dateStr2 > today) return; // future cells have nothing to show, tapping is a no-op
 
   const skipReasonId = (streak.skips || {})[dateStr2];
@@ -6644,9 +6649,10 @@ function showHeatmapCellDetail(streakId, dateStr2) {
 
   if (hasValue) {
     const val = streak.values[dateStr2];
+    const valFormatted = val.toLocaleString('en-US');
     const unit = streak.unit || '';
     const metGoal = val >= streak.target;
-    toast(dateLabel + ': ' + val + ' ' + unit + (metGoal ? ' ✓' : ' (goal: ' + streak.target + ')'), metGoal ? 'ok' : '');
+    toast(dateLabel + ': ' + valFormatted + ' ' + unit + (metGoal ? ' ✓' : ' (goal: ' + streak.target.toLocaleString('en-US') + ')'), metGoal ? 'ok' : '');
   } else if (isLogged) {
     toast(dateLabel + ' ✓ Logged', 'ok');
   } else {
@@ -9301,6 +9307,14 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.05.03',
+    date: 'Aug 22, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed the heatmap cell tap detail: was showing a relative due-date label like "2d overdue" for past entries, since it reused the same date-formatting function built for upcoming to-do/reminder due dates. Now shows an actual calendar date (e.g. 8/22/2026), since a logged day already happened — it is not "overdue." Also added thousands separators to the step count and goal (10,002 instead of 10002).'
+    ]
+  },
   {
     version: '0.05.02',
     date: 'Aug 17, 2026',
