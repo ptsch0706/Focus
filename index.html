@@ -2006,6 +2006,12 @@ function svg(name, size) {
 // ── STATE ──
 const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],dismissedStaleLists:[],dismissedStreakNudges:[],onboardingDismissed:false,_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
+// TEMPORARY DIAGNOSTIC: stores the last backfill error message (if any) so
+// it can be shown in a persistent, readable/copyable spot in Settings,
+// rather than a toast (too short-lived, clips long text) or an alert()
+// popup (hard to copy text out of). Remove this and its Settings row once
+// the underlying backfill issue is fully resolved.
+let _lastBackfillError = null; // { source: 'steps'|'rings', text: '...', at: Date.now() }
 
 // ─── PUSH NOTIFICATIONS CONFIG (read-only — DO NOT EDIT) ────────────────
 // Your real config lives in push-config.js (a separate file that survives app
@@ -4754,6 +4760,17 @@ function renderSett(){
     +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
     +'</button></div>'
 
+    // TEMPORARY DIAGNOSTIC ROW — only shows if a backfill error is stored.
+    // Remove this block (and _lastBackfillError entirely) once the
+    // underlying Firestore composite index issue is fully confirmed fixed.
+    +(_lastBackfillError ? (
+      '<div class="sett-group" style="margin-top:10px"><button class="sett-row" onclick="openBackfillErrorDetail()">'
+      +'<div class="sett-icon" style="background:var(--pri-high-soft);color:var(--pri-high)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>'
+      +'<div class="sett-text"><div class="sett-label">Backfill Error (' + esc(_lastBackfillError.source) + ')</div><div class="sett-sub">Tap to view full error \u2014 diagnostic only</div></div>'
+      +'<div class="sett-chev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>'
+      +'</button></div>'
+    ) : '')
+
     // ═══ CUSTOMIZE VIEW: Compact Mode, Theme, Dashboard toggles, Templates, Grace Window ═══
     +'<div class="section-label">Customize View</div>'
     +'<div class="sett-group"><div class="sett-row" style="cursor:default">'
@@ -5059,12 +5076,11 @@ async function backfillStepsFromLog() {
     }
   } catch (e) {
     console.warn('Steps backfill query failed:', e);
-    // TEMPORARY: showing the actual error message/code directly in the toast
-    // (not just a generic "failed" notice) so the real Firestore error text
-    // is visible without needing Safari's remote Web Inspector connected —
-    // this is the fastest way to see exactly what Firestore is rejecting.
+    // TEMPORARY DIAGNOSTIC: stores the error for display in Settings instead
+    // of alert()/toast() — see _lastBackfillError declaration.
     const errText = (e && e.code) ? (e.code + ': ' + (e.message || '')) : String(e);
-    toast('Steps backfill error: ' + errText.slice(0, 120), 'err');
+    _lastBackfillError = { source: 'steps', text: errText, at: Date.now() };
+    if (document.getElementById('modal-settings').classList.contains('show')) renderSett();
   }
 }
 
@@ -5114,7 +5130,9 @@ async function backfillRingsFromLog() {
     }
   } catch (e) {
     console.warn('Rings backfill query failed:', e);
-    toast('Rings backfill failed — check Settings for details', 'err');
+    const errText = (e && e.code) ? (e.code + ': ' + (e.message || '')) : String(e);
+    _lastBackfillError = { source: 'rings', text: errText, at: Date.now() };
+    if (document.getElementById('modal-settings').classList.contains('show')) renderSett();
   }
 }
 
@@ -8649,6 +8667,23 @@ function deleteSkipReason(idx) {
 // unread-count nudge. Reuses the generic Folder Manager modal (same one used
 // for Streak Skip Reasons, List/Note Folders) since this is just a list with
 // per-row actions, not something that needs its own dedicated modal.
+// TEMPORARY DIAGNOSTIC: shows the full backfill error text in a selectable
+// way so it can actually be read/copied, rather than a toast (too short,
+// clips text) or alert() (hard to select text out of on iOS). Remove this
+// function along with _lastBackfillError once the underlying issue is
+// confirmed resolved.
+function openBackfillErrorDetail() {
+  if (!_lastBackfillError) return;
+  document.getElementById('folder-manager-title').textContent = 'Backfill Error';
+  const body = document.getElementById('folder-manager-body');
+  const whenTxt = new Date(_lastBackfillError.at).toLocaleString('en-US');
+  body.innerHTML =
+    '<div style="font-size:12px;color:var(--ink-mute);margin-bottom:10px">Source: ' + esc(_lastBackfillError.source) + ' &middot; ' + esc(whenTxt) + '</div>'
+    + '<textarea readonly style="width:100%;min-height:220px;background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;font-family:monospace;font-size:12px;color:var(--ink);resize:vertical" onclick="this.select()">' + esc(_lastBackfillError.text) + '</textarea>'
+    + '<div style="font-size:11px;color:var(--ink-mute);margin-top:8px">Tap the text above to select it all, then copy.</div>';
+  openModal('modal-folder-manager');
+}
+
 function openNotificationsHistory() {
   const notifs = myNotifications().slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   document.getElementById('folder-manager-title').textContent = 'Notifications';
