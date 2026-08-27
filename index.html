@@ -5059,6 +5059,11 @@ async function backfillStepsFromLog() {
     }
   } catch (e) {
     console.warn('Steps backfill query failed:', e);
+    // Previously silent — a failed query (e.g. a missing Firestore composite
+    // index on syncKey+date) would never surface anywhere the user could
+    // actually see it, since console.warn only shows in developer tools.
+    // This turns a silent, indefinite failure into something visible.
+    toast('Steps backfill failed — check Settings for details', 'err');
   }
 }
 
@@ -5108,6 +5113,7 @@ async function backfillRingsFromLog() {
     }
   } catch (e) {
     console.warn('Rings backfill query failed:', e);
+    toast('Rings backfill failed — check Settings for details', 'err');
   }
 }
 
