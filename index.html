@@ -5059,11 +5059,12 @@ async function backfillStepsFromLog() {
     }
   } catch (e) {
     console.warn('Steps backfill query failed:', e);
-    // Previously silent — a failed query (e.g. a missing Firestore composite
-    // index on syncKey+date) would never surface anywhere the user could
-    // actually see it, since console.warn only shows in developer tools.
-    // This turns a silent, indefinite failure into something visible.
-    toast('Steps backfill failed — check Settings for details', 'err');
+    // TEMPORARY: showing the actual error message/code directly in the toast
+    // (not just a generic "failed" notice) so the real Firestore error text
+    // is visible without needing Safari's remote Web Inspector connected —
+    // this is the fastest way to see exactly what Firestore is rejecting.
+    const errText = (e && e.code) ? (e.code + ': ' + (e.message || '')) : String(e);
+    toast('Steps backfill error: ' + errText.slice(0, 120), 'err');
   }
 }
 
