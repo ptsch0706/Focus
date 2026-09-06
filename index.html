@@ -7146,32 +7146,24 @@ function logPastDay(streakId, dateStr) {
     if (s.values) delete s.values[dateStr];
     toast('Un-logged ' + dateStr);
   } else {
-    // For value-based streaks, ask for the value. Defaults the prompt to
-    // target+1 (e.g. 10001 for a 10000-step goal) — a quick, one-tap-away
-    // way to mark a day as met without needing to know or look up the
-    // actual real number, since backfilling several days in a row is
-    // exactly the scenario where re-entering an exact number each time
-    // gets tedious.
+    // For value-based streaks, auto-fill target+1 (e.g. 10001 for a
+    // 10000-step goal) and log immediately — no confirmation prompt. This
+    // also avoids closing/reopening the whole modal (which was the actual
+    // cause of the picker resetting to the top on every tap — the earlier
+    // prompt()-based flow closed the modal first, bypassing the in-place
+    // scroll restoration that works correctly for the simpler path below).
     if (s.target) {
-      closeModal('modal-streak-value');
-      const defaultVal = String(s.target + 1);
-      const input = prompt(`Log ${s.unit || 'value'} for ${dateStr}:`, defaultVal);
-      if (input === null) { openPastDayLogger(streakId, scrollTop); return; }
-      const num = parseInt(input);
-      if (isNaN(num) || num < 0) { toast('Enter a valid number', 'err'); openPastDayLogger(streakId, scrollTop); return; }
+      const num = s.target + 1;
       if (!s.values) s.values = {};
       s.values[dateStr] = num;
-      const meetsGoal = num >= s.target;
-      if (meetsGoal) s.logs.push(dateStr);
-      save(); renderStreaks(); renderDash();
-      toast(meetsGoal ? `Logged ${num} ${s.unit || ''} ✓` : `Logged ${num} — below goal, not counted`, meetsGoal ? 'ok' : '');
-      openPastDayLogger(streakId, scrollTop); // refresh the picker in place, same as every other path through this function
-      return;
+      s.logs.push(dateStr);
+      toast(`Logged ${num} ${s.unit || ''} ✓`, 'ok');
+    } else {
+      // Remove any skip for this date — logged and skipped are mutually exclusive
+      if (s.skips) delete s.skips[dateStr];
+      s.logs.push(dateStr);
+      toast('Logged ' + dateStr, 'ok');
     }
-    // Remove any skip for this date — logged and skipped are mutually exclusive
-    if (s.skips) delete s.skips[dateStr];
-    s.logs.push(dateStr);
-    toast('Logged ' + dateStr, 'ok');
   }
   save();
   renderStreaks();
