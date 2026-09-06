@@ -2004,7 +2004,7 @@ function svg(name, size) {
 }
 
 // ── STATE ──
-const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],dismissedStaleLists:[],dismissedStreakNudges:[],onboardingDismissed:false,_v:7};
+const DS={todos:[],lists:[],reminders:[],notes:[],streaks:[],projects:[],templates:[],listFolders:[],noteFolders:[],quickTags:['Kids','Everyone'],streakSkipReasons:[{id:'sick',label:'Sick',color:'#f59e0b'},{id:'travel',label:'Travel',color:'#06b6d4'},{id:'alt-workout',label:'Alt Workout',color:'#8b5cf6'}],usHolidaysEnabled:false,dailyStats:{},syncCode:'',graceWindowHour:9,theme:'light',compactMode:true,myUsername:'',knownUsernames:[],notifications:[],dashSections:{mentions:true,sharedWithYou:true,streakNudge:true,pinnedNote:true,upcoming:true,weeklySummary:true,quickCapture:true,sundayReview:true},dismissedSundayWeek:'',dismissedStreakPlaceholders:[],dismissedSharedItems:[],dismissedStaleLists:[],dismissedStreakNudges:[],onboardingDismissed:false,_deletedIds:{todos:{},lists:{},reminders:{},notes:{}},_v:7};
 let S=loadState(),db=null,unsub=null,unsubSteps=null,unsubRings=null,view='home';
 // TEMPORARY DIAGNOSTIC: stores the last backfill error message (if any) so
 // it can be shown in a persistent, readable/copyable spot in Settings,
@@ -2064,6 +2064,10 @@ function loadState(){
       if(!Array.isArray(loaded.dismissedSharedItems))loaded.dismissedSharedItems=[];
       if(!Array.isArray(loaded.dismissedStaleLists))loaded.dismissedStaleLists=[];
       if(!Array.isArray(loaded.dismissedStreakNudges))loaded.dismissedStreakNudges=[];
+      if(!loaded._deletedIds||typeof loaded._deletedIds!=='object')loaded._deletedIds={todos:{},lists:{},reminders:{},notes:{}};
+      ['todos','lists','reminders','notes'].forEach(type=>{
+        if(!loaded._deletedIds[type]||typeof loaded._deletedIds[type]!=='object')loaded._deletedIds[type]={};
+      });
       if(typeof loaded.usHolidaysEnabled!=='boolean')loaded.usHolidaysEnabled=false;
       if(Array.isArray(loaded.todos))loaded.todos.forEach(t=>{
         if(!Array.isArray(t.subtasks))t.subtasks=[];
@@ -2572,9 +2576,10 @@ function deleteTodo(){
   cancelDueTimeSchedule('todo',id);
   const deletedItem=S.todos.find(t=>t.id===id);
   const deletedIndex=S.todos.findIndex(t=>t.id===id);
-  S.todos=S.todos.filter(t=>t.id!==id);save();closeModal('modal-todo');renderTodos();renderDash();tabs();
+  S.todos=S.todos.filter(t=>t.id!==id);recordTombstone('todos',id);save();closeModal('modal-todo');renderTodos();renderDash();tabs();
   showUndoToast('To-do deleted', () => {
     S.todos.splice(Math.min(deletedIndex,S.todos.length),0,deletedItem);
+    if(S._deletedIds&&S._deletedIds.todos)delete S._deletedIds.todos[id]; // undo removes the tombstone too, since the item is no longer actually deleted
     save();renderTodos();renderDash();tabs();
   });
 }
@@ -2848,11 +2853,13 @@ function swipeDeleteTodo(id) {
   const deletedItem=S.todos.find(t=>t.id===id);
   const deletedIndex=S.todos.findIndex(t=>t.id===id);
   S.todos = S.todos.filter(t => t.id !== id);
+  recordTombstone('todos',id);
   save();
   renderTodos();
   renderDash();
   showUndoToast('To-do deleted', () => {
     S.todos.splice(Math.min(deletedIndex,S.todos.length),0,deletedItem);
+    if(S._deletedIds&&S._deletedIds.todos)delete S._deletedIds.todos[id];
     save();renderTodos();renderDash();
   });
 }
@@ -2861,11 +2868,13 @@ function swipeDeleteRem(id) {
   const deletedItem=S.reminders.find(r=>r.id===id);
   const deletedIndex=S.reminders.findIndex(r=>r.id===id);
   S.reminders = S.reminders.filter(r => r.id !== id);
+  recordTombstone('reminders',id);
   save();
   renderRem();
   renderDash();
   showUndoToast('Reminder deleted', () => {
     S.reminders.splice(Math.min(deletedIndex,S.reminders.length),0,deletedItem);
+    if(S._deletedIds&&S._deletedIds.reminders)delete S._deletedIds.reminders[id];
     save();renderRem();renderDash();
   });
 }
@@ -3087,9 +3096,10 @@ function deleteList(){
   if(!id||!confirm('Delete this list and all its items?'))return;
   const deletedItem=S.lists.find(l=>l.id===id);
   const deletedIndex=S.lists.findIndex(l=>l.id===id);
-  S.lists=S.lists.filter(l=>l.id!==id);save();closeModal('modal-list');renderLists();
+  S.lists=S.lists.filter(l=>l.id!==id);recordTombstone('lists',id);save();closeModal('modal-list');renderLists();
   showUndoToast('List deleted', () => {
     S.lists.splice(Math.min(deletedIndex,S.lists.length),0,deletedItem);
+    if(S._deletedIds&&S._deletedIds.lists)delete S._deletedIds.lists[id];
     save();renderLists();
   });
 }
@@ -3234,6 +3244,7 @@ function toggleListArchivedFromMenu(listId3) {
 function deleteListFromMenu(listIdToDelete) {
   if (!confirm('Delete this list? This cannot be undone.')) return;
   S.lists = S.lists.filter(l => l.id !== listIdToDelete);
+  recordTombstone('lists',listIdToDelete);
   save();
   renderLists();
   toast('List deleted', 'ok');
@@ -4225,7 +4236,7 @@ function clearChecked(lid){
   save();closeModal('modal-list-menu');renderListDet();renderLists();
   toast('Cleared '+checkedCount+' item'+(checkedCount!==1?'s':''));
 }
-function deleteListFromDet(lid){if(!confirm('Delete this list?'))return;S.lists=S.lists.filter(l=>l.id!==lid);save();closeModal('modal-list-menu');closeListDetail();toast('List deleted');}
+function deleteListFromDet(lid){if(!confirm('Delete this list?'))return;S.lists=S.lists.filter(l=>l.id!==lid);recordTombstone('lists',lid);save();closeModal('modal-list-menu');closeListDetail();toast('List deleted');}
 
 // ── REMINDERS ──
 function openReminderModal(id=null){
@@ -4337,9 +4348,10 @@ function deleteReminder(){
   cancelDueTimeSchedule('rem',id);
   const deletedItem=S.reminders.find(r=>r.id===id);
   const deletedIndex=S.reminders.findIndex(r=>r.id===id);
-  S.reminders=S.reminders.filter(r=>r.id!==id);save();closeModal('modal-reminder');renderRem();renderDash();tabs();
+  S.reminders=S.reminders.filter(r=>r.id!==id);recordTombstone('reminders',id);save();closeModal('modal-reminder');renderRem();renderDash();tabs();
   showUndoToast('Reminder deleted', () => {
     S.reminders.splice(Math.min(deletedIndex,S.reminders.length),0,deletedItem);
+    if(S._deletedIds&&S._deletedIds.reminders)delete S._deletedIds.reminders[id];
     save();renderRem();renderDash();tabs();
   });
 }
@@ -5031,6 +5043,143 @@ async function push(){
 // DAY instead of overwriting a single one, then fills in any of the last 14
 // days your local data is missing. Runs once per app session (not a live
 // listener — a one-time catch-up check is what backfilling actually needs).
+// Merges incoming streak data with local streak data, rather than replacing
+// wholesale — this is the actual fix for real data loss found on Sep 4:
+// four days of genuine Steps log entries (Jul 23-26) existed in a backup
+// from Jul 30, but were gone from data exported Sep 4. Root cause: every
+// subsequent Firestore snapshot did S.streaks=data.streaks||[] — a full
+// replace, not a merge, despite the code comment saying "normal merge".
+// If a stale snapshot ever arrived with an OLDER copy of streaks (from
+// another device's earlier session, or any sync race), it would silently
+// overwrite local data that had since progressed further — permanently
+// losing log entries with no error, exactly what happened here. This
+// unions logs/values/skips from both sides per-streak by id, so a stale
+// snapshot can add new streaks or restore ones deleted elsewhere, but can
+// never cause an already-recorded log entry to disappear.
+// ── TOMBSTONE-BASED MERGE (To-Dos, Lists, Reminders, Notes) ────────────────
+// Same underlying problem as the streaks fix: every Firestore snapshot
+// wholesale-replaces these four arrays, which can silently lose data if a
+// stale snapshot (from another device, or a sync race) arrives after local
+// data has progressed further. Streaks' logs array is safely mergeable with
+// a plain union, since logging a day is append-only — nothing legitimately
+// REMOVES an entry. These four types are different: deletion is a normal,
+// frequent, intentional action, so a plain union would make genuine
+// deletions un-deletable (a stale snapshot could resurrect something you
+// just removed, forever).
+//
+// The fix: when something is deleted, record a "tombstone" — its id and the
+// time it was deleted — in S._deletedIds[type], instead of just removing it
+// from the array. This turns "missing from a snapshot" into something a
+// merge can actually reason about:
+//   - Missing AND has a tombstone locally  -> genuinely deleted, stays gone
+//   - Missing AND local has a tombstone that's OLDER than incoming's own
+//     item -> the deletion is stale (item was recreated/undone since),
+//     item wins
+//   - Present in incoming, no tombstone conflict -> keep it
+//   - Present locally only, no tombstone anywhere -> not yet synced, keep it
+//
+// Tombstones themselves are also merged (never lost) and pruned after 30
+// days — long enough that any realistically-delayed device will have
+// synced within that window, short enough not to grow unbounded forever.
+const TOMBSTONE_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Records a tombstone for a deleted item. Call this from every delete
+// function, right alongside removing the item from its array.
+function recordTombstone(type, itemId) {
+  if (!S._deletedIds) S._deletedIds = { todos: {}, lists: {}, reminders: {}, notes: {} };
+  if (!S._deletedIds[type]) S._deletedIds[type] = {};
+  S._deletedIds[type][itemId] = Date.now();
+}
+
+// Merges incoming items (from a Firestore snapshot) with local items, using
+// tombstones to distinguish a genuine deletion from a stale/incomplete
+// snapshot. itemUpdatedAtFn extracts the best available "last touched"
+// timestamp from an item (falls back to createdAt, then 0) — used only to
+// decide whether a tombstone is stale relative to the item's own known age,
+// not for general conflict resolution between two edited copies (a separate,
+// harder problem this merge deliberately does not attempt to solve).
+function mergeItemsWithTombstones(type, incomingItems, localItems, localTombstones, incomingTombstones) {
+  const itemUpdatedAtFn = item => item.updatedAt || item.completedAt || item.createdAt || 0;
+  const myTombstones = (localTombstones && localTombstones[type]) || {};
+  const theirTombstones = (incomingTombstones && incomingTombstones[type]) || {};
+
+  const localById = {};
+  (localItems || []).forEach(item => { localById[item.id] = item; });
+  const incomingById = {};
+  (incomingItems || []).forEach(item => { incomingById[item.id] = item; });
+
+  const resultIds = new Set([...Object.keys(localById), ...Object.keys(incomingById)]);
+  const merged = [];
+
+  resultIds.forEach(id => {
+    const localItem = localById[id];
+    const incomingItem = incomingById[id];
+    const myTombstoneAt = myTombstones[id];
+    const theirTombstoneAt = theirTombstones[id];
+
+    if (localItem && incomingItem) {
+      // Present on both sides — no deletion conflict possible, just include it.
+      // (Field-level edit conflicts are a separate problem not solved here;
+      // this only prevents wholesale data LOSS, not last-write-wins races.)
+      merged.push(incomingItem);
+    } else if (localItem && !incomingItem) {
+      // Missing from incoming: either genuinely deleted elsewhere (their
+      // tombstone exists and is newer than this item's own last-touched
+      // time), or incoming is just stale/hasn't seen it yet — keep it.
+      const deletedElsewhere = theirTombstoneAt && theirTombstoneAt >= itemUpdatedAtFn(localItem);
+      if (!deletedElsewhere) merged.push(localItem);
+    } else if (!localItem && incomingItem) {
+      // Missing locally: either this device deleted it (own tombstone is
+      // newer than incoming's copy), or it's genuinely new from elsewhere.
+      const deletedHere = myTombstoneAt && myTombstoneAt >= itemUpdatedAtFn(incomingItem);
+      if (!deletedHere) merged.push(incomingItem);
+    }
+    // If neither side has the item at all, nothing to add — already deleted
+    // everywhere, or never existed; either way there's nothing to merge.
+  });
+
+  return merged;
+}
+
+// Merges the tombstone records themselves (never lose a deletion record by
+// wholesale-replacing this structure either), then prunes anything past the
+// grace period — a device that's been offline longer than 30 days would
+// need a fresh full resync anyway, so pruning beyond that window is safe.
+function mergeTombstones(incomingDeletedIds, localDeletedIds) {
+  const result = { todos: {}, lists: {}, reminders: {}, notes: {} };
+  const cutoff = Date.now() - TOMBSTONE_GRACE_MS;
+  ['todos', 'lists', 'reminders', 'notes'].forEach(type => {
+    const local = (localDeletedIds && localDeletedIds[type]) || {};
+    const incoming = (incomingDeletedIds && incomingDeletedIds[type]) || {};
+    const combined = { ...incoming, ...local }; // local wins on exact timestamp collision, doesn't matter which since same id+type means same deletion event
+    Object.keys(combined).forEach(id => {
+      if (combined[id] >= cutoff) result[type][id] = combined[id];
+    });
+  });
+  return result;
+}
+
+function mergeStreaksData(incomingStreaks, localStreaks) {
+  const localById = {};
+  (localStreaks || []).forEach(s => { localById[s.id] = s; });
+  const merged = (incomingStreaks || []).map(incoming => {
+    const local = localById[incoming.id];
+    if (!local) return incoming; // genuinely new streak, nothing to merge
+    const mergedLogs = [...new Set([...(local.logs || []), ...(incoming.logs || [])])];
+    const mergedValues = { ...(incoming.values || {}), ...(local.values || {}) };
+    // values: local wins on conflict (same date on both sides) since local
+    // is what the live listener / this device's own edits most recently
+    // touched; incoming only fills in dates local doesn't have at all.
+    const mergedSkips = { ...(incoming.skips || {}), ...(local.skips || {}) };
+    delete localById[incoming.id]; // mark as handled
+    return { ...incoming, logs: mergedLogs, values: mergedValues, skips: mergedSkips };
+  });
+  // Any local streaks not present in the incoming data at all (e.g. created
+  // on this device moments before this snapshot arrived) are kept as-is.
+  Object.values(localById).forEach(leftoverLocal => merged.push(leftoverLocal));
+  return merged;
+}
+
 async function backfillStepsFromLog() {
   if (!db || !S.syncCode || !S.myUsername || !window.__firebase) return;
   const { collection, query, where, getDocs } = window.__firebase;
@@ -5565,12 +5714,18 @@ function startSync(){
                            (S.reminders&&S.reminders.length) || (S.notes&&S.notes.length) ||
                            (S.streaks&&S.streaks.length);
       if(cloudHasData){
-        // Cloud has data — adopt cloud as source of truth for shared fields
-        S.todos=data.todos||[];
-        S.lists=data.lists||[];
-        S.reminders=data.reminders||[];
-        S.notes=data.notes||[];
-        S.streaks=data.streaks||[];
+        // Cloud has data — adopt cloud as source of truth for shared fields.
+        // Streaks specifically use a real merge, not a wholesale replace —
+        // S is loaded from localStorage at every app launch, so this path
+        // runs on EVERY open, not just a genuinely first-ever connection.
+        // Without merging here too, this exact spot carries the identical
+        // stale-data risk fixed in the subsequent-snapshot path below.
+        S.todos=mergeItemsWithTombstones('todos', data.todos||[], S.todos, S._deletedIds, data._deletedIds);
+        S.lists=mergeItemsWithTombstones('lists', data.lists||[], S.lists, S._deletedIds, data._deletedIds);
+        S.reminders=mergeItemsWithTombstones('reminders', data.reminders||[], S.reminders, S._deletedIds, data._deletedIds);
+        S.notes=mergeItemsWithTombstones('notes', data.notes||[], S.notes, S._deletedIds, data._deletedIds);
+        S._deletedIds=mergeTombstones(data._deletedIds, S._deletedIds);
+        S.streaks=mergeStreaksData(data.streaks||[], S.streaks);
         if(Array.isArray(data.notifications))S.notifications=data.notifications;
         if(Array.isArray(data.knownUsernames)){
           const merged=[...new Set([...(S.knownUsernames||[]),...data.knownUsernames])];
@@ -5611,11 +5766,12 @@ function startSync(){
     // Subsequent snapshots: normal merge
     if(data.updatedBy===S.myUsername && data.updatedAt<=(S._lp||0)){setSyncStatus('ok');return;}
     if(data.updatedAt>(S._lp||0)){
-      S.todos=data.todos||[];
-      S.lists=data.lists||[];
-      S.reminders=data.reminders||[];
-      S.notes=data.notes||[];
-      S.streaks=data.streaks||[];
+      S.todos=mergeItemsWithTombstones('todos', data.todos||[], S.todos, S._deletedIds, data._deletedIds);
+      S.lists=mergeItemsWithTombstones('lists', data.lists||[], S.lists, S._deletedIds, data._deletedIds);
+      S.reminders=mergeItemsWithTombstones('reminders', data.reminders||[], S.reminders, S._deletedIds, data._deletedIds);
+      S.notes=mergeItemsWithTombstones('notes', data.notes||[], S.notes, S._deletedIds, data._deletedIds);
+      S._deletedIds=mergeTombstones(data._deletedIds, S._deletedIds);
+      S.streaks=mergeStreaksData(data.streaks||[], S.streaks);
       if(Array.isArray(data.notifications))S.notifications=data.notifications;
       if(Array.isArray(data.knownUsernames)){
         const merged=[...new Set([...(S.knownUsernames||[]),...data.knownUsernames])];
@@ -5651,6 +5807,7 @@ function init(){
   applyCompactMode();
   cleanupAllMentions();
   cleanupOldCompleted();
+  cleanupOldTombstones();
   ensureCurrentYearHolidaysIfEnabled();
   initSwipeDismiss();
   initSwipeTabs();
@@ -6263,9 +6420,11 @@ function insertMDLine(prefix) {
 
 function deleteNoteFromDet() {
   if (!noteId || !confirm('Delete this note?')) return;
+  const deletedNoteId = noteId; // capture before noteId gets nulled below — the undo callback below needs this
   const deletedItem=S.notes.find(n=>n.id===noteId);
   const deletedIndex=S.notes.findIndex(n=>n.id===noteId);
   S.notes = S.notes.filter(n=>n.id!==noteId);
+  recordTombstone('notes',deletedNoteId);
   save();
   document.getElementById('note-detail-view').classList.remove('show');
   document.body.style.overflow = '';
@@ -6274,6 +6433,7 @@ function deleteNoteFromDet() {
   renderNotes();
   showUndoToast('Note deleted', () => {
     S.notes.splice(Math.min(deletedIndex,S.notes.length),0,deletedItem);
+    if(S._deletedIds&&S._deletedIds.notes)delete S._deletedIds.notes[deletedNoteId];
     save();renderNotes();
   });
 }
@@ -7617,6 +7777,23 @@ function toggleCompactMode() {
 // Both todos and reminders are automatically removed from local state once
 // their completedAt timestamp is more than 24 hours old. This runs on init
 // and on a 60-second interval, so the cleanup happens in real time.
+// Purges tombstones older than the grace period — a device offline longer
+// than 30 days would need a full resync anyway, so pruning beyond that
+// window doesn't risk losing protection for any realistically-delayed sync.
+function cleanupOldTombstones() {
+  if (!S._deletedIds) return;
+  const cutoff = Date.now() - TOMBSTONE_GRACE_MS;
+  let changed = false;
+  ['todos', 'lists', 'reminders', 'notes'].forEach(type => {
+    const bucket = S._deletedIds[type];
+    if (!bucket) return;
+    Object.keys(bucket).forEach(id => {
+      if (bucket[id] < cutoff) { delete bucket[id]; changed = true; }
+    });
+  });
+  if (changed) save();
+}
+
 function cleanupOldCompleted() {
   const cutoff = Date.now() - (24 * 60 * 60 * 1000);
   let removedCount = 0;
@@ -9349,6 +9526,17 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.05.04',
+    date: 'Sep 4, 2026',
+    type: 'major',
+    items: [
+      'Extended the same data-loss protection built for Streaks to To-Dos, Lists, Reminders, and Notes. Previously, every Firestore snapshot wholesale-replaced these four arrays — a stale snapshot (from another device, or a sync race) could silently overwrite genuinely newer local data, exactly the bug confirmed causing real lost Steps log entries.',
+      'Since deletion is a normal, frequent action for these four types (unlike streaks\' append-only logs), a simple union-merge would make genuine deletions un-deletable. Built a tombstone system instead: deleting something now records its id and the time it was deleted, alongside removing it. A stale snapshot missing an item is now correctly distinguished from a genuine deletion — missing AND has a matching tombstone means truly gone; missing with NO tombstone means the snapshot just has not caught up yet, and the item is kept.',
+      'Undoing a delete also removes its tombstone, so a restored item cannot later be treated as still-deleted by a subsequent sync. Tombstones are pruned after 30 days — long enough for any realistically-delayed device to have resynced within that window.',
+      'Verified the core merge logic against 6 scenarios before wiring it into the live sync path, including the trickiest edge case: an item recreated with the same id after an old, now-stale tombstone correctly survives rather than being wrongly deleted again.'
+    ]
+  },
   {
     version: '0.05.03',
     date: 'Aug 22, 2026',
