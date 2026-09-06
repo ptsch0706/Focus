@@ -7076,7 +7076,7 @@ function toggleStreakExpand(id, event) {
 // with a date picker limited to the past 30 days. Shows that day's current
 // state and lets the user toggle logged/unlogged. Works for both simple
 // boolean streaks and value-based streaks (steps, etc.).
-function openPastDayLogger(streakId) {
+function openPastDayLogger(streakId, preserveScrollTop) {
   const s = S.streaks.find(x => x.id === streakId);
   if (!s) return;
   const modal = document.getElementById('modal-streak-value');
@@ -7084,10 +7084,13 @@ function openPastDayLogger(streakId) {
   const body = modal.querySelector('.modal-body');
   if (!titleEl || !body) return;
   titleEl.textContent = 'Log a Past Day';
-  // Build date picker: last 30 days, not including today (today has its own button)
+  // Build date picker: last 90 days, not including today (today has its own
+  // button). Extended from an earlier 30-day window specifically to allow
+  // backfilling after a longer gap (e.g. a period where automated logging
+  // silently failed for weeks before being noticed and fixed).
   const today = td();
   const days = [];
-  for (let i = 1; i <= 30; i++) {
+  for (let i = 1; i <= 90; i++) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -7101,7 +7104,7 @@ function openPastDayLogger(streakId) {
   let html = `<div style="font-size:13px;color:var(--ink-mute);margin-bottom:12px">
     Tap a day to log or un-log it. Unscheduled rest days are shown dimmed.
   </div>
-  <div style="max-height:320px;overflow-y:auto">`;
+  <div id="past-day-scroll" style="max-height:320px;overflow-y:auto">`;
   days.forEach(day => {
     const bg = day.isLogged ? `${s.color || 'var(--streak)'}22` : 'transparent';
     const border = day.isLogged ? `border-left:3px solid ${s.color || 'var(--streak)'}` : 'border-left:3px solid transparent';
@@ -7118,6 +7121,10 @@ function openPastDayLogger(streakId) {
   });
   html += '</div>';
   body.innerHTML = html;
+  if (preserveScrollTop != null) {
+    const scrollEl = document.getElementById('past-day-scroll');
+    if (scrollEl) scrollEl.scrollTop = preserveScrollTop;
+  }
   openModal('modal-streak-value');
 }
 
@@ -7126,6 +7133,12 @@ function openPastDayLogger(streakId) {
 function logPastDay(streakId, dateStr) {
   const s = S.streaks.find(x => x.id === streakId);
   if (!s) return;
+  // Capture scroll position before anything rebuilds the list — openPastDayLogger
+  // replaces the whole innerHTML each time, which would otherwise reset the
+  // scrollable list to the top after every single tap, making it tedious to
+  // backfill several consecutive days in one sitting.
+  const scrollEl = document.getElementById('past-day-scroll');
+  const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
   if (!s.logs) s.logs = [];
   if (s.logs.includes(dateStr)) {
     s.logs = s.logs.filter(d => d !== dateStr);
@@ -7133,20 +7146,26 @@ function logPastDay(streakId, dateStr) {
     if (s.values) delete s.values[dateStr];
     toast('Un-logged ' + dateStr);
   } else {
-    // For value-based streaks, ask for the value
+    // For value-based streaks, ask for the value. Defaults the prompt to
+    // target+1 (e.g. 10001 for a 10000-step goal) — a quick, one-tap-away
+    // way to mark a day as met without needing to know or look up the
+    // actual real number, since backfilling several days in a row is
+    // exactly the scenario where re-entering an exact number each time
+    // gets tedious.
     if (s.target) {
       closeModal('modal-streak-value');
-      const input = prompt(`Log ${s.unit || 'value'} for ${dateStr}:`);
-      if (input === null) { openPastDayLogger(streakId); return; }
+      const defaultVal = String(s.target + 1);
+      const input = prompt(`Log ${s.unit || 'value'} for ${dateStr}:`, defaultVal);
+      if (input === null) { openPastDayLogger(streakId, scrollTop); return; }
       const num = parseInt(input);
-      if (isNaN(num) || num < 0) { toast('Enter a valid number', 'err'); openPastDayLogger(streakId); return; }
+      if (isNaN(num) || num < 0) { toast('Enter a valid number', 'err'); openPastDayLogger(streakId, scrollTop); return; }
       if (!s.values) s.values = {};
       s.values[dateStr] = num;
       const meetsGoal = num >= s.target;
       if (meetsGoal) s.logs.push(dateStr);
       save(); renderStreaks(); renderDash();
       toast(meetsGoal ? `Logged ${num} ${s.unit || ''} ✓` : `Logged ${num} — below goal, not counted`, meetsGoal ? 'ok' : '');
-      openPastDayLogger(streakId); // refresh the picker in place, same as every other path through this function
+      openPastDayLogger(streakId, scrollTop); // refresh the picker in place, same as every other path through this function
       return;
     }
     // Remove any skip for this date — logged and skipped are mutually exclusive
@@ -7158,7 +7177,7 @@ function logPastDay(streakId, dateStr) {
   renderStreaks();
   renderDash();
   // Refresh the picker in place so the user sees the update
-  openPastDayLogger(streakId);
+  openPastDayLogger(streakId, scrollTop);
 }
 
 
