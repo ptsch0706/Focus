@@ -7829,6 +7829,15 @@ function cleanupOldCompleted() {
     if (!r.completedAt) return true;
     return r.completedAt >= cutoff;
   });
+  // Record a tombstone for everything just purged — otherwise the merge
+  // system (mergeItemsWithTombstones) has no way to distinguish "this was
+  // completed and correctly auto-purged" from "missing due to a stale
+  // snapshot", and will incorrectly resurrect already-completed items the
+  // next time any snapshot arrives without them. This was a real, confirmed
+  // bug: completed reminders that had already been purged were coming back
+  // as overdue after this exact gap.
+  toRemoveTodos.forEach(t => recordTombstone('todos', t.id));
+  toRemoveReminders.forEach(r => recordTombstone('reminders', r.id));
   removedCount = (beforeTodos - S.todos.length) + (beforeReminders - S.reminders.length);
   if (removedCount > 0) {
     save();
@@ -9537,6 +9546,15 @@ function setTheme(theme) {
 
 // ── CHANGELOG ──
 const CHANGELOG = [
+  {
+    version: '0.05.05',
+    date: 'Sep 5, 2026',
+    type: 'bugfix',
+    items: [
+      'Fixed a real regression from the tombstone-merge feature: completed reminders and to-dos that had already been auto-purged (24 hours after completion) were coming back as overdue after a subsequent sync. Cause: the auto-purge never recorded a tombstone for what it removed, so the merge system had no way to tell "this was completed and correctly cleaned up" apart from "missing because of a stale snapshot" — and treated every purged item as the latter, incorrectly restoring it.',
+      'Fixed by recording a tombstone for everything the 24-hour auto-purge removes, exactly like every other delete path already does. Going forward, completing something and letting it age out will not cause it to resurface. If you already had reminders come back from this, completing them again now will correctly tombstone them this time.'
+    ]
+  },
   {
     version: '0.05.04',
     date: 'Sep 4, 2026',
